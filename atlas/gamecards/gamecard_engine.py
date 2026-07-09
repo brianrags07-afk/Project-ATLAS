@@ -1,184 +1,160 @@
-
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-from atlas.config import ATLAS_VERSION, GAMECARD_DIR, today_str
+from atlas.config import GAMECARD_DIR, today_str
 from atlas.utils.files import save_json
 
-
-def now_iso():
-    return datetime.now(ZoneInfo("America/Chicago")).isoformat()
+GAME_CARD_VERSION = "2.0.0"
 
 
-def build_base_game_card(game, starters=None, lineups=None):
-    """
-    Build one ATLAS Game Card from MLB schedule data plus optional starters/lineups.
-    """
+def _lineup_for_game(lineups, game_pk, team_name):
+    rows = lineups[
+        (lineups["game_pk"] == game_pk) &
+        (lineups["team"] == team_name)
+    ].copy()
 
+    if len(rows):
+        rows = rows.sort_values("batting_order")
+
+    return rows.to_dict("records")
+
+
+def create_game_card(game, daily):
     game_pk = game["gamePk"]
+    date = daily["date"]
 
-    away_team = game["teams"]["away"]["team"]
-    home_team = game["teams"]["home"]["team"]
+    away = game["teams"]["away"]
+    home = game["teams"]["home"]
 
-    away_pitcher = game["teams"]["away"].get("probablePitcher")
-    home_pitcher = game["teams"]["home"].get("probablePitcher")
+    away_team = away["team"]
+    home_team = home["team"]
 
-    card = {
-        "game_pk": game_pk,
-        "game_date": game.get("gameDate"),
-        "venue": game.get("venue", {}).get("name"),
-        "mlb_status": game.get("status", {}).get("detailedState"),
+    away_pitcher = away.get("probablePitcher")
+    home_pitcher = home.get("probablePitcher")
 
-        "teams": {
-            "away": {
+    away_lineup = _lineup_for_game(
+        daily["lineups"], game_pk, away_team["name"]
+    )
+    home_lineup = _lineup_for_game(
+        daily["lineups"], game_pk, home_team["name"]
+    )
+
+    card_id = f"{date}_{game_pk}"
+
+    away_lineup_ready = len(away_lineup) >= 9
+    home_lineup_ready = len(home_lineup) >= 9
+    away_starter_ready = away_pitcher is not None
+    home_starter_ready = home_pitcher is not None
+
+    ready = (
+        away_lineup_ready and home_lineup_ready
+        and away_starter_ready and home_starter_ready
+    )
+
+    warnings = []
+    if not away_starter_ready:
+        warnings.append("Missing away starter")
+    if not home_starter_ready:
+        warnings.append("Missing home starter")
+    if not away_lineup_ready:
+        warnings.append("Missing or incomplete away lineup")
+    if not home_lineup_ready:
+        warnings.append("Missing or incomplete home lineup")
+
+    return {
+        "metadata": {
+            "game_card_version": GAME_CARD_VERSION,
+            "card_id": card_id,
+            "game_pk": game_pk,
+            "date": date,
+            "mlb_status": game.get("status", {}).get("detailedState"),
+        },
+
+        "pregame": {
+            "venue": game.get("venue", {}).get("name"),
+            "away_team": {
                 "team_id": away_team.get("id"),
                 "name": away_team.get("name"),
                 "abbr": away_team.get("abbreviation"),
-                "probable_pitcher": {
+                "starter": {
                     "id": away_pitcher.get("id") if away_pitcher else None,
                     "name": away_pitcher.get("fullName") if away_pitcher else "TBD",
-                    "ready": away_pitcher is not None,
                 },
-                "lineup": [],
+                "lineup": away_lineup,
             },
-            "home": {
+            "home_team": {
                 "team_id": home_team.get("id"),
                 "name": home_team.get("name"),
                 "abbr": home_team.get("abbreviation"),
-                "probable_pitcher": {
+                "starter": {
                     "id": home_pitcher.get("id") if home_pitcher else None,
                     "name": home_pitcher.get("fullName") if home_pitcher else "TBD",
-                    "ready": home_pitcher is not None,
                 },
-                "lineup": [],
+                "lineup": home_lineup,
             },
         },
 
         "readiness": {
-            "away_starter_ready": away_pitcher is not None,
-            "home_starter_ready": home_pitcher is not None,
-            "away_lineup_ready": False,
-            "home_lineup_ready": False,
-            "pregame_status": "PARTIAL",
-            "warnings": [],
+            "away_starter_ready": away_starter_ready,
+            "home_starter_ready": home_starter_ready,
+            "away_lineup_ready": away_lineup_ready,
+            "home_lineup_ready": home_lineup_ready,
+            "pregame_status": "READY" if ready else "PARTIAL",
+            "warnings": warnings,
         },
 
-        "atlas": {
-            "version": ATLAS_VERSION,
-            "created_at": now_iso(),
-            "updated_at": now_iso(),
-            "engine_history": ["gamecard_engine.build_base_game_card"],
-        },
-
-        "layers": {
-            "daily_data": {},
-            "identity": {},
-            "matchup": {},
-            "features": {},
-            "predictions": {
-                "moneyline": None,
-                "totals": None,
-                "props": {},
-            },
-            "live": {},
-            "postgame": {},
-            "learning": {},
-        },
+        "series": {},
+        "travel": {},
+        "bullpen": {},
+        "weather": {},
+        "umpire": {},
+        "identity": {},
+        "matchup": {},
+        "features": {},
+        "prediction": {},
+        "live": {},
+        "postgame": {},
+        "learning": {},
     }
 
-    if not away_pitcher:
-        card["readiness"]["warnings"].append("Missing away probable pitcher")
 
-    if not home_pitcher:
-        card["readiness"]["warnings"].append("Missing home probable pitcher")
-
-    return card
-
-
-def attach_lineups(card, lineups):
-    """
-    Attach confirmed lineup rows from lineups DataFrame to a Game Card.
-    """
-
-    game_pk = card["game_pk"]
-
-    for side in ["away", "home"]:
-        team_name = card["teams"][side]["name"]
-        team_rows = lineups[
-            (lineups["game_pk"] == game_pk) &
-            (lineups["team"] == team_name)
-        ].copy()
-
-        if len(team_rows) > 0:
-            team_rows = team_rows.sort_values("batting_order")
-
-        lineup = []
-
-        for _, row in team_rows.iterrows():
-            lineup.append({
-                "batting_order": int(row["batting_order"]),
-                "player_id": int(row["player_id"]),
-                "player_name": row["player_name"],
-                "bat_side": row["bat_side"],
-                "throw_side": row["throw_side"],
-                "position": row["position"],
-            })
-
-        card["teams"][side]["lineup"] = lineup
-        card["readiness"][f"{side}_lineup_ready"] = len(lineup) >= 9
-
-        if len(lineup) < 9:
-            card["readiness"]["warnings"].append(
-                f"Missing or incomplete {side} lineup"
-            )
-
-    required_ready = (
-        card["readiness"]["away_starter_ready"] and
-        card["readiness"]["home_starter_ready"] and
-        card["readiness"]["away_lineup_ready"] and
-        card["readiness"]["home_lineup_ready"]
-    )
-
-    card["readiness"]["pregame_status"] = "READY" if required_ready else "PARTIAL"
-    card["atlas"]["updated_at"] = now_iso()
-    card["atlas"]["engine_history"].append("gamecard_engine.attach_lineups")
-
-    return card
+def build_game_cards(daily):
+    cards = []
+    for game in daily["games"]:
+        cards.append(create_game_card(game, daily))
+    return cards
 
 
-def save_game_card(card, date=None):
-    """
-    Save a Game Card JSON file.
-    """
-
+def save_game_cards(cards, date=None):
     if date is None:
         date = today_str()
 
-    out_dir = GAMECARD_DIR / date
-    out_path = out_dir / f"gamecard_{card['game_pk']}.json"
-
-    save_json(card, out_path)
-
-    return out_path
-
-
-def build_and_save_game_cards(games, lineups=None, date=None):
-    """
-    Build and save one Game Card per game.
-    """
-
-    cards = []
     paths = []
+    for card in cards:
+        path = GAMECARD_DIR / date / f"gamecard_{card['metadata']['game_pk']}.json"
+        paths.append(save_json(card, path))
 
-    for game in games:
-        card = build_base_game_card(game)
+    return paths
 
-        if lineups is not None:
-            card = attach_lineups(card, lineups)
 
-        path = save_game_card(card, date=date)
+def run_gamecard_engine(daily, save=True):
+    cards = build_game_cards(daily)
 
-        cards.append(card)
-        paths.append(path)
+    paths = []
+    if save:
+        paths = save_game_cards(cards, daily["date"])
 
-    return cards, paths
+    ready = sum(c["readiness"]["pregame_status"] == "READY" for c in cards)
+    partial = sum(c["readiness"]["pregame_status"] == "PARTIAL" for c in cards)
+
+    print("=" * 60)
+    print("ATLAS GAME CARD ENGINE")
+    print("=" * 60)
+    print(f"Date.............. {daily['date']}")
+    print(f"Game Cards........ {len(cards)}")
+    print(f"READY............. {ready}")
+    print(f"PARTIAL........... {partial}")
+    print("=" * 60)
+
+    return {
+        "date": daily["date"],
+        "cards": cards,
+        "paths": paths,
+    }
