@@ -6,7 +6,7 @@ import pandas as pd
 from atlas.config import MASTER_DIR, DATA_DIR
 
 PITCHER_ENGINE_VERSION = "1.0.0"
-PITCHER_CARD_VERSION = "1.0.0"
+PITCHER_CARD_VERSION = "1.1.0"
 
 PITCHER_DIR = DATA_DIR / "history" / "pitchers"
 
@@ -96,6 +96,15 @@ def build_pitcher_card(pitcher_df):
         "weather_splits": {},
         "rest_splits": {},
         "lineup_matchups": {},
+
+        # Pitcher Card v1.1 placeholders
+        "inning_profile": {},
+        "first_inning_profile": {},
+        "times_through_order": {},
+        "pitch_count_buckets": {},
+        "velocity_by_inning": {},
+        "whiffs_by_inning": {},
+        "yrfi_nrfi_profile": {},
 
         "identity": {
             "identity_version": "empty",
