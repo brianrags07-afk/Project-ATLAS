@@ -1,0 +1,38 @@
+
+from atlas.config.paths import (
+    CODE_ROOT,
+    DATA_ROOT,
+    MASTER_DIR,
+    MASTER_GAME_DATABASE,
+    MASTER_PITCH_DATABASE,
+    TEAM_GAME_STATE,
+    QUESTIONS_DIR,
+    TAXONOMY_DIR,
+    EVIDENCE_DIR,
+    HISTORY_DIR,
+    TEAM_CARDS_DIR,
+    PITCHER_CARDS_DIR,
+    PLAYER_CARDS_DIR,
+    GAME_CARDS_DIR,
+)
+
+# Backward-compatible alias used by existing ATLAS engines.
+DATA_DIR = DATA_ROOT
+
+__all__ = [
+    "CODE_ROOT",
+    "DATA_ROOT",
+    "DATA_DIR",
+    "MASTER_DIR",
+    "MASTER_GAME_DATABASE",
+    "MASTER_PITCH_DATABASE",
+    "TEAM_GAME_STATE",
+    "QUESTIONS_DIR",
+    "TAXONOMY_DIR",
+    "EVIDENCE_DIR",
+    "HISTORY_DIR",
+    "TEAM_CARDS_DIR",
+    "PITCHER_CARDS_DIR",
+    "PLAYER_CARDS_DIR",
+    "GAME_CARDS_DIR",
+]
