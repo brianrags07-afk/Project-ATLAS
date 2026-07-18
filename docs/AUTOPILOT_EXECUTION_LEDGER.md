@@ -341,12 +341,21 @@ skipped**, matching the repair-time result exactly.
 - No duplicate identity-pipeline implementations exist: exactly one module
   each for the registry, timeline, and matchup builder, with no other
   `atlas/` file importing or reimplementing their logic.
-- One pre-existing, unrelated dead-code item was noted (not part of this
-  repair and out of scope to fix here): `atlas/config.py` is a legacy
+- One pre-existing, unrelated dead-code item was noted at the time (not
+  part of that repair, out of scope then): `atlas/config.py` was a legacy
   module shadowed by the `atlas/config/` package (which all identity
-  modules and tests correctly import from); it predates this repair
-  (`git log` shows its last real change in the original "Daily Data Engine
-  v1" commit) and is not read by any current code path.
+  modules and tests correctly import from); it predated that repair
+  (`git log` showed its last real change in the original "Daily Data
+  Engine v1" commit). That prior note incorrectly concluded it was "not
+  read by any current code path" — in fact `atlas/gamecards/
+  gamecard_engine.py` and `atlas/daily/data_engine.py` imported
+  `GAMECARD_DIR`, `MLB_API`, and `today_str` from `atlas.config`, names
+  that existed only in the dead shadowed file, not in the `atlas/config/`
+  package. Because the package always wins the import (confirmed via
+  `atlas.config.__file__`), both modules raised `ImportError` at import
+  time. This was fixed in the dev-data-bundle session below: the missing
+  names were added to `atlas/config/paths.py`/`atlas/config/__init__.py`
+  and the dead `atlas/config.py` file was deleted.
 
 **Skipped production-only tests and required Google Drive artifacts** (all
 three skip cleanly, never fail, when these are absent — as confirmed in this
@@ -383,4 +392,65 @@ into `atlas_reference/samples/`. Per governance, no new builder or test may
 be written against fabricated 2025 data. This verification session does not
 change that blocker; work on 2E.5A can resume once production Drive access
 or a governed redacted 2025 sample is available.
+
+## Data-bridge tooling (2026-07-18): versioned GitHub Release dev-data bundle
+
+This session did **not** advance Phase 2E.5A's scientific work (still
+blocked by STOP CONDITION 3). Instead, per an explicit request, it built the
+safe infrastructure to remove the hard Google Drive dependency for future
+sessions/developers, without fabricating or uploading any data:
+
+- `atlas_reference/dev_data_bundle_required_artifacts.json` — the minimum
+  real production artifacts required to execute Phase 2E.5A through Phase
+  2E completion, in dependency order. Every `known_*` value in it is copied
+  verbatim from the already-committed `atlas_reference/schemas/` catalog
+  (a real prior production scan); artifacts whose 2025 path could not be
+  confirmed against that catalog (2025 identity timeline/matchups, the
+  lineup-starter interaction output — two candidate paths exist across
+  this repo's own docs and are both listed) are explicitly marked
+  `path_unconfirmed_requires_colab_verification` with no fabricated
+  `known_*` values.
+- `atlas_reference/manifests/dev_data_bundle_manifest.schema.json` — the
+  manifest specification (original/bundled path, size, row/column count,
+  primary key, SHA-256, season, purpose).
+- `scripts/dev_data_bundle/colab_package_dev_data_bundle.py` — Colab
+  packaging script: reads only the allowlisted artifacts from
+  `/content/drive/MyDrive/Project_Atlas`, verifies existence/grain
+  uniqueness, stages, writes the manifest, compresses, and splits into
+  <2 GiB parts.
+- `scripts/dev_data_bundle/bootstrap_dev_data_bundle.py` — downloads a
+  private GitHub Release asset via authenticated GitHub API access,
+  verifies every SHA-256 (parts, reassembled archive, extracted
+  artifacts), extracts outside the repository, and sets/documents
+  `ATLAS_DATA_ROOT`. Fails with a distinct exit code for each of:
+  missing/invalid auth, missing release/asset, checksum mismatch, and
+  missing files after extraction.
+- `atlas/config/paths.py` / `atlas/config/__init__.py`: added the
+  previously-missing `GAMECARD_DIR`/`MLB_API`/`today_str`/`RAW_DIR`/
+  `DAILY_DIR`/`SNAPSHOT_DIR`/`ensure_dirs` names (see the corrected
+  dead-code note above) so every production module that imports from
+  `atlas.config` honors `ATLAS_DATA_ROOT`; deleted the now-fully-superseded
+  dead `atlas/config.py`. The Google Drive path remains the untouched
+  default when `ATLAS_DATA_ROOT` is unset.
+- `docs/DEV_DATA_BUNDLE.md` — the packaging/upload/bootstrap commands and
+  the bundle versioning/replacement policy.
+- Tests: `tests/test_dev_data_bundle_manifest.py`,
+  `tests/test_dev_data_bundle_packaging.py`,
+  `tests/test_dev_data_bundle_bootstrap.py`,
+  `tests/test_atlas_config_paths.py` — 48 new tests, all against synthetic
+  fixtures / monkeypatched network calls, none touching real production
+  data.
+
+**Full regression suite**: `python -m pytest tests/ -q` → **154 passed
+(106 → 154), 111 failed, 3 skipped**. The 111 failures and 3 skips are
+unchanged and are the same pre-existing Drive-absence cases documented
+above; none are new.
+
+**Effect on STOP CONDITION 3**: unchanged. This tooling does not itself
+retrieve or vendor any 2025 production data — a maintainer with real Colab
+Drive access must still run the packaging script and publish a release
+before the bootstrap script has anything to download. Once that happens,
+Phase 2E.5A can proceed using `ATLAS_DATA_ROOT` instead of a live Drive
+mount.
+
 
