@@ -300,7 +300,12 @@ def build_pregame_team_identity_timeline(
         *shifted_columns,
     ]
 
-    timeline = source.merge(
+    timeline_base = source.drop(
+        columns=source_columns,
+        errors="ignore",
+    )
+
+    timeline = timeline_base.merge(
         prior_snapshot[merge_columns],
         on=["team", "game_date"],
         how="left",
