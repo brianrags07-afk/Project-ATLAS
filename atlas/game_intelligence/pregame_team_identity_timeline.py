@@ -69,6 +69,8 @@ CONTEXT_COLUMNS: Final[tuple[str, ...]] = (
     "home_away",
 )
 
+# Minimum prior-game counts used to emit the real contract's boolean
+# ``identity_sample_{N}_plus`` sample-size confidence flags.
 SAMPLE_THRESHOLDS: Final[tuple[int, ...]] = (1, 5, 10, 20, 40)
 
 # Number of representative features re-derived and cross-checked during the
