@@ -289,3 +289,168 @@ workspace, cannot run in this sandbox):
 **Repair commit**: recorded via `engine-tools-report_progress` immediately
 following this ledger update (see git log for the exact hash).
 
+## Post-merge verification (2026-07-18): Phase 2E.1–2E.3A repair
+
+The recovery milestone above was merged to `main` via PR #2. This section
+records an independent post-merge audit of that merged state — no code was
+rebuilt.
+
+**Merge commit**: `ff970bbbebde29fe2ae78fd2db62d9d259ad05c9` ("Merge pull
+request #2 from brianrags07-afk/copilot/continue-phase-2e-development").
+
+**Repair commit**: `08498e3a0263de8bbe1e291114ce3211a3b71e69` ("Repair
+fabricated Phase 2E.1-2E.3A identity pipeline against real ATLAS contract"),
+with a follow-up documentation-only commit `35636b4` ("Add clarifying
+comment for identity sample thresholds") also included in the merge.
+
+**Full regression suite**: `python -m pytest tests/ -q` → **106 passed, 111
+failed, 3 skipped**. Identical to the counts recorded at repair time; all 111
+failures are pre-existing `FileNotFoundError`/`AssertionError`s caused by the
+absence of the `/content/drive/MyDrive/Project_Atlas` production workspace in
+this sandbox (scoring timelines, team/game outcome classifiers, prediction
+logic policy, etc.) — none are new and none touch the repaired identity
+modules.
+
+**Focused Phase 2E.1/2E.2/2E.3A suite**: `python -m pytest
+tests/test_pregame_identity_source_registry.py
+tests/test_pregame_team_identity_timeline.py
+tests/test_pregame_identity_matchup_builder.py -v` → **27 passed, 3
+skipped**, matching the repair-time result exactly.
+
+**Contract conformance re-verified independently**:
+- `atlas_reference/schemas/data__game_intelligence__pregame_identity_registry__2024__pregame_identity_source_registry.csv.schema.json`
+  confirms the authoritative registry contract is 121 rows / 10 columns
+  (`column, dtype, family, source_status, same_game_safe, requires_shift,
+  historical_aggregation_allowed, non_null_rows, unique_values, reason`).
+  `atlas/game_intelligence/pregame_identity_source_registry.py`'s
+  `IDENTITY_SOURCE_CLASSIFICATION` table and `assert_matches_frozen_contract`
+  enforce exactly this shape.
+- `atlas/game_intelligence/pregame_team_identity_timeline.py` still computes
+  a strictly-prior-date expanding aggregate
+  (`_strictly_prior_date_expanding_aggregates`) — same-date (doubleheader)
+  games are excluded from each other's history, preserving pregame/postgame
+  temporal integrity.
+- `atlas/config/paths.py` still defaults `DATA_ROOT`/`CODE_ROOT` to the
+  original hard-coded `/content/drive/MyDrive/Project_Atlas` production
+  paths, only overridable via `ATLAS_DATA_ROOT`/`ATLAS_CODE_ROOT` env vars;
+  the production entry point was not altered.
+- A repo-wide search for the previously fabricated column/naming patterns
+  (`identity_feature_name`, `min_lagged_days`, `identity_edge_abs__`) returns
+  zero matches in any `atlas/` or `tests/` file — only this ledger's
+  historical description of the old defect still mentions them.
+- No duplicate identity-pipeline implementations exist: exactly one module
+  each for the registry, timeline, and matchup builder, with no other
+  `atlas/` file importing or reimplementing their logic.
+- One pre-existing, unrelated dead-code item was noted at the time (not
+  part of that repair, out of scope then): `atlas/config.py` was a legacy
+  module shadowed by the `atlas/config/` package (which all identity
+  modules and tests correctly import from); it predated that repair
+  (`git log` showed its last real change in the original "Daily Data
+  Engine v1" commit). That prior note incorrectly concluded it was "not
+  read by any current code path" — in fact `atlas/gamecards/
+  gamecard_engine.py` and `atlas/daily/data_engine.py` imported
+  `GAMECARD_DIR`, `MLB_API`, and `today_str` from `atlas.config`, names
+  that existed only in the dead shadowed file, not in the `atlas/config/`
+  package. Because the package always wins the import (confirmed via
+  `atlas.config.__file__`), both modules raised `ImportError` at import
+  time. This was fixed in the dev-data-bundle session below: the missing
+  names were added to `atlas/config/paths.py`/`atlas/config/__init__.py`
+  and the dead `atlas/config.py` file was deleted.
+
+**Skipped production-only tests and required Google Drive artifacts** (all
+three skip cleanly, never fail, when these are absent — as confirmed in this
+sandbox):
+
+1. `tests/test_pregame_identity_source_registry.py::test_2024_registry_reproduction_against_production_workspace`
+   requires `$ATLAS_DATA_ROOT/game_intelligence/pregame_identity_registry/2024/pregame_identity_source_registry.csv`
+   (default: `/content/drive/MyDrive/Project_Atlas/data/game_intelligence/pregame_identity_registry/2024/pregame_identity_source_registry.csv`).
+2. `tests/test_pregame_team_identity_timeline.py::test_2024_timeline_reproduction_against_production_workspace`
+   requires all three of:
+   `.../game_intelligence/game_flow_facts/2024/team_game_flow_facts.parquet`,
+   `.../game_intelligence/pregame_identity_registry/2024/pregame_identity_source_registry.csv`,
+   `.../game_intelligence/pregame_team_identities/2024/pregame_team_identity_timeline.parquet`.
+3. `tests/test_pregame_identity_matchup_builder.py::test_2024_matchup_reproduction_against_production_workspace`
+   requires all three of:
+   `.../game_intelligence/pregame_team_identities/2024/pregame_team_identity_timeline.parquet`,
+   `.../game_intelligence/pregame_identity_registry/2024/pregame_identity_source_registry.csv`,
+   `.../game_intelligence/pregame_identity_matchups/2024/pregame_identity_matchups.parquet`.
+
+All paths above are rooted at `$ATLAS_DATA_ROOT` (default
+`/content/drive/MyDrive/Project_Atlas/data`), i.e. the Google
+Drive-backed Colab production workspace.
+
+**Verdict**: the merged repair is clean. No schema drift, no invented
+columns, no duplicate implementations, no new hard-coded paths, no temporal
+leakage, and no broken callers were found. No corrective PR is needed.
+
+**Next milestone**: Phase 2E.5A (2025 blind-validation input readiness)
+remains the next authoritative unfinished ATLAS milestone, and remains
+blocked by **STOP CONDITION 3** — the real 2025 pregame identity, bullpen,
+and lineup-starter production artifacts exist only in the Google
+Drive-backed Colab runtime and are not present in this sandbox or vendored
+into `atlas_reference/samples/`. Per governance, no new builder or test may
+be written against fabricated 2025 data. This verification session does not
+change that blocker; work on 2E.5A can resume once production Drive access
+or a governed redacted 2025 sample is available.
+
+## Data-bridge tooling (2026-07-18): versioned GitHub Release dev-data bundle
+
+This session did **not** advance Phase 2E.5A's scientific work (still
+blocked by STOP CONDITION 3). Instead, per an explicit request, it built the
+safe infrastructure to remove the hard Google Drive dependency for future
+sessions/developers, without fabricating or uploading any data:
+
+- `atlas_reference/dev_data_bundle_required_artifacts.json` — the minimum
+  real production artifacts required to execute Phase 2E.5A through Phase
+  2E completion, in dependency order. Every `known_*` value in it is copied
+  verbatim from the already-committed `atlas_reference/schemas/` catalog
+  (a real prior production scan); artifacts whose 2025 path could not be
+  confirmed against that catalog (2025 identity timeline/matchups, the
+  lineup-starter interaction output — two candidate paths exist across
+  this repo's own docs and are both listed) are explicitly marked
+  `path_unconfirmed_requires_colab_verification` with no fabricated
+  `known_*` values.
+- `atlas_reference/manifests/dev_data_bundle_manifest.schema.json` — the
+  manifest specification (original/bundled path, size, row/column count,
+  primary key, SHA-256, season, purpose).
+- `scripts/dev_data_bundle/colab_package_dev_data_bundle.py` — Colab
+  packaging script: reads only the allowlisted artifacts from
+  `/content/drive/MyDrive/Project_Atlas`, verifies existence/grain
+  uniqueness, stages, writes the manifest, compresses, and splits into
+  <2 GiB parts.
+- `scripts/dev_data_bundle/bootstrap_dev_data_bundle.py` — downloads a
+  private GitHub Release asset via authenticated GitHub API access,
+  verifies every SHA-256 (parts, reassembled archive, extracted
+  artifacts), extracts outside the repository, and sets/documents
+  `ATLAS_DATA_ROOT`. Fails with a distinct exit code for each of:
+  missing/invalid auth, missing release/asset, checksum mismatch, and
+  missing files after extraction.
+- `atlas/config/paths.py` / `atlas/config/__init__.py`: added the
+  previously-missing `GAMECARD_DIR`/`MLB_API`/`today_str`/`RAW_DIR`/
+  `DAILY_DIR`/`SNAPSHOT_DIR`/`ensure_dirs` names (see the corrected
+  dead-code note above) so every production module that imports from
+  `atlas.config` honors `ATLAS_DATA_ROOT`; deleted the now-fully-superseded
+  dead `atlas/config.py`. The Google Drive path remains the untouched
+  default when `ATLAS_DATA_ROOT` is unset.
+- `docs/DEV_DATA_BUNDLE.md` — the packaging/upload/bootstrap commands and
+  the bundle versioning/replacement policy.
+- Tests: `tests/test_dev_data_bundle_manifest.py`,
+  `tests/test_dev_data_bundle_packaging.py`,
+  `tests/test_dev_data_bundle_bootstrap.py`,
+  `tests/test_atlas_config_paths.py` — 48 new tests, all against synthetic
+  fixtures / monkeypatched network calls, none touching real production
+  data.
+
+**Full regression suite**: `python -m pytest tests/ -q` → **154 passed
+(106 → 154), 111 failed, 3 skipped**. The 111 failures and 3 skips are
+unchanged and are the same pre-existing Drive-absence cases documented
+above; none are new.
+
+**Effect on STOP CONDITION 3**: unchanged. This tooling does not itself
+retrieve or vendor any 2025 production data — a maintainer with real Colab
+Drive access must still run the packaging script and publish a release
+before the bootstrap script has anything to download. Once that happens,
+Phase 2E.5A can proceed using `ATLAS_DATA_ROOT` instead of a live Drive
+mount.
+
+

@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://project-atlas.local/schemas/dev_data_bundle_manifest.schema.json",
+  "title": "ATLAS Development Data Bundle Manifest",
+  "description": "Specification for the manifest written by the Colab dev-data-bundle packaging script and consumed by the repository bootstrap script. The manifest is the single source of truth for what a released development-data bundle contains and how to verify it. It must never contain fabricated values: every field is either measured directly from a real production file at packaging time or copied verbatim from the authoritative schema catalog under atlas_reference/schemas/.",
+  "type": "object",
+  "required": [
+    "bundle_name",
+    "bundle_version",
+    "created_utc",
+    "colab_project_root",
+    "source_repository",
+    "packaging_engine_version",
+    "artifact_count",
+    "artifacts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "bundle_name": {
+      "type": "string",
+      "description": "Stable identifier for this bundle family, e.g. 'atlas-dev-data-bundle'."
+    },
+    "bundle_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of this bundle. Must match the GitHub Release tag (e.g. v1.2.0 -> 1.2.0)."
+    },
+    "created_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp the bundle was packaged, ISO-8601."
+    },
+    "colab_project_root": {
+      "type": "string",
+      "description": "The Google Drive project root the artifacts were read from at packaging time, e.g. /content/drive/MyDrive/Project_Atlas."
+    },
+    "source_repository": {
+      "type": "string",
+      "description": "owner/repo of the Project ATLAS repository this bundle was packaged against."
+    },
+    "source_commit": {
+      "type": ["string", "null"],
+      "description": "Git commit SHA of the repository checkout used to determine the required-artifacts list, if known."
+    },
+    "packaging_engine_version": {
+      "type": "string",
+      "description": "Version identifier of the packaging script that produced this manifest."
+    },
+    "part_files": {
+      "type": "array",
+      "description": "Ordered list of compressed archive part filenames if the bundle was split. Empty or omitted when the bundle fits in a single archive under the size ceiling.",
+      "items": {
+        "type": "object",
+        "required": ["filename", "part_index", "size_bytes", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "filename": {"type": "string"},
+          "part_index": {"type": "integer", "minimum": 0},
+          "size_bytes": {"type": "integer", "minimum": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "archive_format": {
+      "type": "string",
+      "enum": ["tar.gz"],
+      "default": "tar.gz"
+    },
+    "archive_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the single, unsplit archive before any splitting was applied. Used by the bootstrap script to verify reassembled parts."
+    },
+    "max_part_size_bytes": {
+      "type": "integer",
+      "description": "Ceiling used when splitting the archive. Must be strictly less than 2147483648 (2 GiB)."
+    },
+    "artifact_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of entries in 'artifacts'. Must equal len(artifacts)."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/artifact"}
+    }
+  },
+  "definitions": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "artifact_id",
+        "original_production_path",
+        "bundled_relative_path",
+        "file_size_bytes",
+        "row_count",
+        "column_count",
+        "primary_key",
+        "sha256",
+        "season",
+        "purpose"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "description": "Stable slug matching the artifact_id in atlas_reference/dev_data_bundle_required_artifacts.json."
+        },
+        "original_production_path": {
+          "type": "string",
+          "description": "Path relative to the Colab Google Drive Project_Atlas root, e.g. data/game_intelligence/clean_bullpen_pregame_facts/2025/clean_bullpen_pregame_facts.parquet."
+        },
+        "bundled_relative_path": {
+          "type": "string",
+          "description": "Path of the file inside the staged bundle/archive, mirroring original_production_path under a 'data/' prefix."
+        },
+        "file_size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exact size in bytes, measured from the real file at packaging time."
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exact row count, measured from the real file at packaging time (e.g. via pyarrow.parquet.ParquetFile metadata or a CSV line count)."
+        },
+        "column_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exact column count, measured from the real file at packaging time."
+        },
+        "primary_key": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "description": "Column(s) that form the artifact's unique grain, e.g. ['game_pk', 'team']. Must never be a player-name column when a player-id column exists."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the file's exact bytes, computed at packaging time."
+        },
+        "season": {
+          "type": ["integer", "string"],
+          "description": "The ATLAS season the artifact pertains to, or 'multi_season' for shared/unpartitioned artifacts."
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Short human-readable statement of why this artifact is required and which builder/phase consumes it."
+        },
+        "schema_reference": {
+          "type": ["string", "null"],
+          "description": "Relative path under atlas_reference/schemas/ describing this artifact's authoritative contract, if one exists."
+        }
+      }
+    }
+  }
+}
