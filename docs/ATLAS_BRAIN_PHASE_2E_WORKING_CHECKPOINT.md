@@ -1,5 +1,15 @@
 # ATLAS Brain Phase 2E Working Checkpoint
 
+> **Superseded:** This checkpoint only covers progress through Phase 2E.3A
+> and is retained for historical context. Phases 2E.3B through 2E.4G have
+> since completed and been frozen (see
+> `docs/ATLAS_BRAIN_PHASE_2E_4F_TO_4G_CHECKPOINT.md` and
+> `docs/ATLAS_BRAIN_PHASE_2E_4G_IMMUTABLE_CONCEPT_FREEZE.md`). The current
+> open phase is 2E.5A (see
+> `docs/ATLAS_BRAIN_PHASE_2E_5A_2025_VALIDATION_INPUT_READINESS.md`). For the
+> authoritative, continuously updated status, see
+> `docs/AUTOPILOT_EXECUTION_LEDGER.md`.
+
 ## Status
 
 Phase 2E is **working and artifact-complete through Phase 2E.3A**, but it is

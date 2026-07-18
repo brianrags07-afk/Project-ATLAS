@@ -1,5 +1,9 @@
 # Project Atlas Backlog
 
+> **Status note:** This is the original idea backlog and predates Phases
+> 2A–2E. See `docs/AUTOPILOT_EXECUTION_LEDGER.md` for the current
+> authoritative remaining-tasks list.
+
 ## Ideas to Test
 
 - Team Identity Engine
