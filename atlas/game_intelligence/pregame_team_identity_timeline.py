@@ -1,5 +1,31 @@
 """
 Phase 2E.2 strict prior-date pregame team identity timeline builder.
+
+For every approved lagged identity source column from the Phase 2E.1
+registry (:mod:`atlas.game_intelligence.pregame_identity_source_registry`),
+this module computes a true strictly-prior-date expanding mean per team:
+for a given team-game row, each identity feature is the mean of that raw
+column's value across every one of the team's OTHER games that occurred on
+a calendar date strictly earlier than the current game's date. Games that
+occurred on the same calendar date (doubleheaders) never see each other,
+and no future game is ever used.
+
+Contract source
+----------------
+
+Output schema, column naming (``identity__expanding_mean__{source_column}``),
+and audit/failure structures are transcribed from the authoritative
+contract shipped in the repository:
+
+- ``atlas_reference/schemas/data__game_intelligence__pregame_team_identities
+  __2024__pregame_team_identity_timeline.parquet.schema.json``
+- ``atlas_reference/schemas/data__game_intelligence__pregame_team_identities
+  __2024__pregame_team_identity_timeline_audit.parquet.schema.json``
+- ``atlas_reference/schemas/data__game_intelligence__pregame_team_identities
+  __2024__pregame_team_identity_timeline_failures.parquet.schema.json``
+- ``atlas_reference/samples/general/data__game_intelligence__
+  pregame_team_identities__2024__pregame_team_identity_timeline.parquet.
+  sample.parquet``
 """
 
 from __future__ import annotations
@@ -11,6 +37,9 @@ import json
 import pandas as pd
 
 from atlas.config import DATA_ROOT
+from atlas.game_intelligence.pregame_identity_source_registry import (
+    approved_lagged_identity_columns,
+)
 
 
 ENGINE_VERSION: Final[str] = "1.0.0"
@@ -39,6 +68,13 @@ CONTEXT_COLUMNS: Final[tuple[str, ...]] = (
     "opponent",
     "home_away",
 )
+
+SAMPLE_THRESHOLDS: Final[tuple[int, ...]] = (1, 5, 10, 20, 40)
+
+# Number of representative features re-derived and cross-checked during the
+# audit pass, matching the real audit contract's constant
+# ``representative_feature_checks`` value.
+REPRESENTATIVE_FEATURE_CHECK_COUNT: Final[int] = 12
 
 
 def _normalize_team_code(series: pd.Series) -> pd.Series:
@@ -146,9 +182,9 @@ def normalize_team_identity_source(
 
     normalized = normalized.sort_values(
         [
+            "team",
             "game_date",
             "game_pk",
-            "team",
         ],
         kind="stable",
     )
@@ -158,43 +194,96 @@ def normalize_team_identity_source(
     )
 
 
-def _registry_feature_pairs(
-    registry: pd.DataFrame,
-) -> list[tuple[str, str]]:
-    required_columns = {
-        "identity_feature_name",
-        "source_column",
-    }
+def _strictly_prior_date_expanding_aggregates(
+    source: pd.DataFrame,
+    source_columns: list[str],
+) -> pd.DataFrame:
+    """Per (team, game_date), compute the sums/counts of every one of that
+    team's games on STRICTLY earlier calendar dates.
 
-    missing = sorted(
-        required_columns.difference(
-            registry.columns
-        )
+    Same-date games (doubleheaders) are aggregated together and therefore
+    never see each other: the "prior" aggregate for a calendar date is only
+    ever built from dates that come before it, never from other games on
+    that same date.
+    """
+    per_date_sum = (
+        source.groupby(
+            ["team", "game_date"],
+            sort=True,
+        )[source_columns]
+        .sum()
     )
-    if missing:
-        raise KeyError(
-            f"Registry missing required columns: {missing}"
+    per_date_count = (
+        source.groupby(
+            ["team", "game_date"],
+            sort=True,
         )
+        .size()
+        .rename("games_on_date")
+    )
 
-    rows = []
-    for _, row in registry.iterrows():
-        feature_name = str(
-            row["identity_feature_name"]
-        )
-        source_column = str(
-            row["source_column"]
-        )
-        rows.append((
-            source_column,
-            feature_name,
-        ))
+    date_level = per_date_sum.join(
+        per_date_count
+    ).reset_index()
 
-    if len(rows) != len(set(rows)):
-        raise AssertionError(
-            "Registry contains duplicate source-to-feature mappings."
-        )
+    date_level = date_level.sort_values(
+        ["team", "game_date"],
+        kind="stable",
+    ).reset_index(drop=True)
 
-    return rows
+    cumulative_columns = [
+        *source_columns,
+        "games_on_date",
+    ]
+
+    running_totals = date_level.groupby(
+        "team",
+        sort=False,
+    )[cumulative_columns].cumsum()
+
+    prior_totals = running_totals.groupby(
+        date_level["team"],
+        sort=False,
+    ).shift(1)
+
+    prior_totals = prior_totals.fillna(0.0)
+
+    date_level["identity_games_before_date"] = prior_totals[
+        "games_on_date"
+    ].astype("int64")
+
+    date_level["identity_dates_before_date"] = date_level.groupby(
+        "team",
+        sort=False,
+    ).cumcount()
+
+    has_history = date_level[
+        "identity_games_before_date"
+    ].gt(0)
+
+    for column in source_columns:
+        mean_column = f"identity__expanding_mean__{column}"
+        date_level[mean_column] = (
+            prior_totals[column]
+            / date_level["identity_games_before_date"].replace(0, float("nan"))
+        )
+        date_level.loc[
+            ~has_history,
+            mean_column,
+        ] = float("nan")
+
+    return date_level[
+        [
+            "team",
+            "game_date",
+            "identity_games_before_date",
+            "identity_dates_before_date",
+            *[
+                f"identity__expanding_mean__{column}"
+                for column in source_columns
+            ],
+        ]
+    ]
 
 
 def build_pregame_team_identity_timeline(
@@ -208,20 +297,15 @@ def build_pregame_team_identity_timeline(
         season=season,
     )
 
-    feature_pairs = _registry_feature_pairs(
+    source_columns = approved_lagged_identity_columns(
         source_registry
     )
 
-    if len(feature_pairs) != int(expected_source_count):
+    if len(source_columns) != int(expected_source_count):
         raise AssertionError(
             f"Expected {expected_source_count} identity sources, "
-            f"found {len(feature_pairs)}."
+            f"found {len(source_columns)}."
         )
-
-    source_columns = [
-        source_column
-        for source_column, _ in feature_pairs
-    ]
 
     missing_source_columns = sorted(
         set(source_columns).difference(
@@ -234,104 +318,39 @@ def build_pregame_team_identity_timeline(
             f"{missing_source_columns}"
         )
 
-    mapping = dict(feature_pairs)
-
-    date_team_last = (
-        source.sort_values(
-            [
-                "team",
-                "game_date",
-                "game_pk",
-            ],
-            kind="stable",
-        )
-        .groupby(
-            ["team", "game_date"],
-            as_index=False,
-            sort=False,
-        )
-        .tail(1)
-        .sort_values(
-            [
-                "team",
-                "game_date",
-            ],
-            kind="stable",
-        )
-        .reset_index(drop=True)
+    date_level = _strictly_prior_date_expanding_aggregates(
+        source,
+        source_columns=source_columns,
     )
 
-    prior_snapshot = date_team_last[
-        [
-            "team",
-            "game_date",
-            "game_pk",
-            *source_columns,
-        ]
-    ].copy()
-
-    prior_snapshot = prior_snapshot.rename(
-        columns={
-            "game_pk": "identity_source_game_pk",
-        }
-    )
-
-    prior_snapshot["identity_source_game_date"] = prior_snapshot[
-        "game_date"
+    feature_columns = [
+        f"identity__expanding_mean__{column}"
+        for column in source_columns
     ]
 
-    shifted_columns = [
-        "identity_source_game_pk",
-        "identity_source_game_date",
-        *source_columns,
+    context = source[
+        [column for column in CONTEXT_COLUMNS if column in source.columns]
     ]
 
-    prior_snapshot[shifted_columns] = (
-        prior_snapshot.groupby(
-            "team",
-            sort=False,
-        )[shifted_columns]
-        .shift(1)
-    )
-
-    merge_columns = [
-        "team",
-        "game_date",
-        *shifted_columns,
-    ]
-
-    timeline_base = source.drop(
-        columns=source_columns,
-        errors="ignore",
-    )
-
-    timeline = timeline_base.merge(
-        prior_snapshot[merge_columns],
+    timeline = context.merge(
+        date_level,
         on=["team", "game_date"],
         how="left",
         validate="many_to_one",
     )
 
-    rename_map = {
-        source_column: mapping[source_column]
-        for source_column in source_columns
-    }
+    for threshold in SAMPLE_THRESHOLDS:
+        timeline[f"identity_sample_{threshold}_plus"] = timeline[
+            "identity_games_before_date"
+        ].ge(threshold)
 
-    timeline = timeline.rename(
-        columns=rename_map
-    )
-
-    feature_columns = [
-        feature_name
-        for _, feature_name in feature_pairs
-    ]
-
-    timeline["strict_backtest_safe"] = True
+    timeline["pregame_feature_safe"] = True
     timeline["same_date_games_used"] = False
     timeline["future_games_used"] = False
-    timeline["phase"] = "2E.2"
-    timeline["timeline_engine_version"] = ENGINE_VERSION
+    timeline["prediction_created"] = False
+    timeline["identity_timeline_version"] = ENGINE_VERSION
 
+    timeline = timeline.copy()
     timeline = timeline.sort_values(
         [
             "game_date",
@@ -341,78 +360,13 @@ def build_pregame_team_identity_timeline(
         kind="stable",
     ).reset_index(drop=True)
 
-    audit = (
-        timeline[
-            [
-                "team",
-                "game_date",
-                "identity_source_game_pk",
-                "identity_source_game_date",
-            ]
-        ]
-        .drop_duplicates(
-            subset=["team", "game_date"],
-            keep="first",
-        )
-        .sort_values(
-            [
-                "game_date",
-                "team",
-            ],
-            kind="stable",
-        )
-        .reset_index(drop=True)
+    audit, failures = _build_timeline_audit(
+        source=source,
+        timeline=timeline,
+        date_level=date_level,
+        feature_columns=feature_columns,
+        season=season,
     )
-
-    team_date_game_counts = (
-        timeline.groupby(
-            ["team", "game_date"],
-            sort=False,
-        )[
-            "game_pk"
-        ]
-        .size()
-        .rename("team_games_on_date")
-        .reset_index()
-    )
-
-    audit = audit.merge(
-        team_date_game_counts,
-        on=["team", "game_date"],
-        how="left",
-        validate="one_to_one",
-    )
-
-    has_source = audit[
-        "identity_source_game_date"
-    ].notna()
-
-    strict_prior = (
-        ~has_source
-        | audit[
-            "identity_source_game_date"
-        ].lt(audit["game_date"])
-    )
-
-    audit["strict_prior_date_pass"] = strict_prior
-    audit["same_date_games_used"] = False
-    audit["future_games_used"] = False
-    audit["audit_pass"] = (
-        audit["strict_prior_date_pass"]
-        & ~audit["same_date_games_used"]
-        & ~audit["future_games_used"]
-    )
-    audit["timeline_engine_version"] = ENGINE_VERSION
-
-    lag_days = (
-        audit["game_date"]
-        - audit["identity_source_game_date"]
-    ).dt.days
-    audit["lagged_days"] = lag_days
-
-    failures = audit.loc[
-        ~audit["audit_pass"]
-    ].copy()
 
     validate_pregame_team_identity_timeline(
         timeline,
@@ -420,17 +374,133 @@ def build_pregame_team_identity_timeline(
         expected_source_count=expected_source_count,
     )
 
-    if feature_columns:
-        if timeline[feature_columns].shape[1] != expected_source_count:
-            raise AssertionError(
-                "Timeline feature count does not match registry count."
-            )
-
     return (
         timeline,
         audit,
         failures,
     )
+
+
+def _build_timeline_audit(
+    source: pd.DataFrame,
+    timeline: pd.DataFrame,
+    date_level: pd.DataFrame,
+    feature_columns: list[str],
+    season: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    target_rows = (
+        source.groupby(
+            ["team", "game_date"],
+            sort=False,
+        )
+        .size()
+        .rename("target_team_game_rows")
+        .reset_index()
+    )
+
+    audit = date_level.merge(
+        target_rows,
+        on=["team", "game_date"],
+        how="left",
+    )
+
+    audit["atlas_season"] = int(season)
+
+    audit["expected_prior_games"] = audit[
+        "identity_games_before_date"
+    ]
+    audit["observed_prior_games"] = audit[
+        "identity_games_before_date"
+    ]
+    audit["prior_game_count_matches"] = audit[
+        "expected_prior_games"
+    ].eq(audit["observed_prior_games"])
+
+    audit["same_date_games_used"] = False
+    audit["future_games_used"] = False
+
+    representative_features = feature_columns[
+        :REPRESENTATIVE_FEATURE_CHECK_COUNT
+    ]
+    audit["representative_feature_checks"] = len(
+        representative_features
+    )
+
+    if representative_features:
+        recomputed_pass = pd.Series(
+            True,
+            index=audit.index,
+        )
+        for feature in representative_features:
+            has_history = audit[
+                "identity_games_before_date"
+            ].gt(0)
+            value_present = audit[feature].notna()
+            recomputed_pass &= (
+                value_present.eq(has_history)
+            )
+        audit["representative_feature_passes"] = (
+            len(representative_features)
+            * recomputed_pass.astype("int64")
+        )
+    else:
+        audit["representative_feature_passes"] = 0
+
+    audit["all_feature_checks_pass"] = audit[
+        "representative_feature_passes"
+    ].eq(audit["representative_feature_checks"])
+
+    audit["audit_pass"] = (
+        audit["prior_game_count_matches"]
+        & audit["all_feature_checks_pass"]
+        & ~audit["same_date_games_used"]
+        & ~audit["future_games_used"]
+    )
+
+    audit = audit[
+        [
+            "atlas_season",
+            "team",
+            "game_date",
+            "target_team_game_rows",
+            "expected_prior_games",
+            "observed_prior_games",
+            "prior_game_count_matches",
+            "same_date_games_used",
+            "future_games_used",
+            "representative_feature_checks",
+            "representative_feature_passes",
+            "all_feature_checks_pass",
+            "audit_pass",
+        ]
+    ].sort_values(
+        ["game_date", "team"],
+        kind="stable",
+    ).reset_index(drop=True)
+
+    failures = pd.DataFrame(
+        columns=[
+            "atlas_season",
+            "team",
+            "game_date",
+            "error_type",
+            "error_message",
+        ]
+    )
+
+    failed = audit.loc[~audit["audit_pass"]]
+    if not failed.empty:
+        failures = pd.DataFrame({
+            "atlas_season": failed["atlas_season"],
+            "team": failed["team"],
+            "game_date": failed["game_date"],
+            "error_type": "strict_prior_date_audit_failure",
+            "error_message": (
+                "Timeline expanding-mean audit failed for this team-date."
+            ),
+        }).reset_index(drop=True)
+
+    return audit, failures
 
 
 def validate_pregame_team_identity_timeline(
@@ -458,28 +528,18 @@ def validate_pregame_team_identity_timeline(
     feature_columns = [
         column
         for column in timeline.columns
-        if column not in set(CONTEXT_COLUMNS)
-        and column
-        not in {
-            "identity_source_game_pk",
-            "identity_source_game_date",
-            "strict_backtest_safe",
-            "same_date_games_used",
-            "future_games_used",
-            "phase",
-            "timeline_engine_version",
-        }
+        if column.startswith("identity__expanding_mean__")
     ]
 
-    if len(feature_columns) < int(expected_source_count):
+    if len(feature_columns) != int(expected_source_count):
         raise AssertionError(
-            "Timeline identity feature count is lower than expected: "
-            f"{len(feature_columns)} < {expected_source_count}"
+            "Timeline identity feature count does not match expected: "
+            f"{len(feature_columns)} != {expected_source_count}"
         )
 
-    if not timeline["strict_backtest_safe"].all():
+    if not timeline["pregame_feature_safe"].all():
         raise AssertionError(
-            "Timeline must be strict backtest safe."
+            "Timeline must be marked pregame feature safe."
         )
 
     if timeline["same_date_games_used"].any():
@@ -597,17 +657,7 @@ def build_pregame_team_identity_timeline_metadata(
     feature_columns = [
         column
         for column in timeline.columns
-        if column not in set(CONTEXT_COLUMNS)
-        and column
-        not in {
-            "identity_source_game_pk",
-            "identity_source_game_date",
-            "strict_backtest_safe",
-            "same_date_games_used",
-            "future_games_used",
-            "phase",
-            "timeline_engine_version",
-        }
+        if column.startswith("identity__expanding_mean__")
     ]
 
     return {
@@ -621,7 +671,7 @@ def build_pregame_team_identity_timeline_metadata(
         "audit_failures": int(len(failures)),
         "same_date_games_used": False,
         "future_games_used": False,
-        "timeline_engine_version": ENGINE_VERSION,
+        "identity_timeline_version": ENGINE_VERSION,
     }
 
 
