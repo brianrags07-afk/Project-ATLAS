@@ -1,0 +1,195 @@
+{
+  "source_path": "data/game_intelligence/clean_starter_lineup_pregame/starter_lineup_flagged_column_adjudication.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.2438,
+  "source_sha256": "83794e46aac1e49c58a6cf159e74997ec73d3e526923e4183c05296bf2ac5533",
+  "generated_at_utc": "2026-07-18T03:45:03.970228+00:00",
+  "row_count": 900,
+  "column_count": 9,
+  "physical_metadata": {},
+  "columns": {
+    "artifact_type": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "BATTER_PREGAME_SNAPSHOT",
+        "PITCHER_PREGAME_SNAPSHOT",
+        "LINEUP_STARTER_INPUT"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "path": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/snapshots/batter_pregame_snapshots.parquet",
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/snapshots/pitcher_pregame_snapshots.parquet",
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/interactions/lineup_starter_inputs.parquet"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "column": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 843,
+      "sample_values": [
+        "game_pk",
+        "game_date",
+        "atlas_season",
+        "player_id",
+        "batting_team",
+        "pitching_team",
+        "batter_home_away",
+        "career_prior_pitches_seen"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "dtype": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        "Int64",
+        "datetime64[ns]",
+        "int64",
+        "object",
+        "Float64",
+        "float64",
+        "bool",
+        "int8"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "non_null_rows": {
+      "dtype": "int64",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 71,
+      "sample_values": [
+        124457,
+        123593,
+        123591,
+        123552,
+        123498,
+        122541,
+        122528,
+        122479
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 11634,
+        "max": 124457,
+        "mean": 24939.652222222223,
+        "median": 12350.0
+      }
+    },
+    "unique_values": {
+      "dtype": "int64",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 771,
+      "sample_values": [
+        6175,
+        470,
+        3,
+        859,
+        30,
+        2,
+        6813,
+        1785
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1,
+        "max": 111097,
+        "mean": 6757.593333333333,
+        "median": 3305.0
+      }
+    },
+    "sample_values": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 387,
+      "sample_values": [
+        "745444 | 746175 | 745039 | 745116 | 745283",
+        "2024-03-20 00:00:00 | 2024-03-21 00:00:00 | 2024-03-28 00:00:00 | 2024-03-29 00:00:00 | 2024-03-30 00:00:00",
+        "2024 | 2025 | 2026",
+        "518692 | 518792 | 571771 | 571970 | 592518",
+        "LAD | SD | CHC | TEX | TOR",
+        "SD | LAD | TEX | CHC | TB",
+        "AWAY | HOME",
+        "0 | 26 | 5 | 29 | 9"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        "KEEP_KEY",
+        "KEEP_RAW_FACT",
+        "KEEP_NEUTRAL_FIELD",
+        "KEEP_HISTORICAL_FACT",
+        "KEEP_SAFETY",
+        "BLOCK_POSTGAME",
+        "BLOCK_HANDCRAFTED"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_reason": {
+      "dtype": "object",
+      "rows_profiled": 900,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        "Canonical game, team, player, starter or lineup identifier.",
+        "Objective player, starter, lineup or matchup measurement.",
+        "No outcome, prediction or handcrafted scoring marker detected.",
+        "Historical or lagged performance measurement available pregame.",
+        "Chronology, leakage or provenance control.",
+        "Explicit same-game outcome, actual result or target field.",
+        "Handcrafted score, grade, probability or adjustment field."
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 900,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

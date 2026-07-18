@@ -1,0 +1,163 @@
+{
+  "source_path": "data/daily/2026-07-09/starters.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0013,
+  "source_sha256": "bea55c1c489796333b64eb5b26c2156a16ce6faa82c4dd1de04f82ba4073b14d",
+  "generated_at_utc": "2026-07-18T03:44:05.076235+00:00",
+  "row_count": 26,
+  "column_count": 5,
+  "physical_metadata": {},
+  "columns": {
+    "game_pk": {
+      "dtype": "int64",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 13,
+      "sample_values": [
+        823359,
+        823606,
+        822954,
+        824816,
+        823683,
+        824577,
+        824251,
+        823846
+      ],
+      "roles": [
+        "game_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 822877,
+        "max": 824816,
+        "mean": 823690.3846153846,
+        "median": 823606.0
+      }
+    },
+    "team": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 26,
+      "sample_values": [
+        "Atlanta Braves",
+        "Pittsburgh Pirates",
+        "Kansas City Royals",
+        "New York Mets",
+        "New York Yankees",
+        "Tampa Bay Rays",
+        "Chicago Cubs",
+        "Baltimore Orioles"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "home_away": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "Away",
+        "Home"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "pitcher": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 26,
+      "sample_values": [
+        "Bryce Elder",
+        "Mitch Keller",
+        "Michael Wacha",
+        "Sean Manaea",
+        "Paul Blackburn",
+        "Drew Rasmussen",
+        "David Peterson",
+        "Trevor Rogers"
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "pitcher_id": {
+      "dtype": "float64",
+      "rows_profiled": 26,
+      "null_count": 1,
+      "null_rate": 0.038461538461538464,
+      "sample_unique_count": 25,
+      "sample_values": [
+        693821.0,
+        656605.0,
+        608379.0,
+        640455.0,
+        621112.0,
+        656876.0,
+        656849.0,
+        669432.0
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 518876.0,
+        "max": 701656.0,
+        "mean": 651027.84,
+        "median": 663776.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [
+      "pitcher",
+      "pitcher_id"
+    ],
+    "game_columns": [
+      "game_pk"
+    ],
+    "team_columns": [
+      "team"
+    ]
+  },
+  "key_candidates": [
+    {
+      "columns": [
+        "game_pk"
+      ],
+      "valid_rows": 26,
+      "duplicate_rows": 13,
+      "appears_unique": false
+    },
+    {
+      "columns": [
+        "game_pk",
+        "team"
+      ],
+      "valid_rows": 26,
+      "duplicate_rows": 0,
+      "appears_unique": true
+    },
+    {
+      "columns": [
+        "game_pk",
+        "pitcher"
+      ],
+      "valid_rows": 26,
+      "duplicate_rows": 0,
+      "appears_unique": true
+    }
+  ],
+  "profile_rows_used": 26,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

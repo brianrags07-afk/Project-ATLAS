@@ -1,0 +1,132 @@
+{
+  "source_path": "data/learning/univariate_evidence_discovery/2024/targets/target_game_total_over_10/univariate_feature_audit.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.4054,
+  "source_sha256": "3d1525c8a71304b7fedaed029262ce60cf80e00a87b98c9aef538525f7eebc79",
+  "generated_at_utc": "2026-07-18T03:49:19.675541+00:00",
+  "row_count": 3702,
+  "column_count": 6,
+  "physical_metadata": {},
+  "columns": {
+    "target_name": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "target_game_total_over_10"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "feature_name": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3000,
+      "sample_values": [
+        "game_pk",
+        "game_date",
+        "atlas_season",
+        "home_team",
+        "home__identity__identity_games_before_date",
+        "home__identity__identity_dates_before_date",
+        "home__identity__opponent_home_away",
+        "home__identity__opponent_identity_games_before_date"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "eligible": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        false,
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.975,
+        "median": 1.0
+      }
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "NON_FEATURE_CONTEXT_OR_GOVERNANCE",
+        "ELIGIBLE",
+        "NON_NUMERIC_FEATURE",
+        "CONSTANT_FEATURE",
+        "FORBIDDEN_OUTCOME_OR_DECISION_TOKEN"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "dtype": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 11,
+      "sample_values": [
+        "int64",
+        "datetime64[ns]",
+        "string",
+        "object",
+        "float64",
+        "category",
+        "bool",
+        "Int64"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "available_sample": {
+      "dtype": "int64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 30,
+      "sample_values": [
+        2428,
+        2414,
+        2412,
+        2409,
+        2385,
+        2411,
+        2410,
+        2413
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2293,
+        "max": 2428,
+        "mean": 2416.210666666667,
+        "median": 2428.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 3000,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

@@ -1,0 +1,180 @@
+{
+  "source_path": "data/history/failure_analysis/2026/learning_queue.parquet",
+  "source_format": "parquet",
+  "source_size_mb": 0.0067,
+  "source_sha256": "4d5282d2c24303f52472ae13f9d5e2c6e4ad030c31015cb3b6001bf0f5649944",
+  "generated_at_utc": "2026-07-18T03:45:32.013041+00:00",
+  "row_count": 26,
+  "column_count": 8,
+  "physical_metadata": {
+    "rows": 26,
+    "columns": 8,
+    "row_groups": 1
+  },
+  "columns": {
+    "priority_rank": {
+      "dtype": "int64",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 26,
+      "sample_values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1,
+        "max": 26,
+        "mean": 13.5,
+        "median": 13.5
+      }
+    },
+    "priority_score": {
+      "dtype": "float64",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 24,
+      "sample_values": [
+        125.28787561904653,
+        120.37585281243223,
+        120.0,
+        117.17508773713749,
+        116.53111603106674,
+        115.0,
+        112.09385336484878,
+        111.74274922126364
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 80.18223234624146,
+        "max": 125.28787561904653,
+        "mean": 101.98436464873053,
+        "median": 102.5
+      }
+    },
+    "research_area": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 26,
+      "sample_values": [
+        "rebuild_target_game_total_10_5_plus",
+        "rebuild_target_game_total_12_plus",
+        "bullpen_availability_and_fatigue",
+        "rebuild_target_team_allowed_3_or_less",
+        "rebuild_target_team_allowed_5_plus",
+        "starter_arsenal_and_matchup_identity",
+        "rebuild_target_team_scored_3_or_less",
+        "rebuild_target_team_scored_5_plus"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 9,
+      "sample_values": [
+        "negative 2026 out-of-sample probability performance",
+        "current model has limited bullpen-state evidence",
+        "starter concepts need richer matchup context",
+        "current evidence is concentrated in lineup-slot concepts",
+        "context coverage remains limited",
+        "insufficient validated active evidence",
+        "environment evidence is largely absent",
+        "73 concepts underperformed directionally"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "source": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "target_performance",
+        "missing_identity_detector",
+        "coverage_analysis",
+        "concept_report_cards",
+        "team_report_cards"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "recommended_action": {
+      "dtype": "object",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "rebuild features, weighting, and calibration",
+        "build pregame-safe discovery features and repeat 2024→2025 pipeline",
+        "discover richer pregame-safe concepts",
+        "review concepts before any weight update",
+        "build team-local starter, bullpen, travel, and series identities"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "automatic_model_change": {
+      "dtype": "bool",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "False",
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "human_review_required": {
+      "dtype": "bool",
+      "rows_profiled": 26,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 26,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

@@ -1,0 +1,174 @@
+{
+  "source_path": "data/daily/2026-07-14/all_star_game/all_star_pitcher_coverage.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0016,
+  "source_sha256": "f883f3a929161443fe30d27b6c43ff0c8cb22a9ac86a520ca5330fd11dada9b8",
+  "generated_at_utc": "2026-07-18T03:44:07.521478+00:00",
+  "row_count": 24,
+  "column_count": 7,
+  "physical_metadata": {},
+  "columns": {
+    "team_side": {
+      "dtype": "object",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "AWAY",
+        "HOME"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "team": {
+      "dtype": "object",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "American League All-Stars",
+        "National League All-Stars"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "player_id": {
+      "dtype": "int64",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 24,
+      "sample_values": [
+        547973,
+        641329,
+        671922,
+        693645,
+        656876,
+        656302,
+        656641,
+        657746
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 519242,
+        "max": 808967,
+        "mean": 657524.2916666666,
+        "median": 657076.5
+      }
+    },
+    "player_name": {
+      "dtype": "object",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 24,
+      "sample_values": [
+        "Aroldis Chapman",
+        "Bryan Baker",
+        "Cade Smith",
+        "Cam Schlittler",
+        "Drew Rasmussen",
+        "Dylan Cease",
+        "Jacob Latz",
+        "Joe Ryan"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "historical_pitch_rows": {
+      "dtype": "int64",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 24,
+      "sample_values": [
+        2470,
+        2012,
+        3047,
+        2876,
+        4183,
+        7841,
+        2862,
+        6527
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1534,
+        "max": 7879,
+        "mean": 4225.541666666667,
+        "median": 3039.5
+      }
+    },
+    "historical_game_dates": {
+      "dtype": "int64",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 22,
+      "sample_values": [
+        162,
+        128,
+        187,
+        32,
+        63,
+        81,
+        112,
+        72
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 18,
+        "max": 187,
+        "mean": 91.625,
+        "median": 81.0
+      }
+    },
+    "found_in_master_pitch": {
+      "dtype": "bool",
+      "rows_profiled": 24,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [
+      "player_id",
+      "player_name"
+    ],
+    "game_columns": [
+      "historical_game_dates"
+    ],
+    "team_columns": [
+      "team_side",
+      "team"
+    ]
+  },
+  "key_candidates": [],
+  "profile_rows_used": 24,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

@@ -1,0 +1,208 @@
+{
+  "source_path": "data/daily/2026-07-14/all_star_game/game_info.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0003,
+  "source_sha256": "290027c42dfef27909a3704b7c1793f67797602351808c522ebb0c0bcee031ec",
+  "generated_at_utc": "2026-07-18T03:44:11.677312+00:00",
+  "row_count": 1,
+  "column_count": 11,
+  "physical_metadata": {},
+  "columns": {
+    "game_pk": {
+      "dtype": "int64",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        823443
+      ],
+      "roles": [
+        "game_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 823443,
+        "max": 823443,
+        "mean": 823443.0,
+        "median": 823443.0
+      }
+    },
+    "official_date": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "2026-07-14"
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "status": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "Pre-Game"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "away_team": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "American League All-Stars"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "home_team": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "National League All-Stars"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "venue": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "Citizens Bank Park"
+      ],
+      "roles": [
+        "park"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "central_start": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "2026-07-14 19:00:00-05:00"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "away_starting_pitcher_id": {
+      "dtype": "int64",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        656302
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 656302,
+        "max": 656302,
+        "mean": 656302.0,
+        "median": 656302.0
+      }
+    },
+    "away_starting_pitcher": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "Dylan Cease"
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "home_starting_pitcher_id": {
+      "dtype": "int64",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        650911
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 650911,
+        "max": 650911,
+        "mean": 650911.0,
+        "median": 650911.0
+      }
+    },
+    "home_starting_pitcher": {
+      "dtype": "object",
+      "rows_profiled": 1,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "Cristopher Sánchez"
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [
+      "away_starting_pitcher_id",
+      "away_starting_pitcher",
+      "home_starting_pitcher_id",
+      "home_starting_pitcher"
+    ],
+    "game_columns": [
+      "game_pk",
+      "official_date"
+    ],
+    "team_columns": [
+      "away_team",
+      "home_team"
+    ]
+  },
+  "key_candidates": [
+    {
+      "columns": [
+        "game_pk"
+      ],
+      "valid_rows": 1,
+      "duplicate_rows": 0,
+      "appears_unique": true
+    }
+  ],
+  "profile_rows_used": 1,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

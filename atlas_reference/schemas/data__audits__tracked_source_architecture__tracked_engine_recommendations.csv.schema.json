@@ -1,0 +1,184 @@
+{
+  "source_path": "data/audits/tracked_source_architecture/tracked_engine_recommendations.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0079,
+  "source_sha256": "02bf18ff4ea4630f7b9e2e503f7d2eccbdf662561279789c77fad6caaf9e270c",
+  "generated_at_utc": "2026-07-18T03:43:58.159037+00:00",
+  "row_count": 14,
+  "column_count": 8,
+  "physical_metadata": {},
+  "columns": {
+    "capability": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "pregame_safety",
+        "team_identity",
+        "game_flow",
+        "run_line_margin",
+        "totals_scoring",
+        "starter_pitching",
+        "bullpen",
+        "lineup_matchup"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "engine_status": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "EXISTS_WITH_TESTED_CANDIDATE",
+        "EXISTS_REQUIRES_VALIDATION"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "tracked_modules": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 12,
+      "sample_values": [
+        47,
+        43,
+        8,
+        13,
+        9,
+        30,
+        25,
+        49
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 8,
+        "max": 61,
+        "mean": 30.285714285714285,
+        "median": 27.5
+      }
+    },
+    "modules_with_tests": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        6,
+        5,
+        1,
+        2,
+        3,
+        4,
+        0
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 6,
+        "mean": 2.7142857142857144,
+        "median": 2.5
+      }
+    },
+    "use_or_connect_candidates": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        5,
+        1,
+        2,
+        3,
+        0
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 5,
+        "mean": 2.4285714285714284,
+        "median": 2.0
+      }
+    },
+    "validation_candidates": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 13,
+      "sample_values": [
+        40,
+        34,
+        7,
+        11,
+        6,
+        28,
+        22,
+        42
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 6,
+        "max": 53,
+        "mean": 26.214285714285715,
+        "median": 25.0
+      }
+    },
+    "representative_modules": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 13,
+      "sample_values": [
+        "atlas/game_intelligence/reconstruction.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/scoring_state_timeline.py | atlas/game_intelligence/contracts.py | atlas/game_intelligence/team_outcome_classifier.py | atlas/history/failure_analysis_engine.py | atlas/history/model_repair_planning_engine.py | atlas/gamecards/gamecard_engine.py | atlas/game_intelligence/scoring_timeline_season_builder.py",
+        "atlas/game_intelligence/reconstruction.py | atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/scoring_state_timeline.py | atlas/game_intelligence/contracts.py | atlas/game_intelligence/team_outcome_classifier.py | atlas/questions/question_library.py | atlas/history/failure_analysis_engine.py | atlas/history/model_repair_planning_engine.py | atlas/gamecards/gamecard_engine.py | atlas/game_intelligence/scoring_timeline_season_builder.py",
+        "atlas/game_intelligence/scoring_state_timeline.py | atlas/game_intelligence/scoring_timeline_season_builder.py | atlas/game_intelligence/game_flow_fact_table.py | atlas/game_intelligence/response_recovery.py | atlas/game_intelligence/team_game_flow.py | atlas/game_intelligence/lead_protection.py | atlas/game_intelligence/scoring_event_roles.py | atlas/game_intelligence/scoring_event_role_season_builder.py",
+        "atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/team_outcome_classifier.py | atlas/questions/question_library.py | atlas/game_intelligence/game_flow_fact_table.py | atlas/game_intelligence/response_recovery.py | atlas/game_intelligence/team_game_flow.py | atlas/game_intelligence/lead_protection.py | atlas/game_intelligence/scoring_event_roles.py | atlas/game_intelligence/scoring_event_role_season_builder.py | atlas/interactions/lineup_starter_input_engine.py",
+        "atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/scoring_state_timeline.py | atlas/game_intelligence/team_outcome_classifier.py | atlas/questions/question_library.py | atlas/game_intelligence/scoring_timeline_season_builder.py | atlas/learning/team_evidence_discovery.py | atlas/predictions/prediction_fusion_engine.py | atlas/learning/backtest_target_builder.py | atlas/profiles/team_profiles.py",
+        "atlas/game_intelligence/contracts.py | atlas/questions/question_library.py | atlas/history/failure_analysis_engine.py | atlas/history/model_repair_planning_engine.py | atlas/gamecards/gamecard_engine.py | atlas/predictions/pregame_prediction_engine.py | atlas/learning/evidence_consolidation_engine.py | atlas/identities/bullpen_availability_fatigue_engine.py | atlas/identities/bullpen_identity_integration_engine.py | atlas/pitchers/v2/cards.py",
+        "atlas/game_intelligence/reconstruction.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/contracts.py | atlas/questions/question_library.py | atlas/history/failure_analysis_engine.py | atlas/history/model_repair_planning_engine.py | atlas/gamecards/gamecard_engine.py | atlas/learning/evidence_consolidation_engine.py | atlas/identities/bullpen_availability_fatigue_engine.py | atlas/identities/bullpen_identity_integration_engine.py",
+        "atlas/game_intelligence/reconstruction.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/scoring_state_timeline.py | atlas/game_intelligence/contracts.py | atlas/questions/question_library.py | atlas/history/failure_analysis_engine.py | atlas/history/model_repair_planning_engine.py | atlas/gamecards/gamecard_engine.py | atlas/game_intelligence/scoring_timeline_season_builder.py | atlas/predictions/pregame_prediction_engine.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "next_action": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "Inspect interfaces and connect the best-tested canonical module to the Phase 2E Brain.",
+        "Run focused behavior audit before using in production predictions."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 14,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

@@ -1,0 +1,646 @@
+{
+  "source_path": "data/learning/team_evidence/2024/team_checkpoints/STL_evidence.parquet",
+  "source_format": "parquet",
+  "source_size_mb": 0.1872,
+  "source_sha256": "f33452af503cb58e30bac763458de2f7684c189324b99f0b97eecaedb6a16234",
+  "generated_at_utc": "2026-07-18T03:49:11.069105+00:00",
+  "row_count": 3281,
+  "column_count": 30,
+  "physical_metadata": {
+    "rows": 3281,
+    "columns": 30,
+    "row_groups": 1
+  },
+  "columns": {
+    "evidence_id": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3000,
+      "sample_values": [
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_15F3D848B82A",
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_DCAB2F9C6D86",
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_4C65DC40BD9A",
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_164160CB22CA",
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_52E97710F665",
+        "STL_GAME_TOTAL_10_5_PLUS_LOW_F1236BEFCB77",
+        "STL_GAME_TOTAL_10_5_PLUS_HIGH_94D276691995",
+        "STL_GAME_TOTAL_10_5_PLUS_HIGH_A11DA09ECC8B"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "learning_season": {
+      "dtype": "int64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        2024
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2024,
+        "max": 2024,
+        "mean": 2024.0,
+        "median": 2024.0
+      }
+    },
+    "team": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "STL"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "target": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 11,
+      "sample_values": [
+        "game_total_10_5_plus",
+        "game_total_12_plus",
+        "game_total_15_plus",
+        "game_total_17_plus",
+        "lost",
+        "team_allowed_3_or_less",
+        "team_allowed_5_plus",
+        "team_scored_3_or_less"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "feature": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 667,
+      "sample_values": [
+        "slot_7_career_prior_swing_pct",
+        "slot_7_season_prior_swing_pct",
+        "slot_7_career_prior_chase_pct",
+        "slot_7_season_prior_chase_pct",
+        "slot_7_career_prior_whiff_pct_per_swing",
+        "slot_7_season_prior_whiff_pct_per_swing",
+        "slot_7_career_prior_ball_pct",
+        "slot_7_season_prior_ball_pct"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "feature_family": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 12,
+      "sample_values": [
+        "batting_order_slot_7",
+        "other_pregame_evidence",
+        "batting_order_slot_6",
+        "batting_order_slot_8",
+        "batting_order_slot_9",
+        "batting_order_slot_4",
+        "lineup_composition",
+        "opposing_starter"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "direction": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "low",
+        "high"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "threshold_operator": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "<=",
+        ">="
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "threshold_value": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 527,
+      "sample_values": [
+        0.4265041980417158,
+        0.21781705556331799,
+        0.17407545105081512,
+        0.37958120290511266,
+        0.19383174266525274,
+        9.44382964453387,
+        680977.0,
+        90.99420565397395
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.0,
+        "max": 687217.25,
+        "mean": 6241.640460459702,
+        "median": 17.43714878244581
+      }
+    },
+    "team_games_observed": {
+      "dtype": "int64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        162
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 162,
+        "max": 162,
+        "mean": 162.0,
+        "median": 162.0
+      }
+    },
+    "feature_rows_available": {
+      "dtype": "int64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        160,
+        162,
+        159,
+        161,
+        157
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 157,
+        "max": 162,
+        "mean": 161.1,
+        "median": 162.0
+      }
+    },
+    "coverage": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        0.9876543209876543,
+        1.0,
+        0.9814814814814815,
+        0.9938271604938271,
+        0.9691358024691358
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.9691358024691358,
+        "max": 1.0,
+        "mean": 0.9944444444444444,
+        "median": 1.0
+      }
+    },
+    "condition_sample_size": {
+      "dtype": "int64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 18,
+      "sample_values": [
+        40,
+        45,
+        56,
+        42,
+        46,
+        43,
+        41,
+        44
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 40,
+        "max": 74,
+        "mean": 41.230666666666664,
+        "median": 41.0
+      }
+    },
+    "target_base_rate": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 10,
+      "sample_values": [
+        0.3271604938271605,
+        0.2222222222222222,
+        0.08641975308641975,
+        0.043209876543209874,
+        0.4444444444444444,
+        0.4506172839506173,
+        0.48148148148148145,
+        0.3888888888888889
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.043209876543209874,
+        "max": 0.4876543209876543,
+        "mean": 0.40274691358024695,
+        "median": 0.4444444444444444
+      }
+    },
+    "condition_observed_rate": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 141,
+      "sample_values": [
+        0.15,
+        0.175,
+        0.4666666666666667,
+        0.45,
+        0.23214285714285715,
+        0.4523809523809524,
+        0.21739130434782608,
+        0.21428571428571427
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.0,
+        "max": 0.7073170731707317,
+        "mean": 0.41055695106255585,
+        "median": 0.3902439024390244
+      }
+    },
+    "lift": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 236,
+      "sample_values": [
+        -0.1771604938271605,
+        -0.15216049382716051,
+        0.13950617283950617,
+        0.12283950617283951,
+        -0.09501763668430335,
+        0.12522045855379188,
+        -0.10976918947933442,
+        -0.11287477954144623
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": -0.22561728395061728,
+        "max": 0.22583559168925021,
+        "mean": 0.0078100374823088965,
+        "median": 0.07283950617283952
+      }
+    },
+    "absolute_lift": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 234,
+      "sample_values": [
+        0.1771604938271605,
+        0.15216049382716051,
+        0.13950617283950617,
+        0.12283950617283951,
+        0.09501763668430335,
+        0.12522045855379188,
+        0.10976918947933442,
+        0.11287477954144623
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.07004830917874394,
+        "max": 0.22583559168925021,
+        "mean": 0.10296748205903639,
+        "median": 0.09620596205962062
+      }
+    },
+    "relative_lift": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 231,
+      "sample_values": [
+        -0.5415094339622641,
+        -0.4650943396226416,
+        0.4264150943396226,
+        0.3754716981132075,
+        -0.29043126684636117,
+        0.3827493261455525,
+        -0.33552091878589013,
+        -0.34501347708894886
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": -1.0,
+        "max": 1.892857142857143,
+        "mean": 0.01776068633380503,
+        "median": 0.16506849315068498
+      }
+    },
+    "feature_target_correlation": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1300,
+      "sample_values": [
+        0.20340797239413075,
+        0.17045731413052062,
+        0.15650154808147834,
+        -0.10664943428245338,
+        -0.21460625573869022,
+        0.09368192372229689,
+        -0.032889318932199006,
+        -0.05678164897810607
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": -0.23311813830361477,
+        "max": 0.23858900407453404,
+        "mean": -0.013832889567533953,
+        "median": -0.027378391948004836
+      }
+    },
+    "first_half_lift": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 254,
+      "null_rate": 0.08466666666666667,
+      "sample_unique_count": 708,
+      "sample_values": [
+        -0.14583333333333334,
+        -0.17916666666666667,
+        -0.16964285714285715,
+        -0.16435185185185186,
+        -0.08173076923076922,
+        0.24691358024691362,
+        -0.1875,
+        0.11725516322451696
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": -0.5061728395061729,
+        "max": 0.691358024691358,
+        "mean": 0.0060562989994757815,
+        "median": 0.010775862068965525
+      }
+    },
+    "second_half_lift": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 302,
+      "null_rate": 0.10066666666666667,
+      "sample_unique_count": 659,
+      "sample_values": [
+        -0.21363636363636362,
+        -0.18999999999999997,
+        -0.19210526315789472,
+        -0.19615384615384612,
+        -0.20185185185185184,
+        -0.1714285714285714,
+        0.06172839506172839,
+        -0.16249999999999998
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": -0.4691358024691358,
+        "max": 0.7901234567901234,
+        "mean": -0.008526739714184814,
+        "median": -0.014814814814814836
+      }
+    },
+    "chronological_direction_consistent": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        true,
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.681,
+        "median": 1.0
+      }
+    },
+    "confidence_score": {
+      "dtype": "float64",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1502,
+      "sample_values": [
+        0.7582347562301424,
+        0.7472512034756056,
+        0.7425992814592582,
+        0.7259819101929166,
+        0.7244675173449954,
+        0.6841594066728643,
+        0.6730001433477701,
+        0.6718593150914673
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.3501248234905586,
+        "max": 0.7914906274926516,
+        "mean": 0.5485866117401149,
+        "median": 0.5821287210964115
+      }
+    },
+    "lifecycle_status": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "strong_candidate",
+        "candidate",
+        "weak_candidate"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "predictive_weight_assigned": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "False",
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "validated_out_of_sample": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        false
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "False",
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "single_metric_control_allowed": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "False",
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "requires_2025_validation": {
+      "dtype": "bool",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    },
+    "created_at_utc": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3000,
+      "sample_values": [
+        "2026-07-12T01:34:50.208770+00:00",
+        "2026-07-12T01:34:50.287776+00:00",
+        "2026-07-12T01:34:50.164638+00:00",
+        "2026-07-12T01:34:50.243847+00:00",
+        "2026-07-12T01:34:50.219333+00:00",
+        "2026-07-12T01:34:50.298397+00:00",
+        "2026-07-12T01:34:50.150618+00:00",
+        "2026-07-12T01:34:50.229893+00:00"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "engine_version": {
+      "dtype": "object",
+      "rows_profiled": 3000,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "1.0.0"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": [
+      "team",
+      "team_games_observed"
+    ]
+  },
+  "key_candidates": [],
+  "profile_rows_used": 3000,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

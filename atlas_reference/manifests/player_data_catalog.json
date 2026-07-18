@@ -1,0 +1,3068 @@
+{
+  "generated_at_utc": "2026-07-18T04:25:56.431986+00:00",
+  "player_table_count": 150,
+  "tables": [
+    {
+      "source_path": "data/audits/engine_interface_audit/prediction_engine_function_inventory.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.1487,
+      "row_count": 537,
+      "column_count": 24,
+      "schema_path": "atlas_reference/schemas/data__audits__engine_interface_audit__prediction_engine_function_inventory.csv.schema.json",
+      "player_columns": [
+        "player_prop_marker"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/backtest/weighted_states/2025/weighted_target_states.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.2046,
+      "row_count": 53460,
+      "column_count": 27,
+      "schema_path": "atlas_reference/schemas/data__backtest__weighted_states__2025__weighted_target_states.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-09/lineups.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0081,
+      "row_count": 144,
+      "column_count": 9,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-09__lineups.csv.schema.json",
+      "player_columns": [
+        "player_name",
+        "player_id"
+      ],
+      "game_columns": [
+        "game_pk"
+      ],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-09/starters.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0013,
+      "row_count": 26,
+      "column_count": 5,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-09__starters.csv.schema.json",
+      "player_columns": [
+        "pitcher",
+        "pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk"
+      ],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/al_full_staff_matchup_summary.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.004,
+      "row_count": 9,
+      "column_count": 28,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__al_full_staff_matchup_summary.csv.schema.json",
+      "player_columns": [
+        "opposing_pitchers",
+        "best_pitcher_matchup_score",
+        "worst_pitcher_matchup_score"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/al_hitter_vs_nl_pitcher_matrix.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0369,
+      "row_count": 108,
+      "column_count": 27,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__al_hitter_vs_nl_pitcher_matrix.csv.schema.json",
+      "player_columns": [
+        "pitcher_side",
+        "pitcher_id",
+        "pitcher_name",
+        "pitcher_hand",
+        "pitcher_strikeout_rate",
+        "pitcher_hit_rate_allowed",
+        "pitcher_xbh_rate_allowed",
+        "pitcher_whiff_per_swing"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/all_star_hitter_coverage.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0013,
+      "row_count": 18,
+      "column_count": 8,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__all_star_hitter_coverage.csv.schema.json",
+      "player_columns": [
+        "player_id",
+        "player_name"
+      ],
+      "game_columns": [
+        "historical_game_dates"
+      ],
+      "team_columns": [
+        "team_side",
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/all_star_pitcher_coverage.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0016,
+      "row_count": 24,
+      "column_count": 7,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__all_star_pitcher_coverage.csv.schema.json",
+      "player_columns": [
+        "player_id",
+        "player_name"
+      ],
+      "game_columns": [
+        "historical_game_dates"
+      ],
+      "team_columns": [
+        "team_side",
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/all_star_player_pitch_history.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 6.8268,
+      "row_count": 192607,
+      "column_count": 57,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__all_star_player_pitch_history.parquet.schema.json",
+      "player_columns": [
+        "batter",
+        "pitcher",
+        "player_name",
+        "atlas_batter_name",
+        "atlas_pitcher_name"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/all_star_starter_strikeout_board.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0004,
+      "row_count": 2,
+      "column_count": 7,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__all_star_starter_strikeout_board.csv.schema.json",
+      "player_columns": [
+        "expected_batters_faced"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/game_info.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0003,
+      "row_count": 1,
+      "column_count": 11,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__game_info.csv.schema.json",
+      "player_columns": [
+        "away_starting_pitcher_id",
+        "away_starting_pitcher",
+        "home_starting_pitcher_id",
+        "home_starting_pitcher"
+      ],
+      "game_columns": [
+        "game_pk",
+        "official_date"
+      ],
+      "team_columns": [
+        "away_team",
+        "home_team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/nl_full_staff_matchup_summary.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.004,
+      "row_count": 9,
+      "column_count": 28,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__nl_full_staff_matchup_summary.csv.schema.json",
+      "player_columns": [
+        "opposing_pitchers",
+        "best_pitcher_matchup_score",
+        "worst_pitcher_matchup_score"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/nl_hitter_vs_al_pitcher_matrix.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0356,
+      "row_count": 108,
+      "column_count": 27,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__nl_hitter_vs_al_pitcher_matrix.csv.schema.json",
+      "player_columns": [
+        "pitcher_side",
+        "pitcher_id",
+        "pitcher_name",
+        "pitcher_hand",
+        "pitcher_strikeout_rate",
+        "pitcher_hit_rate_allowed",
+        "pitcher_xbh_rate_allowed",
+        "pitcher_whiff_per_swing"
+      ],
+      "game_columns": [],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/official_lineups.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0018,
+      "row_count": 18,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__official_lineups.csv.schema.json",
+      "player_columns": [
+        "player_id",
+        "player_name",
+        "is_pitcher"
+      ],
+      "game_columns": [
+        "game_pk"
+      ],
+      "team_columns": [
+        "team_side",
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/official_pitchers.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0022,
+      "row_count": 24,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__official_pitchers.csv.schema.json",
+      "player_columns": [
+        "player_id",
+        "player_name",
+        "is_pitcher"
+      ],
+      "game_columns": [
+        "game_pk"
+      ],
+      "team_columns": [
+        "team_side",
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/daily/2026-07-14/all_star_game/official_players.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.0059,
+      "row_count": 65,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__daily__2026-07-14__all_star_game__official_players.csv.schema.json",
+      "player_columns": [
+        "player_id",
+        "player_name",
+        "is_pitcher"
+      ],
+      "game_columns": [
+        "game_pk"
+      ],
+      "team_columns": [
+        "team_side",
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/batter_pregame_snapshots/2024/batter_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 8.4058,
+      "row_count": 48774,
+      "column_count": 76,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__batter_pregame_snapshots__2024__batter_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "player_id",
+        "batter_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "batting_team",
+        "pitching_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/batter_pregame_snapshots/2025/batter_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 9.7855,
+      "row_count": 48862,
+      "column_count": 76,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__batter_pregame_snapshots__2025__batter_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "player_id",
+        "batter_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "batting_team",
+        "pitching_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/batter_pregame_snapshots/2026/batter_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 5.5145,
+      "row_count": 26821,
+      "column_count": 76,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__batter_pregame_snapshots__2026__batter_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "player_id",
+        "batter_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "batting_team",
+        "pitching_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/pitcher_pregame_snapshots/2024/pitcher_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 5.3342,
+      "row_count": 20682,
+      "column_count": 96,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__pitcher_pregame_snapshots__2024__pitcher_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "pitcher_id",
+        "pitcher_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "pitching_team",
+        "batting_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/pitcher_pregame_snapshots/2025/pitcher_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 6.1189,
+      "row_count": 20868,
+      "column_count": 96,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__pitcher_pregame_snapshots__2025__pitcher_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "pitcher_id",
+        "pitcher_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "pitching_team",
+        "batting_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/clean_starter_lineup_pregame/pitcher_pregame_snapshots/2026/pitcher_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 3.4111,
+      "row_count": 11139,
+      "column_count": 96,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__clean_starter_lineup_pregame__pitcher_pregame_snapshots__2026__pitcher_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "pitcher_id",
+        "pitcher_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "pitching_team",
+        "batting_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/scoring_event_roles/2024/scoring_event_roles.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.0784,
+      "row_count": 16450,
+      "column_count": 93,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__scoring_event_roles__2024__scoring_event_roles.parquet.schema.json",
+      "player_columns": [
+        "batter_id",
+        "pitcher_id",
+        "pitcher_name"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "batting_team",
+        "fielding_team",
+        "scoring_team",
+        "pre_scoring_team_score",
+        "pre_opponent_score",
+        "post_scoring_team_score",
+        "post_opponent_score",
+        "pre_scoring_team_margin",
+        "post_scoring_team_margin",
+        "winner_team",
+        "winning_team_scoring_event"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/scoring_timelines/2024/scoring_state_timelines.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.9599,
+      "row_count": 16450,
+      "column_count": 66,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__scoring_timelines__2024__scoring_state_timelines.parquet.schema.json",
+      "player_columns": [
+        "batter_id",
+        "pitcher_id",
+        "pitcher_name"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "batting_team",
+        "fielding_team",
+        "scoring_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/scoring_timelines/2024/scoring_state_timelines_partial.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.9599,
+      "row_count": 16450,
+      "column_count": 66,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__scoring_timelines__2024__scoring_state_timelines_partial.parquet.schema.json",
+      "player_columns": [
+        "batter_id",
+        "pitcher_id",
+        "pitcher_name"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "batting_team",
+        "fielding_team",
+        "scoring_team"
+      ]
+    },
+    {
+      "source_path": "data/game_intelligence/scoring_timelines/2024/scoring_transition_exception_details.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.077,
+      "row_count": 164,
+      "column_count": 96,
+      "schema_path": "atlas_reference/schemas/data__game_intelligence__scoring_timelines__2024__scoring_transition_exception_details.parquet.schema.json",
+      "player_columns": [
+        "batter_id",
+        "pitcher_id",
+        "pitcher_name",
+        "batter",
+        "pitcher",
+        "player_name"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "batting_team",
+        "fielding_team",
+        "scoring_team"
+      ]
+    },
+    {
+      "source_path": "data/history/failure_analysis/2026/failure_registry.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.1868,
+      "row_count": 28974,
+      "column_count": 45,
+      "schema_path": "atlas_reference/schemas/data__history__failure_analysis__2026__failure_registry.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/history/game_cards/events/game_events_2024_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 101.4849,
+      "row_count": 711898,
+      "column_count": 124,
+      "schema_path": "atlas_reference/schemas/data__history__game_cards__events__game_events_2024_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/history/game_cards/events/game_events_2025_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 103.1954,
+      "row_count": 712528,
+      "column_count": 124,
+      "schema_path": "atlas_reference/schemas/data__history__game_cards__events__game_events_2025_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/history/game_cards/events/game_events_2026_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 54.2021,
+      "row_count": 388371,
+      "column_count": 124,
+      "schema_path": "atlas_reference/schemas/data__history__game_cards__events__game_events_2026_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/history/game_cards/game_card_core.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.4495,
+      "row_count": 6176,
+      "column_count": 153,
+      "schema_path": "atlas_reference/schemas/data__history__game_cards__game_card_core.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced",
+        "pitcher_count",
+        "batter_count"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/history/game_cards/game_card_manifest.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0989,
+      "row_count": 6176,
+      "column_count": 13,
+      "schema_path": "atlas_reference/schemas/data__history__game_cards__game_card_manifest.parquet.schema.json",
+      "player_columns": [
+        "pitcher_count",
+        "batter_count"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": []
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/ATH_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__ATH_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/ATL_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__ATL_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/AZ_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0206,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__AZ_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/BAL_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0206,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__BAL_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/BOS_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 161,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__BOS_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/CHC_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0201,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__CHC_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/CIN_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__CIN_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/CLE_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0201,
+      "row_count": 161,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__CLE_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/COL_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__COL_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/CWS_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__CWS_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/DET_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0201,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__DET_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/HOU_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0204,
+      "row_count": 161,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__HOU_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/KC_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__KC_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/LAA_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__LAA_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/LAD_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__LAD_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/MIA_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__MIA_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/MIL_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__MIL_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/MIN_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0201,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__MIN_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/NYM_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__NYM_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/NYY_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__NYY_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/PHI_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.02,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__PHI_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/PIT_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__PIT_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/SD_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0204,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__SD_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/SEA_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.02,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__SEA_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/SF_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__SF_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/STL_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__STL_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/TB_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__TB_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/TEX_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0202,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__TEX_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/TOR_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0201,
+      "row_count": 161,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__TOR_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_checkpoints/WSH_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0203,
+      "row_count": 162,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_checkpoints__WSH_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_game_state_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.1541,
+      "row_count": 4856,
+      "column_count": 22,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_game_state_summary.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/baseball_states/2024/team_game_target_states.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.8651,
+      "row_count": 53416,
+      "column_count": 32,
+      "schema_path": "atlas_reference/schemas/data__learning__baseball_states__2024__team_game_target_states.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/bullpen_team_evidence_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0111,
+      "row_count": 330,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__bullpen_team_evidence_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/ATH_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__ATH_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/ATL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__ATL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/AZ_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__AZ_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/BAL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__BAL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/BOS_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__BOS_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/CHC_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__CHC_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/CIN_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__CIN_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/CLE_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__CLE_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/COL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__COL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/CWS_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__CWS_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/DET_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__DET_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/HOU_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__HOU_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/KC_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__KC_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/LAA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__LAA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/LAD_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__LAD_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/MIA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__MIA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/MIL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__MIL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/MIN_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__MIN_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/NYM_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__NYM_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/NYY_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__NYY_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/PHI_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__PHI_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/PIT_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__PIT_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/SD_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__SD_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/SEA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__SEA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/SF_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__SF_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/STL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__STL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/TB_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__TB_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/TEX_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__TEX_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/TOR_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__TOR_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/bullpen_evidence/2024/team_checkpoints/WSH_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__bullpen_evidence__2024__team_checkpoints__WSH_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/ATH_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__ATH_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/ATL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__ATL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/AZ_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__AZ_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/BAL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__BAL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/BOS_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__BOS_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/CHC_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__CHC_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/CIN_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__CIN_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/CLE_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__CLE_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/COL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__COL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/CWS_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__CWS_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/DET_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__DET_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/HOU_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__HOU_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/KC_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__KC_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/LAA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__LAA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/LAD_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__LAD_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/MIA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__MIA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/MIL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__MIL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/MIN_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__MIN_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/NYM_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__NYM_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/NYY_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__NYY_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/PHI_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__PHI_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/PIT_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__PIT_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/SD_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__SD_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/SEA_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__SEA_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/SF_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__SF_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/STL_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__STL_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/TB_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__TB_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/TEX_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__TEX_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/TOR_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__TOR_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_checkpoints/WSH_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0086,
+      "row_count": 11,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_checkpoints__WSH_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/learning/team_evidence/2024/team_evidence_summary.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0136,
+      "row_count": 330,
+      "column_count": 14,
+      "schema_path": "atlas_reference/schemas/data__learning__team_evidence__2024__team_evidence_summary.parquet.schema.json",
+      "player_columns": [
+        "runner_version"
+      ],
+      "game_columns": [],
+      "team_columns": [
+        "team"
+      ]
+    },
+    {
+      "source_path": "data/master/backups/pre_game_type_repair_20260710T213848Z/master_game_database.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.4355,
+      "row_count": 6460,
+      "column_count": 142,
+      "schema_path": "atlas_reference/schemas/data__master__backups__pre_game_type_repair_20260710T213848Z__master_game_database.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/backups/pre_game_type_repair_20260710T213848Z/master_pitch_database.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 255.6601,
+      "row_count": 1890652,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__master__backups__pre_game_type_repair_20260710T213848Z__master_pitch_database.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/backups/terminal_score_repair_20260713T222948Z/history/game_cards/game_card_core.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.4502,
+      "row_count": 6176,
+      "column_count": 153,
+      "schema_path": "atlas_reference/schemas/data__master__backups__terminal_score_repair_20260713T222948Z__history__game_cards__game_card_core.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced",
+        "pitcher_count",
+        "batter_count"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/backups/terminal_score_repair_20260713T222948Z/master/master_game_database.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.3908,
+      "row_count": 6176,
+      "column_count": 142,
+      "schema_path": "atlas_reference/schemas/data__master__backups__terminal_score_repair_20260713T222948Z__master__master_game_database.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/checkpoints/master_game_checkpoint_06_starter_performance.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.9149,
+      "row_count": 6460,
+      "column_count": 98,
+      "schema_path": "atlas_reference/schemas/data__master__checkpoints__master_game_checkpoint_06_starter_performance.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/checkpoints/master_game_checkpoint_07_bullpen.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.0861,
+      "row_count": 6460,
+      "column_count": 114,
+      "schema_path": "atlas_reference/schemas/data__master__checkpoints__master_game_checkpoint_07_bullpen.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/checkpoints/master_game_checkpoint_08_team_pitching.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.4187,
+      "row_count": 6460,
+      "column_count": 138,
+      "schema_path": "atlas_reference/schemas/data__master__checkpoints__master_game_checkpoint_08_team_pitching.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/master_game_database.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.3901,
+      "row_count": 6176,
+      "column_count": 142,
+      "schema_path": "atlas_reference/schemas/data__master__master_game_database.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/master_game_database_preview.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.1966,
+      "row_count": 250,
+      "column_count": 142,
+      "schema_path": "atlas_reference/schemas/data__master__master_game_database_preview.csv.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/master_pitch_database.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 248.1355,
+      "row_count": 1812797,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__master__master_pitch_database.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/master_pitch_database_preview.csv",
+      "source_format": "csv",
+      "source_size_mb": 0.6379,
+      "row_count": 1000,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__master__master_pitch_database_preview.csv.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/non_regular/master_game_database_non_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.1749,
+      "row_count": 284,
+      "column_count": 142,
+      "schema_path": "atlas_reference/schemas/data__master__non_regular__master_game_database_non_regular.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/master/non_regular/master_pitch_database_non_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 8.1299,
+      "row_count": 77855,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__master__non_regular__master_pitch_database_non_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/master/repairs/terminal_score_repair/20260713T222948Z/terminal_score_repair_ledger.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.2647,
+      "row_count": 543,
+      "column_count": 161,
+      "schema_path": "atlas_reference/schemas/data__master__repairs__terminal_score_repair__20260713T222948Z__terminal_score_repair_ledger.parquet.schema.json",
+      "player_columns": [
+        "home_starter_batters_faced",
+        "away_starter_batters_faced"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team",
+        "home_team_pitches",
+        "home_team_avg_velocity",
+        "home_team_max_velocity",
+        "home_team_strikeouts",
+        "home_team_walks",
+        "home_team_hits_allowed",
+        "home_team_whiffs",
+        "home_team_strikes",
+        "home_team_balls",
+        "home_team_strike_pct",
+        "home_team_ball_pct",
+        "home_team_whiff_pct",
+        "away_team_pitches",
+        "away_team_avg_velocity",
+        "away_team_max_velocity",
+        "away_team_strikeouts",
+        "away_team_walks",
+        "away_team_hits_allowed",
+        "away_team_whiffs",
+        "away_team_strikes",
+        "away_team_balls",
+        "away_team_strike_pct",
+        "away_team_ball_pct",
+        "away_team_whiff_pct"
+      ]
+    },
+    {
+      "source_path": "data/predictions/2026/pregame_target_predictions.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.1254,
+      "row_count": 28974,
+      "column_count": 30,
+      "schema_path": "atlas_reference/schemas/data__predictions__2026__pregame_target_predictions.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/predictions/2026/runs/20260703_all_teams/target_predictions.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.0207,
+      "row_count": 286,
+      "column_count": 30,
+      "schema_path": "atlas_reference/schemas/data__predictions__2026__runs__20260703_all_teams__target_predictions.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/predictions/2026/runs/all_available_all_teams/target_predictions.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 0.1254,
+      "row_count": 28974,
+      "column_count": 30,
+      "schema_path": "atlas_reference/schemas/data__predictions__2026__runs__all_available_all_teams__target_predictions.parquet.schema.json",
+      "player_columns": [
+        "opposing_starting_pitcher_id"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "team",
+        "opponent"
+      ]
+    },
+    {
+      "source_path": "data/pregame/snapshots/batter_game_facts.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.521,
+      "row_count": 124457,
+      "column_count": 24,
+      "schema_path": "atlas_reference/schemas/data__pregame__snapshots__batter_game_facts.parquet.schema.json",
+      "player_columns": [
+        "player_id",
+        "batter_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "batting_team",
+        "pitching_team"
+      ]
+    },
+    {
+      "source_path": "data/pregame/snapshots/batter_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 21.5691,
+      "row_count": 124457,
+      "column_count": 70,
+      "schema_path": "atlas_reference/schemas/data__pregame__snapshots__batter_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "player_id",
+        "batter_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "batting_team",
+        "pitching_team"
+      ]
+    },
+    {
+      "source_path": "data/pregame/snapshots/pitcher_game_facts.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 1.3535,
+      "row_count": 52689,
+      "column_count": 29,
+      "schema_path": "atlas_reference/schemas/data__pregame__snapshots__pitcher_game_facts.parquet.schema.json",
+      "player_columns": [
+        "pitcher_id",
+        "pitcher_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "pitching_team",
+        "batting_team"
+      ]
+    },
+    {
+      "source_path": "data/pregame/snapshots/pitcher_pregame_snapshots.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 13.4722,
+      "row_count": 52689,
+      "column_count": 90,
+      "schema_path": "atlas_reference/schemas/data__pregame__snapshots__pitcher_pregame_snapshots.parquet.schema.json",
+      "player_columns": [
+        "pitcher_id",
+        "pitcher_home_away"
+      ],
+      "game_columns": [
+        "game_pk",
+        "game_date"
+      ],
+      "team_columns": [
+        "pitching_team",
+        "batting_team"
+      ]
+    },
+    {
+      "source_path": "data/raw/statcast/regular/statcast_2024_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 100.7095,
+      "row_count": 732481,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__raw__statcast__regular__statcast_2024_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/raw/statcast/regular/statcast_2025_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 102.7867,
+      "row_count": 743219,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__raw__statcast__regular__statcast_2025_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    },
+    {
+      "source_path": "data/raw/statcast/regular/statcast_2026_regular.parquet",
+      "source_format": "parquet",
+      "source_size_mb": 55.5999,
+      "row_count": 414952,
+      "column_count": 122,
+      "schema_path": "atlas_reference/schemas/data__raw__statcast__regular__statcast_2026_regular.parquet.schema.json",
+      "player_columns": [
+        "player_name",
+        "batter",
+        "pitcher",
+        "fielder_2",
+        "fielder_3",
+        "fielder_4",
+        "fielder_5",
+        "fielder_6",
+        "fielder_7",
+        "fielder_8",
+        "fielder_9",
+        "delta_pitcher_run_exp",
+        "n_thruorder_pitcher",
+        "n_priorpa_thisgame_player_at_bat",
+        "pitcher_days_since_prev_game",
+        "batter_days_since_prev_game",
+        "pitcher_days_until_next_game",
+        "batter_days_until_next_game",
+        "api_break_x_batter_in",
+        "intercept_ball_minus_batter_pos_x_inches",
+        "intercept_ball_minus_batter_pos_y_inches"
+      ],
+      "game_columns": [
+        "game_date",
+        "game_pk"
+      ],
+      "team_columns": [
+        "home_team",
+        "away_team"
+      ]
+    }
+  ]
+}

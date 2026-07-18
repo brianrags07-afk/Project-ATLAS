@@ -1,0 +1,133 @@
+{
+  "source_path": "data/audits/hardcoded_belief_audit/hardcoded_belief_module_summary.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.002,
+  "source_sha256": "5a21b99d377722b9b7e0577f6e42d67851410b8459ee9a5b9316e7e72f46bddd",
+  "generated_at_utc": "2026-07-18T03:43:54.390581+00:00",
+  "row_count": 14,
+  "column_count": 6,
+  "physical_metadata": {},
+  "columns": {
+    "relative_path": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "atlas/predictions/prediction_fusion_engine.py",
+        "atlas/predictions/pregame_prediction_engine.py",
+        "atlas/history/failure_analysis_engine.py",
+        "atlas/history/model_repair_planning_engine.py",
+        "atlas/learning/team_evidence_discovery.py",
+        "atlas/identities/bullpen_availability_fatigue_engine.py",
+        "atlas/backtest/weighted_state_backtest_engine.py",
+        "atlas/learning/league_evidence_discovery.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "git_tracked": {
+      "dtype": "bool",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    },
+    "review_findings": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 12,
+      "sample_values": [
+        34,
+        28,
+        27,
+        23,
+        14,
+        10,
+        8,
+        7
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2,
+        "max": 34,
+        "mean": 12.142857142857142,
+        "median": 7.5
+      }
+    },
+    "allowed_findings": {
+      "dtype": "int64",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        5,
+        4,
+        8,
+        6,
+        7,
+        12,
+        0,
+        1
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 12,
+        "mean": 4.571428571428571,
+        "median": 4.0
+      }
+    },
+    "status": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "DETAILED_REVIEW_REQUIRED",
+        "FOCUSED_REVIEW"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "next_action": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "Do not connect until flagged scoring and decision logic is classified.",
+        "Inspect the small number of flagged rules before integration."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 14,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

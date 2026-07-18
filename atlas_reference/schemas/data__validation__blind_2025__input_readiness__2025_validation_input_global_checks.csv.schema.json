@@ -1,0 +1,77 @@
+{
+  "source_path": "data/validation/blind_2025/input_readiness/2025_validation_input_global_checks.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0007,
+  "source_sha256": "33effd9ac366f9c4c7b3c9350eb18d8e14832f8815d90436a638e4e7f8cd8e29",
+  "generated_at_utc": "2026-07-18T03:51:38.368099+00:00",
+  "row_count": 16,
+  "column_count": 3,
+  "physical_metadata": {},
+  "columns": {
+    "check": {
+      "dtype": "object",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 16,
+      "sample_values": [
+        "2025 team-game rows equal 4,860",
+        "2025 unique games equal 2,430",
+        "thirty teams represented",
+        "duplicate team-games zero",
+        "exactly two team rows per game",
+        "only 2025 rows included",
+        "2026 rows excluded",
+        "blocked result/prediction columns zero"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "passed": {
+      "dtype": "bool",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        true,
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.625,
+        "median": 1.0
+      }
+    },
+    "detail": {
+      "dtype": "object",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 10,
+      "sample_values": [
+        "4860",
+        "2430",
+        "30",
+        "0",
+        "['2025']",
+        "1",
+        "197",
+        "214"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 16,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

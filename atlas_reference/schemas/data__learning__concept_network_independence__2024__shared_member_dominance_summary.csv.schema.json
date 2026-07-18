@@ -1,0 +1,169 @@
+{
+  "source_path": "data/learning/concept_network_independence/2024/shared_member_dominance_summary.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0593,
+  "source_sha256": "5a630ccf47d9b2b7404659b2e67c4ee6411cb4109aff35a6847894773cdb456f",
+  "generated_at_utc": "2026-07-18T03:47:29.200212+00:00",
+  "row_count": 348,
+  "column_count": 7,
+  "physical_metadata": {},
+  "columns": {
+    "target_name": {
+      "dtype": "object",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "target_team_win",
+        "target_team_win_by_2_plus"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "member_condition_key": {
+      "dtype": "object",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 221,
+      "sample_values": [
+        "bullpen__bullpen_walk_per_pitch_season_prior_mean|>=|0.0259548576954",
+        "bullpen__bullpen_walks_season_prior_mean|>=|1.62711864407",
+        "bullpen__bullpen_hits_allowed_season_prior_mean|>=|3.52631578947",
+        "bullpen__bullpen_pitches_season_prior_mean|>=|64.959375",
+        "lineup_starter__slot_4_career_prior_home_run_rate_per_pa|<=|0.0253968253968",
+        "lineup_starter__slot_6_career_prior_called_strike_pct|<=|0.140764152106",
+        "lineup_starter__slot_2_career_prior_avg_exit_velocity|<=|88.0969162996",
+        "lineup_starter__lineup_career_prior_ball_pct_mean|<=|0.349236724934"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "feature_name": {
+      "dtype": "object",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 162,
+      "sample_values": [
+        "bullpen__bullpen_walk_per_pitch_season_prior_mean",
+        "bullpen__bullpen_walks_season_prior_mean",
+        "bullpen__bullpen_hits_allowed_season_prior_mean",
+        "bullpen__bullpen_pitches_season_prior_mean",
+        "lineup_starter__slot_4_career_prior_home_run_rate_per_pa",
+        "lineup_starter__slot_6_career_prior_called_strike_pct",
+        "lineup_starter__slot_2_career_prior_avg_exit_velocity",
+        "lineup_starter__lineup_career_prior_ball_pct_mean"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "underlying_metric_root": {
+      "dtype": "object",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 96,
+      "sample_values": [
+        "bullpen_walk_per_pitch_season_historical_mean",
+        "bullpen_walks_season_historical_mean",
+        "bullpen_hits_allowed_season_historical_mean",
+        "bullpen_pitches_season_historical_mean",
+        "slot_4_historical_home_run_rate_per_pa",
+        "slot_6_historical_called_strike_pct",
+        "slot_2_historical_avg_exit_velocity",
+        "lineup_historical_ball_pct_mean"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "concept_occurrences": {
+      "dtype": "int64",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 62,
+      "sample_values": [
+        81,
+        80,
+        79,
+        67,
+        66,
+        64,
+        62,
+        61
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 7,
+        "max": 81,
+        "mean": 29.0,
+        "median": 22.0
+      }
+    },
+    "network_components": {
+      "dtype": "int64",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 51,
+      "sample_values": [
+        62,
+        58,
+        54,
+        52,
+        53,
+        45,
+        37,
+        61
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 7,
+        "max": 78,
+        "mean": 26.7183908045977,
+        "median": 22.0
+      }
+    },
+    "frozen_representative_occurrences": {
+      "dtype": "int64",
+      "rows_profiled": 348,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 57,
+      "sample_values": [
+        62,
+        54,
+        51,
+        52,
+        58,
+        53,
+        45,
+        37
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1,
+        "max": 78,
+        "mean": 24.54597701149425,
+        "median": 20.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 348,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

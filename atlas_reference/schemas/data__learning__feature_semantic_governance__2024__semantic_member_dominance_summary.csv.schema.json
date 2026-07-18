@@ -1,0 +1,157 @@
+{
+  "source_path": "data/learning/feature_semantic_governance/2024/semantic_member_dominance_summary.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0391,
+  "source_sha256": "e933d98802501153cc3580fa472813d87c14b0208c95e9b1663958b13dabcc0e",
+  "generated_at_utc": "2026-07-18T03:48:37.413865+00:00",
+  "row_count": 261,
+  "column_count": 7,
+  "physical_metadata": {},
+  "columns": {
+    "target_name": {
+      "dtype": "object",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "target_team_win",
+        "target_team_win_by_2_plus"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "feature_name": {
+      "dtype": "object",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 162,
+      "sample_values": [
+        "bullpen__bullpen_games_used_prior_3_dates",
+        "bullpen__bullpen_hits_allowed_season_prior_mean",
+        "bullpen__bullpen_pitches_season_prior_mean",
+        "bullpen__bullpen_runs_per_pitch_season_prior_mean",
+        "bullpen__bullpen_walk_per_pitch_season_prior_mean",
+        "bullpen__bullpen_walks_season_prior_mean",
+        "identity__identity_edge__covered_minus_1_5",
+        "identity__identity_edge__covered_plus_1_5"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "transformation_family_root": {
+      "dtype": "object",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 101,
+      "sample_values": [
+        "bullpen_games_used_3_dates",
+        "bullpen_hits_allowed",
+        "bullpen_pitches",
+        "bullpen_runs_per_pitch",
+        "bullpen_walk_per_pitch",
+        "bullpen_walks",
+        "covered_minus_1_5",
+        "covered_plus_1_5"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "semantic_classification": {
+      "dtype": "object",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        "VALID_RECENT_WORKLOAD_FACT",
+        "VALID_RATE_BASEBALL_FACT",
+        "POTENTIAL_TARGET_ANALOGUE",
+        "VALID_CONTINUOUS_BASEBALL_FACT",
+        "VALID_COUNT_OR_ORDINAL_FACT",
+        "IDENTIFIER_NOT_MEASUREMENT",
+        "VALID_COUNT_BASEBALL_FACT"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "KEEP_SEMANTICALLY_VALID",
+        "BLOCK_TARGET_ANALOGUE",
+        "BLOCK_IDENTIFIER_THRESHOLD"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "concept_occurrences": {
+      "dtype": "int64",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 68,
+      "sample_values": [
+        62,
+        51,
+        52,
+        88,
+        54,
+        32,
+        37,
+        27
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1,
+        "max": 116,
+        "mean": 32.727969348659,
+        "median": 27.0
+      }
+    },
+    "final_valid_occurrences": {
+      "dtype": "int64",
+      "rows_profiled": 261,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 45,
+      "sample_values": [
+        35,
+        42,
+        39,
+        46,
+        43,
+        0,
+        19,
+        17
+      ],
+      "roles": [],
+      "temporal_safety_inference": "likely_postgame_only",
+      "numeric_profile": {
+        "min": 0,
+        "max": 52,
+        "mean": 16.38314176245211,
+        "median": 15.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 261,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

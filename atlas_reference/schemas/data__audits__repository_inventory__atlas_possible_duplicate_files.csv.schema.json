@@ -1,0 +1,119 @@
+{
+  "source_path": "data/audits/repository_inventory/atlas_possible_duplicate_files.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.2509,
+  "source_sha256": "a932dd4f95004185705b1da8cd6977e98da4a5e4b00181dcdfe3bbbdd3d794e2",
+  "generated_at_utc": "2026-07-18T03:43:55.685274+00:00",
+  "row_count": 1601,
+  "column_count": 5,
+  "physical_metadata": {},
+  "columns": {
+    "duplicate_type": {
+      "dtype": "object",
+      "rows_profiled": 1601,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "EXACT_CONTENT",
+        "SIMILAR_NAME"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "sha256": {
+      "dtype": "object",
+      "rows_profiled": 1601,
+      "null_count": 1592,
+      "null_rate": 0.9943785134291068,
+      "sample_unique_count": 9,
+      "sample_values": [
+        "1e9e36b753cd79c5c93a4f954daef8e5f5c2485f4423234d7144ccd33e89a28a",
+        "3c0da7f82c3e8a334aa1003fd154276bcc3656d6a905bde6023ec8f5bd0a9338",
+        "4274cfb541b84439b6b224eefe3cc28c7b0861664c93430010b7072c8a745ab9",
+        "5ae302eff75bc30e37323f94ec35f45c6c557af219466bce146edb08bcf514ab",
+        "798c6905cb4cb340a3d3ee83424df7fa3ad5b7eae5b9f450999f6e409862d997",
+        "c7c75fbf5032284a088ec9697f37b9aa54beb5fa1034935cce3abd7e7451cb75",
+        "d8f5c64442a47ad38ce38ee320c5a2ada1577c43067eb0f68bda427c7d55c5b5",
+        "deec8ad4c61c57a97494d18bd0859ab61e7b3f491d50a04a45fd2a61da800878"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "size_bytes": {
+      "dtype": "float64",
+      "rows_profiled": 1601,
+      "null_count": 1592,
+      "null_rate": 0.9943785134291068,
+      "sample_unique_count": 9,
+      "sample_values": [
+        1463.0,
+        104896.0,
+        1006568.0,
+        131447.0,
+        1880.0,
+        6140.0,
+        76827.0,
+        52904.0
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1463.0,
+        "max": 1006568.0,
+        "mean": 153825.66666666666,
+        "median": 52904.0
+      }
+    },
+    "file_count": {
+      "dtype": "int64",
+      "rows_profiled": 1601,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        2,
+        5,
+        30,
+        3,
+        23,
+        4
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2,
+        "max": 30,
+        "mean": 2.6714553404122423,
+        "median": 3.0
+      }
+    },
+    "files": {
+      "dtype": "object",
+      "rows_profiled": 1601,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1601,
+      "sample_values": [
+        "data/predictions/2026/pregame_prediction_metadata.json | data/predictions/2026/runs/all_available_all_teams/prediction_metadata.json",
+        "data/game_intelligence/outcomes/2024/game_outcomes.parquet | data/game_intelligence/outcomes/2024/checkpoints/game_outcomes_partial.parquet",
+        "data/game_intelligence/scoring_timelines/2024/scoring_state_timelines_partial.parquet | data/game_intelligence/scoring_timelines/2024/scoring_state_timelines.parquet",
+        "data/predictions/2026/pregame_target_predictions.parquet | data/predictions/2026/runs/all_available_all_teams/target_predictions.parquet",
+        "data/game_intelligence/scoring_event_roles/2024/scoring_event_role_failures.parquet | data/game_intelligence/team_game_flow/2024/team_game_flow_failures.parquet | data/game_intelligence/lead_protection/2024/team_lead_protection_failures.parquet | data/game_intelligence/response_recovery/2024/team_response_recovery_failures.parquet | data/game_intelligence/game_flow_facts/2024/team_game_flow_fact_failures.parquet",
+        "atlas/pitchers/pitcher_engine.py | atlas/pitchers/backups/pitcher_engine_v1_20260711T024923Z.py",
+        "data/predictions/2026/pregame_active_concepts.parquet | data/predictions/2026/runs/all_available_all_teams/active_concepts.parquet",
+        "data/predictions/2026/pregame_game_predictions.parquet | data/predictions/2026/runs/all_available_all_teams/game_predictions.parquet"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 1601,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

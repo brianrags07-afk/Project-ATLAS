@@ -1,0 +1,104 @@
+{
+  "source_path": "data/history/model_repair_plans/2026/executive_repair_plan.parquet",
+  "source_format": "parquet",
+  "source_size_mb": 0.004,
+  "source_sha256": "6fde29b732e2a7fc7518fe809451370f0131998e7e96db72b656d2bfd39bfe4b",
+  "generated_at_utc": "2026-07-18T03:46:11.728336+00:00",
+  "row_count": 5,
+  "column_count": 5,
+  "physical_metadata": {
+    "rows": 5,
+    "columns": 5,
+    "row_groups": 1
+  },
+  "columns": {
+    "section": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "primary_target_repair",
+        "primary_identity_gap",
+        "concept_control",
+        "team_expansion",
+        "execution_control"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "finding": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "team_allowed_3_or_less is the highest-priority target repair (P0_CRITICAL).",
+        "Bullpen Availability and Fatigue Engine is the highest-priority new identity engine.",
+        "23 concepts are quarantine candidates; 50 require reduction and revalidation.",
+        "14 teams require additional identity or coverage work.",
+        "46 repair tasks were proposed. None were approved or executed automatically."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "evaluation_season": {
+      "dtype": "int64",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        2026
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2026,
+        "max": 2026,
+        "mean": 2026.0,
+        "median": 2026.0
+      }
+    },
+    "generated_at_utc": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "2026-07-13T01:18:07.378838+00:00"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "human_review_required": {
+      "dtype": "bool",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 5,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

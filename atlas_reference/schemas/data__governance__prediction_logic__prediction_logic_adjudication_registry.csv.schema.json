@@ -1,0 +1,261 @@
+{
+  "source_path": "data/governance/prediction_logic/prediction_logic_adjudication_registry.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.1123,
+  "source_sha256": "ddf92e2c93fa36a66efe5bdf9aa85bacf4feee239a0bdf956637334c587162c9",
+  "generated_at_utc": "2026-07-18T03:45:28.930393+00:00",
+  "row_count": 1756,
+  "column_count": 13,
+  "physical_metadata": {},
+  "columns": {
+    "classification": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "ALLOWED_SAFETY_STATISTICAL",
+        "REVIEW_PRESCRIPTIVE",
+        "REVIEW_CONTEXT",
+        "ALLOWED_FACTUAL"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "constant_name": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 239,
+      "null_rate": 0.9263565891472868,
+      "sample_unique_count": 11,
+      "sample_values": [
+        "BACKTEST_SEASON",
+        "available_members",
+        "EVALUATION_SEASON",
+        "consecutive_usage_days",
+        "workload_zscore",
+        "recovery_score",
+        "DISCOVERY_SEASON",
+        "LEARNING_SEASON"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "finding_type": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 90,
+      "null_rate": 0.3488372093023256,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "NUMERIC_SCORING_OR_ADJUSTMENT",
+        "FIXED_WEIGHT",
+        "RULE_BASED_DECISION",
+        "THRESHOLD_TIER",
+        "FIXED_FEATURE_DIRECTION",
+        "HARDCODED_CONFIDENCE"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "function": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 41,
+      "null_rate": 0.15891472868217055,
+      "sample_unique_count": 51,
+      "sample_values": [
+        "<module>",
+        "_activate_weighted_concepts",
+        "_build_target_states",
+        "run_weighted_state_backtest",
+        "_safe_log_loss",
+        "_build_scored_predictions",
+        "_build_target_performance",
+        "_build_team_report_cards"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        "QUARANTINE_MODULE",
+        "MANUAL_REVIEW_REQUIRED",
+        "KEEP_SAFETY_PROVENANCE",
+        "KEEP_RELIABILITY_METRIC",
+        "REPLACE_WITH_RAW_OR_LEARNED_FEATURE",
+        "RELIABILITY_ONLY",
+        "KEEP_RAW_FACT",
+        "KEEP_FACTUAL_TARGET"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_reason": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        "Legacy decision engine cannot enter Phase 2E.",
+        "Context is insufficient for automatic approval.",
+        "Chronology, leakage or provenance control.",
+        "Statistical reliability field may control evidence admission, not predictive direction or magnitude.",
+        "Handcrafted baseball score or adjustment must be replaced with raw measurements or a learned transformation.",
+        "May rank evidence reliability but cannot influence baseball outcome probability.",
+        "Raw pregame measurement may enter the learning matrix.",
+        "Factual postgame target definition; never a same-game input."
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "line": {
+      "dtype": "int64",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 233,
+      "sample_values": [
+        16,
+        314,
+        492,
+        493,
+        513,
+        519,
+        525,
+        667
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 16,
+        "max": 1602,
+        "mean": 658.7286821705426,
+        "median": 652.0
+      }
+    },
+    "name": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 220,
+      "null_rate": 0.8527131782945736,
+      "sample_unique_count": 26,
+      "sample_values": [
+        "aggregates",
+        "result",
+        "CONFIDENCE_BINS",
+        "CONFIDENCE_LABELS",
+        "clipped",
+        "strong_concepts",
+        "weak_concepts",
+        "failure_summary"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "Controls chronology, sampling, validation or statistical reliability.",
+        "Potential manually assigned influence, adjustment or belief.",
+        "Numeric or rule-based logic requires contextual review.",
+        "Defines or derives a factual historical outcome or state."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "record_source": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "numeric_constant",
+        "finding"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "relative_path": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "atlas/backtest/weighted_state_backtest_engine.py",
+        "atlas/history/failure_analysis_engine.py",
+        "atlas/history/model_repair_planning_engine.py",
+        "atlas/identities/bullpen_availability_fatigue_engine.py",
+        "atlas/identities/bullpen_identity_integration_engine.py",
+        "atlas/interactions/lineup_starter_input_engine.py",
+        "atlas/interactions/pregame_snapshot_builder.py",
+        "atlas/interactions/walk_forward_snapshot_engine.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "source": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 229,
+      "sample_values": [
+        "BACKTEST_SEASON = 2025",
+        "available_members = 0",
+        "base[\"_join_key\"] = 1",
+        "target_frame[\"_join_key\"] = 1",
+        "active[\"support_weight\"] = np.where(\n            active[\"signed_weight\"].gt(0),\n            active[\"absolute_weight\"],\n            0.0,\n        )",
+        "active[\"suppression_weight\"] = np.where(\n            active[\"signed_weight\"].lt(0),\n            active[\"absolute_weight\"],\n            0.0,\n        )",
+        "aggregates = (\n            active.groupby(\n                [\n                    \"game_pk\",\n                    \"team\",\n                    \"target\",\n                ],\n                sort=False,\n            )\n            .agg(\n                active_concepts=(\n                    \"concept_id\",\n                    \"nunique\",\n                ),\n                support_concepts=(\n                    \"support_weight\",\n                    lambda values: int(\n                        values.gt(0).sum()\n                    ),\n                ),\n                suppression_concepts=(\n                    \"suppression_weight\",\n                    lambda values: int(\n                        values.gt(0).sum()\n                    ),\n                ),\n                support_weight=(\n                    \"support_weight\",\n                    \"sum\",\n                ),\n                suppression_weight=(\n                    \"suppression_weight\",\n                    \"sum\",\n                ),\n                net_weighted_state_score=(\n                    \"signed_weight\",\n                    \"sum\",\n                ),\n                total_absolute_weight=(\n                    \"absolute_weight\",\n  ",
+        "state[\"prediction_created\"] = False"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "value": {
+      "dtype": "object",
+      "rows_profiled": 258,
+      "null_count": 88,
+      "null_rate": 0.34108527131782945,
+      "sample_unique_count": 65,
+      "sample_values": [
+        "2025",
+        "0",
+        "1",
+        "0, 0.0",
+        "0, 0",
+        "False",
+        "2025, 2026, 2024, 2025, 2026",
+        "2026"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 258,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

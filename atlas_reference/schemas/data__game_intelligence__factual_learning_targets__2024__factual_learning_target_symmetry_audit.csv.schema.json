@@ -1,0 +1,88 @@
+{
+  "source_path": "data/game_intelligence/factual_learning_targets/2024/factual_learning_target_symmetry_audit.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.001,
+  "source_sha256": "fd280be0316c73fe7661b65996c34e4d98295c4d22566002a9c19e89b26da7de",
+  "generated_at_utc": "2026-07-18T03:45:06.033665+00:00",
+  "row_count": 16,
+  "column_count": 4,
+  "physical_metadata": {},
+  "columns": {
+    "check": {
+      "dtype": "object",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 16,
+      "sample_values": [
+        "exactly two team rows per game",
+        "mirror team row exists",
+        "team runs mirror opponent runs",
+        "opponent runs mirror team runs",
+        "run margins are inverse",
+        "game totals match",
+        "team win mirrors opponent loss",
+        "team loss mirrors opponent win"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "failures": {
+      "dtype": "int64",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        0
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 0,
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "passed": {
+      "dtype": "bool",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    },
+    "audit_family": {
+      "dtype": "object",
+      "rows_profiled": 16,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "team_target_symmetry",
+        "evidence_target_alignment"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 16,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

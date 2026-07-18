@@ -1,0 +1,101 @@
+{
+  "source_path": "data/history/failure_analysis/2026/executive_learning_report.parquet",
+  "source_format": "parquet",
+  "source_size_mb": 0.0042,
+  "source_sha256": "d03b0b67b28f99c3fbee8253daa3e73232c8d651fa22878af3bebbac652131d4",
+  "generated_at_utc": "2026-07-18T03:45:30.175246+00:00",
+  "row_count": 6,
+  "column_count": 5,
+  "physical_metadata": {
+    "rows": 6,
+    "columns": 5,
+    "row_groups": 1
+  },
+  "columns": {
+    "section": {
+      "dtype": "object",
+      "rows_profiled": 6,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "overall",
+        "coverage",
+        "concepts",
+        "best_target",
+        "worst_target",
+        "next_priority"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "finding": {
+      "dtype": "object",
+      "rows_profiled": 6,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "The current 2026 model did not beat base-rate forecasting across the accepted target set.",
+        "Prediction coverage remains sparse because only 140 integrated concepts were prediction-ready.",
+        "40 concepts earned KEEP/PROMOTE recommendations; 73 require reduction, investigation, or retirement review.",
+        "Best target by Brier improvement: team_scored_8_plus (-0.00526).",
+        "Worst target by Brier improvement: game_total_10_5_plus (-0.02529).",
+        "Highest-priority research area: rebuild_target_game_total_10_5_plus."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "severity": {
+      "dtype": "object",
+      "rows_profiled": 6,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "high",
+        "informational"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "evaluation_season": {
+      "dtype": "int64",
+      "rows_profiled": 6,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        2026
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2026,
+        "max": 2026,
+        "mean": 2026.0,
+        "median": 2026.0
+      }
+    },
+    "generated_at_utc": {
+      "dtype": "object",
+      "rows_profiled": 6,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        "2026-07-13T00:24:30.199282+00:00"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 6,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

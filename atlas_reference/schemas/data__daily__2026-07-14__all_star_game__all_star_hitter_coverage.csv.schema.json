@@ -1,0 +1,201 @@
+{
+  "source_path": "data/daily/2026-07-14/all_star_game/all_star_hitter_coverage.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0013,
+  "source_sha256": "969eb1386ce310b2df56250d106b468d8983208330fbefccde94124bea986d24",
+  "generated_at_utc": "2026-07-18T03:44:07.163379+00:00",
+  "row_count": 18,
+  "column_count": 8,
+  "physical_metadata": {},
+  "columns": {
+    "team_side": {
+      "dtype": "object",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "AWAY",
+        "HOME"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "team": {
+      "dtype": "object",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "American League All-Stars",
+        "National League All-Stars"
+      ],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "batting_order": {
+      "dtype": "float64",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 9,
+      "sample_values": [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0
+      ],
+      "roles": [
+        "lineup"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1.0,
+        "max": 9.0,
+        "mean": 5.0,
+        "median": 5.0
+      }
+    },
+    "player_id": {
+      "dtype": "int64",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 18,
+      "sample_values": [
+        545361,
+        670541,
+        669127,
+        691406,
+        677951,
+        641355,
+        700250,
+        682985
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 518692,
+        "max": 700250,
+        "mean": 651916.9444444445,
+        "median": 669834.0
+      }
+    },
+    "player_name": {
+      "dtype": "object",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 18,
+      "sample_values": [
+        "Mike Trout",
+        "Yordan Alvarez",
+        "Shea Langeliers",
+        "Junior Caminero",
+        "Bobby Witt Jr.",
+        "Cody Bellinger",
+        "Ben Rice",
+        "Riley Greene"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "historical_pitch_rows": {
+      "dtype": "int64",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 18,
+      "sample_values": [
+        4524,
+        4685,
+        5265,
+        4594,
+        6503,
+        6085,
+        4170,
+        6657
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2813,
+        "max": 7566,
+        "mean": 5378.722222222223,
+        "median": 5310.5
+      }
+    },
+    "historical_game_dates": {
+      "dtype": "int64",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 16,
+      "sample_values": [
+        233,
+        282,
+        337,
+        393,
+        366,
+        264,
+        373,
+        360
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 184,
+        "max": 393,
+        "mean": 326.22222222222223,
+        "median": 348.5
+      }
+    },
+    "found_in_master_pitch": {
+      "dtype": "bool",
+      "rows_profiled": 18,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [
+      "player_id",
+      "player_name"
+    ],
+    "game_columns": [
+      "historical_game_dates"
+    ],
+    "team_columns": [
+      "team_side",
+      "team"
+    ]
+  },
+  "key_candidates": [],
+  "profile_rows_used": 18,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

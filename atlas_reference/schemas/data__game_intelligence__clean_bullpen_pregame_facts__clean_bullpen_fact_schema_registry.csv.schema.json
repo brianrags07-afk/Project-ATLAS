@@ -1,0 +1,92 @@
+{
+  "source_path": "data/game_intelligence/clean_bullpen_pregame_facts/clean_bullpen_fact_schema_registry.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0054,
+  "source_sha256": "89703cbce631f7d1919cf34b6b2fdf797d9a35b5f8f6ce5f49288ac8277d63a3",
+  "generated_at_utc": "2026-07-18T03:44:32.495342+00:00",
+  "row_count": 60,
+  "column_count": 4,
+  "physical_metadata": {},
+  "columns": {
+    "source_column": {
+      "dtype": "object",
+      "rows_profiled": 60,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 60,
+      "sample_values": [
+        "game_pk",
+        "game_date",
+        "atlas_season",
+        "team",
+        "opponent",
+        "home_away",
+        "prior_bullpen_date",
+        "days_since_prior_bullpen_date"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "dtype": {
+      "dtype": "object",
+      "rows_profiled": 60,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "Int64",
+        "datetime64[ns]",
+        "object",
+        "float64",
+        "int64",
+        "bool"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 60,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "KEEP_KEY",
+        "KEEP_RAW_FACT",
+        "BLOCK_POSTGAME",
+        "BLOCK_HANDCRAFTED",
+        "REVIEW_EXCLUDE",
+        "KEEP_SAFETY"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 60,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        "Canonical game or team identity field.",
+        "Objective pregame bullpen measurement.",
+        "Same-game outcome or postgame field.",
+        "Handcrafted score, grade, tier, adjustment or prediction field.",
+        "Not explicitly approved as a raw bullpen pregame fact.",
+        "Chronology or leakage provenance field."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 60,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

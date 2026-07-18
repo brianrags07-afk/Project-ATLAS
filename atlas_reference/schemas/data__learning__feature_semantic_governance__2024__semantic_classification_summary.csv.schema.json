@@ -1,0 +1,121 @@
+{
+  "source_path": "data/learning/feature_semantic_governance/2024/semantic_classification_summary.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0005,
+  "source_sha256": "25da7e047db060b2c75a4862ef025b267bc15ff25af637e3776808c47dfa2101",
+  "generated_at_utc": "2026-07-18T03:48:36.846232+00:00",
+  "row_count": 7,
+  "column_count": 5,
+  "physical_metadata": {},
+  "columns": {
+    "semantic_classification": {
+      "dtype": "object",
+      "rows_profiled": 7,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        "VALID_RATE_BASEBALL_FACT",
+        "VALID_CONTINUOUS_BASEBALL_FACT",
+        "POTENTIAL_TARGET_ANALOGUE",
+        "VALID_COUNT_BASEBALL_FACT",
+        "VALID_COUNT_OR_ORDINAL_FACT",
+        "IDENTIFIER_NOT_MEASUREMENT",
+        "VALID_RECENT_WORKLOAD_FACT"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 7,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "KEEP_SEMANTICALLY_VALID",
+        "BLOCK_TARGET_ANALOGUE",
+        "BLOCK_IDENTIFIER_THRESHOLD"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "member_rows": {
+      "dtype": "int64",
+      "rows_profiled": 7,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        3578,
+        2846,
+        973,
+        683,
+        176,
+        153,
+        133
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 133,
+        "max": 3578,
+        "mean": 1220.2857142857142,
+        "median": 683.0
+      }
+    },
+    "unique_features": {
+      "dtype": "int64",
+      "rows_profiled": 7,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 6,
+      "sample_values": [
+        46,
+        69,
+        30,
+        10,
+        3,
+        2
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2,
+        "max": 69,
+        "mean": 23.142857142857142,
+        "median": 10.0
+      }
+    },
+    "targets": {
+      "dtype": "int64",
+      "rows_profiled": 7,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        2
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2,
+        "max": 2,
+        "mean": 2.0,
+        "median": 2.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 7,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

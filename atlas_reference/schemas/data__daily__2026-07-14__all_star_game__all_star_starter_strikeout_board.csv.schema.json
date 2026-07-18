@@ -1,0 +1,150 @@
+{
+  "source_path": "data/daily/2026-07-14/all_star_game/all_star_starter_strikeout_board.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0004,
+  "source_sha256": "c4898f7aed3588fe423ee7a6574b27b7c3996be0155792bd59c6b17843c99917",
+  "generated_at_utc": "2026-07-18T03:44:10.436025+00:00",
+  "row_count": 2,
+  "column_count": 7,
+  "physical_metadata": {},
+  "columns": {
+    "starter_name": {
+      "dtype": "object",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "Cristopher Sánchez",
+        "Dylan Cease"
+      ],
+      "roles": [
+        "starter"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "expected_batters_faced": {
+      "dtype": "float64",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        4.2
+      ],
+      "roles": [
+        "player_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 4.2,
+        "max": 4.2,
+        "mean": 4.2,
+        "median": 4.2
+      }
+    },
+    "expected_strikeouts": {
+      "dtype": "float64",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        0.7885399106202609,
+        0.8908134773090179
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.7885399106202609,
+        "max": 0.8908134773090179,
+        "mean": 0.8396766939646394,
+        "median": 0.8396766939646394
+      }
+    },
+    "probability_1_plus_strikeout": {
+      "dtype": "float64",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        0.5848186252442015,
+        0.6381481216485811
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.5848186252442015,
+        "max": 0.6381481216485811,
+        "mean": 0.6114833734463914,
+        "median": 0.6114833734463914
+      }
+    },
+    "probability_2_plus_strikeouts": {
+      "dtype": "float64",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        0.1870944216878798,
+        0.224157954835057
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.1870944216878798,
+        "max": 0.224157954835057,
+        "mean": 0.2056261882614684,
+        "median": 0.2056261882614684
+      }
+    },
+    "top_strikeout_target": {
+      "dtype": "object",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        "Mike Trout",
+        "Kyle Schwarber"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "top_target_probability_per_pa": {
+      "dtype": "float64",
+      "rows_profiled": 2,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        0.261544104162846,
+        0.359072039072039
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.261544104162846,
+        "max": 0.359072039072039,
+        "mean": 0.3103080716174425,
+        "median": 0.3103080716174425
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [
+      "expected_batters_faced"
+    ],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 2,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

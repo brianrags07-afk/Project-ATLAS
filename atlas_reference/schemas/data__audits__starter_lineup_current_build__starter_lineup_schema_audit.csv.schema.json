@@ -1,0 +1,104 @@
+{
+  "source_path": "data/audits/starter_lineup_current_build/starter_lineup_schema_audit.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.298,
+  "source_sha256": "ab944946ea2a9a8e8a38e2cf660563ee0fe5adb775aa958b28c7aa44583dcefd",
+  "generated_at_utc": "2026-07-18T03:43:57.834732+00:00",
+  "row_count": 1759,
+  "column_count": 5,
+  "physical_metadata": {},
+  "columns": {
+    "artifact_type": {
+      "dtype": "object",
+      "rows_profiled": 1759,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "LINEUP_STARTER_INPUT",
+        "BATTER_PREGAME_SNAPSHOT",
+        "PITCHER_PREGAME_SNAPSHOT"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "path": {
+      "dtype": "object",
+      "rows_profiled": 1759,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/interactions/lineup_starter_bullpen_inputs.parquet",
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/interactions/lineup_starter_inputs.parquet",
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/snapshots/batter_pregame_snapshots.parquet",
+        "/content/drive/MyDrive/Project_Atlas/data/pregame/snapshots/pitcher_pregame_snapshots.parquet"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "column": {
+      "dtype": "object",
+      "rows_profiled": 1759,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 962,
+      "sample_values": [
+        "game_pk",
+        "game_date",
+        "atlas_season",
+        "team",
+        "opponent",
+        "home_away",
+        "opposing_starting_pitcher_id",
+        "starting_lineup_size"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "dtype": {
+      "dtype": "object",
+      "rows_profiled": 1759,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        "Int64",
+        "datetime64[ns]",
+        "object",
+        "bool",
+        "int64",
+        "Float64",
+        "float64",
+        "int8"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "governance_action": {
+      "dtype": "object",
+      "rows_profiled": 1759,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "KEEP_OR_REVIEW_RAW",
+        "BLOCK_POSTGAME",
+        "REVIEW_HANDCRAFTED",
+        "KEEP_SAFETY"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 1759,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

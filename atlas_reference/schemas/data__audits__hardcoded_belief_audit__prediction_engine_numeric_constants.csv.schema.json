@@ -1,0 +1,170 @@
+{
+  "source_path": "data/audits/hardcoded_belief_audit/prediction_engine_numeric_constants.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0179,
+  "source_sha256": "5eb6522bf62f0f26389016c9e82de514b8ae6a3494154d235dc3463e8cc48d46",
+  "generated_at_utc": "2026-07-18T03:43:54.825586+00:00",
+  "row_count": 150,
+  "column_count": 8,
+  "physical_metadata": {},
+  "columns": {
+    "relative_path": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "atlas/learning/backtest_target_builder.py",
+        "atlas/learning/team_evidence_discovery.py",
+        "atlas/learning/league_evidence_discovery.py",
+        "atlas/learning/bullpen_evidence_discovery_2024.py",
+        "atlas/identities/bullpen_availability_fatigue_engine.py",
+        "atlas/identities/bullpen_identity_integration_engine.py",
+        "atlas/interactions/walk_forward_snapshot_engine.py",
+        "atlas/interactions/pregame_snapshot_builder.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "line": {
+      "dtype": "int64",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 84,
+      "sample_values": [
+        327,
+        328,
+        494,
+        495,
+        496,
+        17,
+        983,
+        23
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 16,
+        "max": 1315,
+        "mean": 656.4,
+        "median": 670.5
+      }
+    },
+    "function": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 26,
+      "sample_values": [
+        "build_game_targets",
+        "build_team_game_targets",
+        "<module>",
+        "validate_team_evidence",
+        "_discover_scope",
+        "_attach_states_to_games",
+        "_build_team_date_states",
+        "run_bullpen_identity_integration_engine"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "constant_name": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 71,
+      "null_rate": 0.7888888888888889,
+      "sample_unique_count": 11,
+      "sample_values": [
+        "LEARNING_SEASON",
+        "expected_teams",
+        "DISCOVERY_SEASON",
+        "consecutive_usage_days",
+        "workload_zscore",
+        "recovery_score",
+        "PREDICTION_SEASON",
+        "available_members"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "value": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 13,
+      "sample_values": [
+        "True",
+        "False",
+        "2024",
+        "30",
+        "0",
+        "0.0",
+        "1.0",
+        "0.78"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "classification": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "ALLOWED_SAFETY_STATISTICAL",
+        "REVIEW_CONTEXT",
+        "REVIEW_PRESCRIPTIVE",
+        "ALLOWED_FACTUAL"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "Controls chronology, sampling, validation or statistical reliability.",
+        "Numeric or rule-based logic requires contextual review.",
+        "Potential manually assigned influence, adjustment or belief.",
+        "Defines or derives a factual historical outcome or state."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "source": {
+      "dtype": "object",
+      "rows_profiled": 90,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 74,
+      "sample_values": [
+        "targets[\"strict_backtest_safe\"] = True",
+        "targets[\"market_line_used\"] = False",
+        "targets[\"market_team_total_used\"] = False",
+        "targets[\"market_game_total_used\"] = False",
+        "LEARNING_SEASON = 2024",
+        "expected_teams = 30",
+        "record[\n                \"league_prior_only\"\n            ] = True",
+        "record[\n                \"team_local_override_allowed\"\n            ] = True"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 90,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

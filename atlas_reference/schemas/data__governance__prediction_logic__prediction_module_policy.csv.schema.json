@@ -1,0 +1,135 @@
+{
+  "source_path": "data/governance/prediction_logic/prediction_module_policy.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0033,
+  "source_sha256": "307c9e41c22b517ea36436b78067ce6f70c85c24ff76e244230996892111a0ee",
+  "generated_at_utc": "2026-07-18T03:45:29.200699+00:00",
+  "row_count": 14,
+  "column_count": 6,
+  "physical_metadata": {},
+  "columns": {
+    "relative_path": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "atlas/history/failure_analysis_engine.py",
+        "atlas/learning/backtest_target_builder.py",
+        "atlas/interactions/lineup_starter_input_engine.py",
+        "atlas/interactions/pregame_snapshot_builder.py",
+        "atlas/interactions/walk_forward_snapshot_engine.py",
+        "atlas/history/model_repair_planning_engine.py",
+        "atlas/backtest/weighted_state_backtest_engine.py",
+        "atlas/predictions/prediction_fusion_engine.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "status": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 7,
+      "sample_values": [
+        "ANALYSIS_ONLY",
+        "APPROVED_FACTUAL_TARGETS",
+        "APPROVED_RAW_PREGAME_FACTS",
+        "HUMAN_REVIEW_ONLY",
+        "QUARANTINED_LEGACY_DECISION_ENGINE",
+        "RAW_FACTS_ONLY",
+        "RELIABILITY_ONLY"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "allowed_use": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 13,
+      "sample_values": [
+        "Postgame failure analysis only.",
+        "Historical target creation only.",
+        "Pregame lineup and starter interaction inputs.",
+        "Chronologically safe player pregame snapshots.",
+        "Chronologically safe raw batter and pitcher history.",
+        "Generate proposed repair plans for human review.",
+        "Historical comparison only.",
+        "Historical reference and comparison only."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "phase_2e_allowed": {
+      "dtype": "bool",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        false,
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.6428571428571429,
+        "median": 1.0
+      }
+    },
+    "prediction_runtime_allowed": {
+      "dtype": "bool",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        false,
+        true
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.21428571428571427,
+        "median": 0.0
+      }
+    },
+    "reason": {
+      "dtype": "object",
+      "rows_profiled": 14,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "Postgame diagnostic information cannot enter same-game predictions.",
+        "Defines factual historical outcomes and target buckets. It must never be used as a same-game pregame feature.",
+        "May supply raw matchup facts. Handcrafted matchup scores remain prohibited until independently adjudicated.",
+        "Provides historical pregame facts with future-game exclusion.",
+        "Produces prior-game factual snapshots. Any derived manual scores remain prohibited unless separately approved.",
+        "Repair recommendations and grading tiers must not automatically change model logic or prediction weights.",
+        "Weighted-state behavior must not be treated as canonical unless all weights are proven to be learned strictly from training data.",
+        "Contains unadjudicated fusion rules and potential manual weights."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 14,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

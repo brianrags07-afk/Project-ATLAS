@@ -1,0 +1,444 @@
+{
+  "source_path": "data/audits/engine_interface_audit/prediction_engine_interface_inventory.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.1289,
+  "source_sha256": "09f755d9b70458e2e25f9246a765f44522c4cfaf27c0f008f29769987bc54460",
+  "generated_at_utc": "2026-07-18T03:43:53.504494+00:00",
+  "row_count": 344,
+  "column_count": 21,
+  "physical_metadata": {},
+  "columns": {
+    "engine_family": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        "backtest_validation",
+        "bullpen_availability_fatigue",
+        "bullpen_identity",
+        "calibration",
+        "environment_park",
+        "evidence_explanation",
+        "lineup_matchup",
+        "lineup_pitch_compatibility"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "relative_path": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 77,
+      "sample_values": [
+        "atlas/game_intelligence/reconstruction.py",
+        "atlas/game_intelligence/outcome_classifier.py",
+        "atlas/game_intelligence/contracts.py",
+        "atlas/interactions/walk_forward_snapshot_engine.py",
+        "atlas/interactions/pregame_snapshot_builder.py",
+        "atlas/learning/team_evidence_discovery.py",
+        "atlas/lineups/historical_lineup_engine.py",
+        "atlas/game_intelligence/game_flow_fact_table.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "module_name": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 76,
+      "sample_values": [
+        "atlas.game_intelligence.reconstruction",
+        "atlas.game_intelligence.outcome_classifier",
+        "atlas.game_intelligence.contracts",
+        "atlas.interactions.walk_forward_snapshot_engine",
+        "atlas.interactions.pregame_snapshot_builder",
+        "atlas.learning.team_evidence_discovery",
+        "atlas.lineups.historical_lineup_engine",
+        "atlas.game_intelligence.game_flow_fact_table"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "parse_success": {
+      "dtype": "bool",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    },
+    "syntax_error": {
+      "dtype": "float64",
+      "rows_profiled": 344,
+      "null_count": 344,
+      "null_rate": 1.0,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "size_kb": {
+      "dtype": "float64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 74,
+      "sample_values": [
+        18.35,
+        21.5,
+        4.63,
+        14.41,
+        18.64,
+        26.52,
+        11.18,
+        40.55
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0.06,
+        "max": 40.73,
+        "mean": 16.726569767441863,
+        "median": 15.37
+      }
+    },
+    "module_docstring": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 279,
+      "null_rate": 0.811046511627907,
+      "sample_unique_count": 15,
+      "sample_values": [
+        "Read-only game reconstruction for the ATLAS Baseball Brain. This module joins existing canonical ATLAS products into one standardized historical game object. It does not: - create predictions - update identities - alter source data - write season outputs - use future games",
+        "Deterministic factual game-outcome classification. This module answers: What happened in the completed game? It does not: - explain why the outcome occurred - update team or player identities - create evidence or concepts - create predictions - use sportsbook information",
+        "Canonical data contracts for the ATLAS Baseball Brain. This module contains paths and source-level invariants only. It does not reconstruct games, create predictions or update identities.",
+        "Canonical consolidated team-game flow fact table for Project ATLAS. This module joins the frozen Phase 2B and Phase 2D factual layers: - team outcomes - team game flow - lead protection and separation - response and recovery The resulting table contains exactly two rows per verified game. This remains postgame factual data. It is not directly safe as a pregame feature because it describes the game represented by the row. Pregame models may later consume lagged or historical aggregates built stri",
+        "ATLAS Game Intelligence package. This package implements the central game-by-game baseball learning pipeline defined in ATLAS_BRAIN_BUILD_CONTRACT.md.",
+        "Full-season reconstruction audit for the ATLAS Baseball Brain. This module validates whether every eligible historical game can be reconstructed from the canonical ATLAS source products. It does not create predictions or update identities.",
+        "Team-perspective factual outcome classification. This module converts one verified game-level outcome into exactly two factual rows: - one home-team perspective - one away-team perspective It does not: - explain why the game happened - update team or player identities - discover evidence or concepts - create predictions - use sportsbook information",
+        "Factual response-and-recovery summaries for Project ATLAS. Consumes frozen scoring-event roles and team game-flow facts. This module describes how teams responded after opponent scoring. It creates no predictions, identities, or explanations."
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "public_function_count": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 8,
+      "sample_values": [
+        2,
+        3,
+        5,
+        4,
+        1,
+        8,
+        0,
+        7
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 8,
+        "mean": 2.2819767441860463,
+        "median": 2.0
+      }
+    },
+    "private_function_count": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 16,
+      "sample_values": [
+        16,
+        12,
+        0,
+        2,
+        7,
+        5,
+        6,
+        13
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 16,
+        "mean": 5.590116279069767,
+        "median": 6.0
+      }
+    },
+    "public_class_count": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        1,
+        0
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 1,
+        "mean": 0.0436046511627907,
+        "median": 0.0
+      }
+    },
+    "test_count": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        3,
+        2,
+        1,
+        0
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 3,
+        "mean": 0.13372093023255813,
+        "median": 0.0
+      }
+    },
+    "mapped_tests": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 320,
+      "null_rate": 0.9302325581395349,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "tests/test_game_intelligence_reconstruction.py | tests/test_game_outcome_classifier.py | tests/test_team_outcome_classifier.py",
+        "tests/test_game_outcome_classifier.py | tests/test_team_outcome_classifier.py",
+        "tests/test_game_intelligence_reconstruction.py",
+        "tests/test_team_outcome_classifier.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "atlas_import_count": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        0,
+        1,
+        2,
+        4,
+        3
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 4,
+        "mean": 0.9622093023255814,
+        "median": 1.0
+      }
+    },
+    "atlas_imports": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 100,
+      "null_rate": 0.29069767441860467,
+      "sample_unique_count": 21,
+      "sample_values": [
+        "atlas.config",
+        "atlas.config | atlas.learning.team_evidence_discovery",
+        "atlas.config | atlas.pitchers.v2.definitions | atlas.pitchers.v2.pitch_table | atlas.pitchers.v2.summaries",
+        "atlas.config | atlas.learning.evidence_consolidation_engine",
+        "atlas.identity_transition.transition_schema | atlas.identity_transition.transition_utils",
+        "atlas.config | atlas.registry.registry_engine",
+        "atlas.validation.validation_registry | atlas.validation.validation_report | atlas.validation.validation_schema",
+        "atlas.evidence.evidence_schema | atlas.evidence.evidence_utils"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "detected_paths": {
+      "dtype": "object",
+      "rows_profiled": 344,
+      "null_count": 101,
+      "null_rate": 0.2936046511627907,
+      "sample_unique_count": 49,
+      "sample_values": [
+        "/content/drive/MyDrive/Project_Atlas | bullpen_pregame_state.parquet | game_card_core.parquet | game_card_manifest.parquet | game_events_{int(season)}_regular.parquet | game_targets.parquet | historical_starting_lineups.parquet | lineup_starter_bullpen_inputs.parquet | pitcher_game_facts.parquet | pitcher_pregame_snapshots.parquet",
+        "batter_game_facts.parquet | game_anomaly_registry.parquet | master_pitch_database.parquet | pitcher_game_facts.parquet",
+        "batter_game_facts.parquet | batter_pregame_snapshots.parquet | pitcher_game_facts.parquet | pitcher_pregame_snapshots.parquet",
+        "lineup_starter_inputs.parquet | team_evidence_metadata.json | team_evidence_registry.parquet | team_evidence_summary.parquet | team_game_targets.parquet",
+        "historical_starting_lineups.parquet | historical_starting_lineups_metadata.json | master_pitch_database.parquet",
+        "/content/drive/MyDrive/Project_Atlas | scoring_event_roles.parquet | team_game_flow.parquet | team_game_flow_fact_audit.parquet | team_game_flow_fact_failures.parquet | team_game_flow_fact_metadata.json | team_game_flow_facts.parquet | team_game_outcomes.parquet | team_lead_protection.parquet | team_response_recovery.parquet",
+        "game_targets.parquet | league_evidence_metadata.json | league_evidence_summary.parquet | league_game_environment_registry.parquet | league_team_evidence_registry.parquet | lineup_starter_inputs.parquet | team_game_targets.parquet",
+        "batter_pregame_snapshots.parquet | game_anomaly_registry.parquet | historical_starting_lineups.parquet | lineup_starter_inputs.parquet | lineup_starter_inputs_metadata.json | pitcher_pregame_snapshots.parquet"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "pregame_marker": {
+      "dtype": "bool",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        true,
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "potentially_pregame_safe",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.5843023255813954,
+        "median": 1.0
+      }
+    },
+    "future_leakage_guard": {
+      "dtype": "bool",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        true,
+        false
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.46511627906976744,
+        "median": 0.0
+      }
+    },
+    "same_date_guard": {
+      "dtype": "bool",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        false,
+        true
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.1511627906976744,
+        "median": 0.0
+      }
+    },
+    "walk_forward_marker": {
+      "dtype": "bool",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 2,
+      "sample_values": [
+        false,
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "False",
+        "max": "True",
+        "mean": 0.1569767441860465,
+        "median": 0.0
+      }
+    },
+    "integration_priority_score": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 14,
+      "sample_values": [
+        27,
+        23,
+        18,
+        17,
+        15,
+        14,
+        12,
+        11
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2,
+        "max": 27,
+        "mean": 12.502906976744185,
+        "median": 12.0
+      }
+    },
+    "candidate_rank": {
+      "dtype": "int64",
+      "rows_profiled": 344,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 58,
+      "sample_values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 1,
+        "max": 58,
+        "mean": 18.203488372093023,
+        "median": 15.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 344,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

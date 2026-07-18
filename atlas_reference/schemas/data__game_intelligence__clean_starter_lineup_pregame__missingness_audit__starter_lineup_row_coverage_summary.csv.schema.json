@@ -1,0 +1,97 @@
+{
+  "source_path": "data/game_intelligence/clean_starter_lineup_pregame/missingness_audit/starter_lineup_row_coverage_summary.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0023,
+  "source_sha256": "3074455ef9968011465de5697414928418f3d04aa2d739cd72f7013e91d48ba1",
+  "generated_at_utc": "2026-07-18T03:44:59.078928+00:00",
+  "row_count": 45,
+  "column_count": 4,
+  "physical_metadata": {},
+  "columns": {
+    "artifact": {
+      "dtype": "object",
+      "rows_profiled": 45,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        "batter_pregame_snapshots",
+        "pitcher_pregame_snapshots",
+        "lineup_starter_inputs"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "season": {
+      "dtype": "int64",
+      "rows_profiled": 45,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 3,
+      "sample_values": [
+        2024,
+        2025,
+        2026
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 2024,
+        "max": 2026,
+        "mean": 2025.0,
+        "median": 2025.0
+      }
+    },
+    "coverage_bucket": {
+      "dtype": "object",
+      "rows_profiled": 45,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "0 missing fields",
+        "1-5 missing fields",
+        "6-20 missing fields",
+        "21-50 missing fields",
+        "51+ missing fields"
+      ],
+      "roles": [
+        "target"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "rows": {
+      "dtype": "int64",
+      "rows_profiled": 45,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 38,
+      "sample_values": [
+        48021,
+        32,
+        68,
+        653,
+        0,
+        48089,
+        75,
+        559
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 48089,
+        "mean": 4211.022222222222,
+        "median": 119.0
+      }
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 45,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

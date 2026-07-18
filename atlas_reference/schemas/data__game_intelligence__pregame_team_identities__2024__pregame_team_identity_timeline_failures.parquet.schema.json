@@ -1,0 +1,82 @@
+{
+  "source_path": "data/game_intelligence/pregame_team_identities/2024/pregame_team_identity_timeline_failures.parquet",
+  "source_format": "parquet",
+  "source_size_mb": 0.0026,
+  "source_sha256": "84e428e844f05be8cd39b96e66fed75bb0efa1c7202e1438e8829ffe59010e82",
+  "generated_at_utc": "2026-07-18T03:45:17.825943+00:00",
+  "row_count": 0,
+  "column_count": 5,
+  "physical_metadata": {
+    "rows": 0,
+    "columns": 5,
+    "row_groups": 1
+  },
+  "columns": {
+    "atlas_season": {
+      "dtype": "object",
+      "rows_profiled": 0,
+      "null_count": 0,
+      "null_rate": null,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "team": {
+      "dtype": "object",
+      "rows_profiled": 0,
+      "null_count": 0,
+      "null_rate": null,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [
+        "team_identifier"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "game_date": {
+      "dtype": "object",
+      "rows_profiled": 0,
+      "null_count": 0,
+      "null_rate": null,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [
+        "date_or_time"
+      ],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "error_type": {
+      "dtype": "object",
+      "rows_profiled": 0,
+      "null_count": 0,
+      "null_rate": null,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "error_message": {
+      "dtype": "object",
+      "rows_profiled": 0,
+      "null_count": 0,
+      "null_rate": null,
+      "sample_unique_count": 0,
+      "sample_values": [],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [
+      "game_date"
+    ],
+    "team_columns": [
+      "team"
+    ]
+  },
+  "key_candidates": [],
+  "profile_rows_used": 0,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

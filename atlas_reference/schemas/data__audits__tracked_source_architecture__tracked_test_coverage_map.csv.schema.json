@@ -1,0 +1,144 @@
+{
+  "source_path": "data/audits/tracked_source_architecture/tracked_test_coverage_map.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0037,
+  "source_sha256": "a76689415a4d77198949acb6753fd94d5a8b10d75944a78d181aea5eb1e21e99",
+  "generated_at_utc": "2026-07-18T03:43:59.259293+00:00",
+  "row_count": 5,
+  "column_count": 7,
+  "physical_metadata": {},
+  "columns": {
+    "test_path": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "tests/test_game_flow_intelligence.py",
+        "tests/test_game_intelligence_reconstruction.py",
+        "tests/test_game_outcome_classifier.py",
+        "tests/test_scoring_state_timeline.py",
+        "tests/test_team_outcome_classifier.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "parse_success": {
+      "dtype": "bool",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 1,
+      "sample_values": [
+        true
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": "True",
+        "max": "True",
+        "mean": 1.0,
+        "median": 1.0
+      }
+    },
+    "test_function_count": {
+      "dtype": "int64",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        23,
+        6,
+        11,
+        17,
+        13
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 6,
+        "max": 23,
+        "mean": 14.0,
+        "median": 13.0
+      }
+    },
+    "capabilities": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "pregame_safety, team_identity, game_flow, run_line_margin, prediction_model, explanations",
+        "pregame_safety, bullpen, lineup_matchup, prediction_model",
+        "pregame_safety, team_identity, run_line_margin, totals_scoring, prediction_model, explanations",
+        "pregame_safety, team_identity, game_flow, prediction_model, explanations",
+        "pregame_safety, team_identity, run_line_margin, prediction_model, explanations"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "mapped_source_count": {
+      "dtype": "int64",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 4,
+      "sample_values": [
+        0,
+        4,
+        1,
+        5
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review",
+      "numeric_profile": {
+        "min": 0,
+        "max": 5,
+        "mean": 2.8,
+        "median": 4.0
+      }
+    },
+    "mapped_sources": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 1,
+      "null_rate": 0.2,
+      "sample_unique_count": 4,
+      "sample_values": [
+        "atlas/__init__.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/contracts.py | atlas/game_intelligence/reconstruction.py",
+        "atlas/__init__.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/reconstruction.py",
+        "atlas/game_intelligence/scoring_state_timeline.py",
+        "atlas/__init__.py | atlas/game_intelligence/__init__.py | atlas/game_intelligence/outcome_classifier.py | atlas/game_intelligence/reconstruction.py | atlas/game_intelligence/team_outcome_classifier.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "test_functions": {
+      "dtype": "object",
+      "rows_profiled": 5,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 5,
+      "sample_values": [
+        "test_consolidated_cross_layer_checks, test_consolidated_fact_table, test_decisive_event_is_scored_by_winner, test_delayed_update_game_747004_survives_role_layer, test_exactly_one_role_per_scoring_event, test_full_2024_scoring_event_role_artifact, test_lead_protection_artifact, test_lead_protection_known_counts, test_lead_protection_math, test_no_prediction_identity_explanation_or_future_data, test_one_opening_and_decisive_event_per_game, test_phase_2b_compatibility_aliases, test_phase_2d_metadata, test_representative_multi_run_walkoff, test_representative_one_run_walkoff, test_response_rates_are_bounded, test_response_recovery_artifact, test_response_recovery_known_counts, test_run_line_distribution, test_run_line_math, test_saved_audits_and_failures, test_scoring_event_role_distribution, test_team_flow_artifact",
+        "test_full_2024_audit_artifact, test_known_source_exception, test_multi_run_walkoff_repair, test_one_run_walkoff_repair, test_ordinary_completed_game, test_terminal_replay_score_repair",
+        "test_comeback_lead_change_equivalence, test_extra_inning_walkoff, test_full_2024_outcome_artifact, test_full_2024_outcome_audit, test_known_2024_distribution_counts, test_margin_threshold_labels, test_multi_run_walkoff, test_no_saved_failures, test_ordinary_road_shutout, test_terminal_replay_game_not_walkoff, test_total_threshold_labels",
+        "test_canonical_batting_and_scoring_sides_agree, test_delayed_score_update_game_747004, test_extra_inning_walkoff_game_745039, test_final_scores_match_frozen_outcomes, test_full_2024_scoring_timeline_artifact, test_full_2024_scoring_timeline_audit, test_known_scoring_transition_counts, test_multi_run_walkoff_game_746576, test_no_prediction_identity_explanation_or_future_data, test_no_saved_scoring_timeline_failures, test_one_terminal_scoring_event_per_game, test_ordinary_road_shutout_game_744795, test_phase_2c_metadata, test_positive_one_side_scoring_transitions, test_raw_score_repairs_preserve_source_provenance, test_score_state_continuity, test_within_plate_appearance_transitions_exist",
+        "test_exactly_one_winner_and_loser_per_game, test_extra_inning_walkoff_team_perspectives, test_full_2024_team_outcome_artifact, test_full_2024_team_outcome_audit, test_home_away_score_mirroring, test_inning_scoring_mirroring, test_known_2024_team_outcome_counts, test_margin_threshold_labels, test_multi_run_walkoff_team_perspectives, test_no_saved_team_outcome_failures, test_ordinary_shutout_team_perspectives, test_scoring_and_allowed_labels, test_walkoff_and_comeback_pairing"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 5,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}

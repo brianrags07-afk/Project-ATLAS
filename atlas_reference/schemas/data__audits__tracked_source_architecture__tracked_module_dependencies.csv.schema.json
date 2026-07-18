@@ -1,0 +1,77 @@
+{
+  "source_path": "data/audits/tracked_source_architecture/tracked_module_dependencies.csv",
+  "source_format": "csv",
+  "source_size_mb": 0.0073,
+  "source_sha256": "9ea0939689aff7f5d84943b409ca785553bed128c9669c6c2a847e1b4565e932",
+  "generated_at_utc": "2026-07-18T03:43:58.584057+00:00",
+  "row_count": 76,
+  "column_count": 3,
+  "physical_metadata": {},
+  "columns": {
+    "source_module": {
+      "dtype": "object",
+      "rows_profiled": 76,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 54,
+      "sample_values": [
+        "atlas.backtest.weighted_state_backtest_engine",
+        "atlas.calibration.probability_calibration_engine",
+        "atlas.config",
+        "atlas.daily.data_engine",
+        "atlas.evidence.evidence_engine",
+        "atlas.evidence.team_evidence",
+        "atlas.game_cards.game_card_engine",
+        "atlas.gamecards.gamecard_engine"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "source_path": {
+      "dtype": "object",
+      "rows_profiled": 76,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 54,
+      "sample_values": [
+        "atlas/backtest/weighted_state_backtest_engine.py",
+        "atlas/calibration/probability_calibration_engine.py",
+        "atlas/config/__init__.py",
+        "atlas/daily/data_engine.py",
+        "atlas/evidence/evidence_engine.py",
+        "atlas/evidence/team_evidence.py",
+        "atlas/game_cards/game_card_engine.py",
+        "atlas/gamecards/gamecard_engine.py"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    },
+    "depends_on": {
+      "dtype": "object",
+      "rows_profiled": 76,
+      "null_count": 0,
+      "null_rate": 0.0,
+      "sample_unique_count": 28,
+      "sample_values": [
+        "atlas.config",
+        "atlas.config.paths",
+        "atlas.utils.api",
+        "atlas.evidence.team_evidence",
+        "atlas.evidence.evidence_schema",
+        "atlas.evidence.evidence_utils",
+        "atlas.utils.files",
+        "atlas.identity_transition.transition_schema"
+      ],
+      "roles": [],
+      "temporal_safety_inference": "unclassified_requires_contract_review"
+    }
+  },
+  "identifier_groups": {
+    "player_columns": [],
+    "game_columns": [],
+    "team_columns": []
+  },
+  "key_candidates": [],
+  "profile_rows_used": 76,
+  "warning": "Column temporal-safety labels are heuristic. Authoritative pregame/postgame status must come from ATLAS registries."
+}
