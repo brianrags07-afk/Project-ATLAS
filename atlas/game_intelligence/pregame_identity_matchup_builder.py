@@ -1,5 +1,27 @@
 """
 Phase 2E.3A pregame team-versus-opponent identity matchup builder.
+
+Joins each Phase 2E.2 team-game timeline row to its opponent's row for the
+same ``game_pk`` and derives paired identity features (team vs. opponent
+edges) plus sample-size and confidence diagnostics.
+
+Contract source
+----------------
+
+Output schema, column naming, and column ordering are transcribed from the
+authoritative schema shipped in the repository at:
+
+- ``atlas_reference/schemas/data__game_intelligence__pregame_identity_matchups
+  __2024__pregame_identity_matchups.parquet.schema.json``
+
+No fixture sample exists for this artifact in ``atlas_reference/samples/``
+(schema-profile-only ground truth). The summary-diagnostic formulas below
+(``identity_sample_balance``, ``identity_sample_confidence_score``,
+``identity_sample_confidence_label``) are reconstructed from the schema's
+aggregate ``numeric_profile``/``sample_values`` statistics rather than
+verified row-by-row against a real fixture; see
+``docs/AUTOPILOT_EXECUTION_LEDGER.md`` for the exact confidence level and
+the minimum redacted fixture that would allow full row-level verification.
 """
 
 from __future__ import annotations
@@ -11,6 +33,9 @@ import json
 import pandas as pd
 
 from atlas.config import DATA_ROOT
+from atlas.game_intelligence.pregame_identity_source_registry import (
+    approved_lagged_identity_columns,
+)
 
 
 ENGINE_VERSION: Final[str] = "1.0.0"
@@ -27,47 +52,49 @@ CONTEXT_COLUMNS: Final[tuple[str, ...]] = (
     "team",
     "opponent",
     "home_away",
+    "identity_games_before_date",
+    "identity_dates_before_date",
 )
 
-PROVENANCE_COLUMNS: Final[tuple[str, ...]] = (
-    "identity_source_game_pk",
-    "identity_source_game_date",
-    "strict_backtest_safe",
-    "same_date_games_used",
-    "future_games_used",
+# (lower_bound_inclusive, label), evaluated against minimum_identity_games
+# using the same 1/5/10/20/40 thresholds as the timeline's
+# ``identity_sample_{N}_plus`` flags.
+CONFIDENCE_LABEL_BANDS: Final[tuple[tuple[int, str], ...]] = (
+    (40, "VERY_HIGH"),
+    (20, "HIGH"),
+    (10, "MODERATE"),
+    (5, "LOW"),
+    (1, "VERY_LOW"),
+    (0, "NO_HISTORY"),
 )
 
+SAMPLE_THRESHOLDS: Final[tuple[int, ...]] = (1, 5, 10, 20, 40)
+CONFIDENCE_SCORE_CAP: Final[int] = 40
 
-def _registry_feature_names(
-    source_registry: pd.DataFrame,
-) -> list[str]:
-    required = {
-        "identity_feature_name",
-    }
 
-    missing = sorted(
-        required.difference(
-            source_registry.columns
-        )
+def _confidence_label(minimum_identity_games: pd.Series) -> pd.Series:
+    labels = pd.Series(
+        "NO_HISTORY",
+        index=minimum_identity_games.index,
+        dtype="object",
     )
-    if missing:
-        raise KeyError(
-            f"Registry missing required columns: {missing}"
+    for lower_bound, label in sorted(CONFIDENCE_LABEL_BANDS):
+        labels = labels.mask(
+            minimum_identity_games.ge(lower_bound),
+            label,
         )
-
-    feature_names = [
-        str(value)
-        for value in source_registry[
-            "identity_feature_name"
-        ].tolist()
-    ]
-
-    if len(feature_names) != len(set(feature_names)):
-        raise AssertionError(
-            "Registry identity feature names must be unique."
-        )
-
-    return feature_names
+    return pd.Categorical(
+        labels,
+        categories=[
+            "NO_HISTORY",
+            "VERY_LOW",
+            "LOW",
+            "MODERATE",
+            "HIGH",
+            "VERY_HIGH",
+        ],
+        ordered=True,
+    )
 
 
 def build_pregame_identity_matchups(
@@ -81,18 +108,23 @@ def build_pregame_identity_matchups(
             "Pregame team identity timeline is empty."
         )
 
-    feature_names = _registry_feature_names(
+    source_columns = approved_lagged_identity_columns(
         source_registry
     )
 
-    if len(feature_names) != int(expected_source_count):
+    if len(source_columns) != int(expected_source_count):
         raise AssertionError(
-            f"Expected {expected_source_count} identity features, "
-            f"found {len(feature_names)}."
+            f"Expected {expected_source_count} identity sources, "
+            f"found {len(source_columns)}."
         )
 
+    feature_columns = [
+        f"identity__expanding_mean__{column}"
+        for column in source_columns
+    ]
+
     missing_features = sorted(
-        set(feature_names).difference(
+        set(feature_columns).difference(
             timeline.columns
         )
     )
@@ -147,188 +179,213 @@ def build_pregame_identity_matchups(
             f"{duplicates:,}"
         )
 
-    team_feature_columns = {
-        feature: f"team_identity__{feature}"
-        for feature in feature_names
-    }
-    opponent_feature_columns = {
-        feature: f"opponent_identity__{feature}"
-        for feature in feature_names
-    }
-
     left = normalized[
         [
             *CONTEXT_COLUMNS,
-            *PROVENANCE_COLUMNS,
-            *feature_names,
+            *feature_columns,
         ]
     ].copy()
 
-    left = left.rename(
-        columns=team_feature_columns
-    )
+    right_columns = {
+        "identity_games_before_date": "opponent_identity_games_before_date",
+        "identity_dates_before_date": "opponent_identity_dates_before_date",
+        "home_away": "opponent_home_away",
+        **{
+            feature: f"opponent_identity__{source_column}"
+            for feature, source_column in zip(
+                feature_columns,
+                source_columns,
+            )
+        },
+    }
 
     right = normalized[
         [
             "game_pk",
             "team",
-            *feature_names,
+            "home_away",
+            "identity_games_before_date",
+            "identity_dates_before_date",
+            *feature_columns,
         ]
-    ].copy()
-
-    right = right.rename(
+    ].rename(
         columns={
             "team": "opponent",
-            **opponent_feature_columns,
+            **right_columns,
         }
     )
 
-    matchups = left.merge(
+    matchups = left.rename(
+        columns={
+            feature: f"team_identity__{source_column}"
+            for feature, source_column in zip(
+                feature_columns,
+                source_columns,
+            )
+        }
+    ).merge(
         right,
         on=["game_pk", "opponent"],
         how="left",
         validate="one_to_one",
     )
 
+    team_columns = [
+        f"team_identity__{column}"
+        for column in source_columns
+    ]
+    opponent_columns = [
+        f"opponent_identity__{column}"
+        for column in source_columns
+    ]
+
     missing_opponent_rows = int(
-        matchups[
-            "opponent_identity__" + feature_names[0]
-        ].isna().sum()
+        matchups[opponent_columns[0]].isna().sum()
+        - matchups[team_columns[0]].isna().sum()
+    )
+    if missing_opponent_rows < 0:
+        missing_opponent_rows = 0
+
+    edge_columns = []
+    abs_edge_columns = []
+    interleaved: dict[str, pd.Series] = {}
+    for source_column, team_col, opponent_col in zip(
+        source_columns,
+        team_columns,
+        opponent_columns,
+    ):
+        edge_col = f"identity_edge__{source_column}"
+        abs_edge_col = f"identity_abs_edge__{source_column}"
+        edge_columns.append(edge_col)
+        abs_edge_columns.append(abs_edge_col)
+        interleaved[edge_col] = (
+            matchups[team_col] - matchups[opponent_col]
+        )
+        interleaved[abs_edge_col] = interleaved[edge_col].abs()
+
+    for column, series in interleaved.items():
+        matchups[column] = series
+
+    # Reorder feature block to team / opponent / edge / abs_edge per
+    # feature, matching the authoritative schema exactly.
+    ordered_feature_columns = []
+    for source_column in source_columns:
+        ordered_feature_columns.extend([
+            f"team_identity__{source_column}",
+            f"opponent_identity__{source_column}",
+            f"identity_edge__{source_column}",
+            f"identity_abs_edge__{source_column}",
+        ])
+
+    matchups = matchups.copy()
+
+    matchups["minimum_identity_games"] = matchups[
+        [
+            "identity_games_before_date",
+            "opponent_identity_games_before_date",
+        ]
+    ].min(axis=1)
+    matchups["maximum_identity_games"] = matchups[
+        [
+            "identity_games_before_date",
+            "opponent_identity_games_before_date",
+        ]
+    ].max(axis=1)
+    matchups["identity_game_sample_gap"] = (
+        matchups["identity_games_before_date"]
+        - matchups["opponent_identity_games_before_date"]
+    )
+    matchups["identity_sample_balance"] = (
+        matchups["minimum_identity_games"]
+        / matchups["maximum_identity_games"].replace(0, float("nan"))
+    ).fillna(1.0)
+    matchups["identity_sample_confidence_score"] = (
+        matchups["minimum_identity_games"].clip(
+            upper=CONFIDENCE_SCORE_CAP
+        )
+        / CONFIDENCE_SCORE_CAP
+    )
+    matchups["identity_sample_confidence_label"] = _confidence_label(
+        matchups["minimum_identity_games"]
     )
 
-    if missing_opponent_rows:
-        raise AssertionError(
-            f"Missing opponent identity rows: {missing_opponent_rows:,}"
+    for threshold in SAMPLE_THRESHOLDS:
+        matchups[f"both_teams_sample_{threshold}_plus"] = (
+            matchups["identity_games_before_date"].ge(threshold)
+            & matchups["opponent_identity_games_before_date"].ge(threshold)
         )
 
-    for feature in feature_names:
-        team_col = team_feature_columns[feature]
-        opponent_col = opponent_feature_columns[feature]
-        edge_col = f"identity_edge__{feature}"
-        abs_edge_col = f"identity_edge_abs__{feature}"
-
-        matchups[edge_col] = (
-            matchups[team_col]
-            - matchups[opponent_col]
-        )
-
-        matchups[abs_edge_col] = matchups[edge_col].abs()
-
-    matchups["raw_identity_edges"] = int(
-        len(feature_names)
+    available_mask = matchups[edge_columns].notna()
+    matchups["available_identity_edges"] = available_mask.sum(axis=1)
+    matchups["missing_identity_edges"] = (
+        len(edge_columns) - matchups["available_identity_edges"]
     )
-    matchups["absolute_identity_edges"] = int(
-        len(feature_names)
-    )
-    matchups["strict_backtest_safe"] = True
+    matchups["positive_identity_edges"] = (
+        matchups[edge_columns].gt(0) & available_mask
+    ).sum(axis=1)
+    matchups["negative_identity_edges"] = (
+        matchups[edge_columns].lt(0) & available_mask
+    ).sum(axis=1)
+    matchups["neutral_identity_edges"] = (
+        matchups[edge_columns].eq(0) & available_mask
+    ).sum(axis=1)
+    matchups["mean_absolute_identity_edge"] = matchups[
+        abs_edge_columns
+    ].mean(axis=1, skipna=True)
+    matchups["maximum_absolute_identity_edge"] = matchups[
+        abs_edge_columns
+    ].max(axis=1, skipna=True)
+
+    matchups["pregame_feature_safe"] = True
     matchups["same_date_games_used"] = False
     matchups["future_games_used"] = False
-    matchups["phase"] = "2E.3A"
-    matchups["matchup_engine_version"] = ENGINE_VERSION
+    matchups["prediction_created"] = False
+    matchups["identity_matchup_version"] = ENGINE_VERSION
 
-    edge_columns = [
-        f"identity_edge__{feature}"
-        for feature in feature_names
-    ]
-    abs_edge_columns = [
-        f"identity_edge_abs__{feature}"
-        for feature in feature_names
-    ]
+    mirror_audit = _build_mirror_audit(
+        matchups,
+        edge_columns=edge_columns,
+    )
 
-    mirror_merge = matchups[
-        [
-            "game_pk",
-            "team",
-            "opponent",
-            *edge_columns,
-            *abs_edge_columns,
-        ]
-    ].merge(
-        matchups[
-            [
-                "game_pk",
-                "team",
-                "opponent",
-                *edge_columns,
-                *abs_edge_columns,
-            ]
-        ].rename(
-            columns={
-                "team": "opponent",
-                "opponent": "team",
-                **{
-                    column: f"mirror__{column}"
-                    for column in [
-                        *edge_columns,
-                        *abs_edge_columns,
-                    ]
-                },
-            }
-        ),
-        on=["game_pk", "team", "opponent"],
+    matchups = matchups.merge(
+        mirror_audit[["game_pk", "team", "all_identity_edges_mirror"]],
+        on=["game_pk", "team"],
         how="left",
         validate="one_to_one",
     )
 
-    edge_failures = pd.Series(
-        data=0,
-        index=mirror_merge.index,
-        dtype="int64",
-    )
-
-    for column in edge_columns:
-        mirror_column = f"mirror__{column}"
-        edge_failures += (
-            ~mirror_merge[column].eq(
-                -mirror_merge[mirror_column]
-            )
-        ).astype("int64")
-
-    for column in abs_edge_columns:
-        mirror_column = f"mirror__{column}"
-        edge_failures += (
-            ~mirror_merge[column].eq(
-                mirror_merge[mirror_column]
-            )
-        ).astype("int64")
-
-    mirror_merge["mirror_failures"] = edge_failures
-    mirror_merge["audit_pass"] = mirror_merge[
-        "mirror_failures"
-    ].eq(0)
-
-    mirror_audit = (
-        mirror_merge.groupby(
-            "game_pk",
-            as_index=False,
-            sort=False,
-        )[
-            [
-                "mirror_failures",
-                "audit_pass",
-            ]
+    matchups = matchups[
+        [
+            *CONTEXT_COLUMNS,
+            "opponent_home_away",
+            "opponent_identity_games_before_date",
+            "opponent_identity_dates_before_date",
+            *ordered_feature_columns,
+            "minimum_identity_games",
+            "maximum_identity_games",
+            "identity_game_sample_gap",
+            "identity_sample_balance",
+            "identity_sample_confidence_score",
+            "identity_sample_confidence_label",
+            *[
+                f"both_teams_sample_{threshold}_plus"
+                for threshold in SAMPLE_THRESHOLDS
+            ],
+            "available_identity_edges",
+            "missing_identity_edges",
+            "positive_identity_edges",
+            "negative_identity_edges",
+            "neutral_identity_edges",
+            "mean_absolute_identity_edge",
+            "maximum_absolute_identity_edge",
+            "pregame_feature_safe",
+            "same_date_games_used",
+            "future_games_used",
+            "prediction_created",
+            "identity_matchup_version",
+            "all_identity_edges_mirror",
         ]
-        .agg({
-            "mirror_failures": "max",
-            "audit_pass": "all",
-        })
-        .sort_values(
-            "game_pk",
-            kind="stable",
-        )
-        .reset_index(drop=True)
-    )
-
-    if not mirror_audit["audit_pass"].all():
-        raise AssertionError(
-            "Identity matchup mirror audit failed."
-        )
-
-    validate_pregame_identity_matchups(
-        matchups,
-        mirror_audit=mirror_audit,
-        expected_source_count=expected_source_count,
-    )
+    ]
 
     matchups = matchups.sort_values(
         [
@@ -339,10 +396,84 @@ def build_pregame_identity_matchups(
         kind="stable",
     ).reset_index(drop=True)
 
+    validate_pregame_identity_matchups(
+        matchups,
+        mirror_audit=mirror_audit,
+        expected_source_count=expected_source_count,
+    )
+
     return (
         matchups,
         mirror_audit,
     )
+
+
+def _build_mirror_audit(
+    matchups: pd.DataFrame,
+    edge_columns: list[str],
+) -> pd.DataFrame:
+    mirror_merge = matchups[
+        [
+            "game_pk",
+            "team",
+            "opponent",
+            *edge_columns,
+        ]
+    ].merge(
+        matchups[
+            [
+                "game_pk",
+                "team",
+                "opponent",
+                *edge_columns,
+            ]
+        ].rename(
+            columns={
+                "team": "opponent",
+                "opponent": "team",
+                **{
+                    column: f"mirror__{column}"
+                    for column in edge_columns
+                },
+            }
+        ),
+        on=["game_pk", "team", "opponent"],
+        how="left",
+        validate="one_to_one",
+    )
+
+    mismatches = pd.Series(
+        False,
+        index=mirror_merge.index,
+    )
+    for column in edge_columns:
+        mirror_column = f"mirror__{column}"
+        both_null = (
+            mirror_merge[column].isna()
+            & mirror_merge[mirror_column].isna()
+        )
+        matches = mirror_merge[column].eq(
+            -mirror_merge[mirror_column]
+        )
+        mismatches |= ~(matches | both_null)
+
+    mirror_merge["all_identity_edges_mirror"] = ~mismatches
+    mirror_merge["mirror_failures"] = mismatches.astype("int64")
+    mirror_merge["audit_pass"] = ~mismatches
+
+    return mirror_merge[
+        [
+            "game_pk",
+            "team",
+            "opponent",
+            "all_identity_edges_mirror",
+            "mirror_failures",
+            "audit_pass",
+        ]
+    ].sort_values(
+        ["game_pk", "team"],
+        kind="stable",
+    ).reset_index(drop=True)
 
 
 def validate_pregame_identity_matchups(
@@ -376,17 +507,21 @@ def validate_pregame_identity_matchups(
         column
         for column in matchups.columns
         if column.startswith("opponent_identity__")
+        and column
+        not in {
+            "opponent_identity_games_before_date",
+            "opponent_identity_dates_before_date",
+        }
     ]
     raw_edge_columns = [
         column
         for column in matchups.columns
         if column.startswith("identity_edge__")
-        and not column.startswith("identity_edge_abs__")
     ]
     abs_edge_columns = [
         column
         for column in matchups.columns
-        if column.startswith("identity_edge_abs__")
+        if column.startswith("identity_abs_edge__")
     ]
 
     for family_columns in (
@@ -401,9 +536,9 @@ def validate_pregame_identity_matchups(
                 f"{len(family_columns)} != {expected_source_count}"
             )
 
-    if not matchups["strict_backtest_safe"].all():
+    if not matchups["pregame_feature_safe"].all():
         raise AssertionError(
-            "Identity matchups must be strict backtest safe."
+            "Identity matchups must be marked pregame feature safe."
         )
 
     if matchups["same_date_games_used"].any():
@@ -528,7 +663,7 @@ def build_pregame_identity_matchups_metadata(
         "mirror_failures": int(mirror_audit["mirror_failures"].sum()),
         "same_date_games_used": False,
         "future_games_used": False,
-        "matchup_engine_version": ENGINE_VERSION,
+        "identity_matchup_version": ENGINE_VERSION,
     }
 
 

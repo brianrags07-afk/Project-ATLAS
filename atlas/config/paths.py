@@ -1,8 +1,29 @@
 
+import os
 from pathlib import Path
 
-CODE_ROOT = Path("/content/Project_ATLAS")
-DATA_ROOT = Path("/content/drive/MyDrive/Project_Atlas/data")
+# Production default. The ATLAS Google Drive workspace remains a fully
+# supported runtime option and is never removed as a default.
+_DEFAULT_CODE_ROOT = "/content/Project_ATLAS"
+_DEFAULT_DATA_ROOT = "/content/drive/MyDrive/Project_Atlas/data"
+
+# Both roots can be overridden with environment variables so that modules
+# can be imported, unit-tested, and run against local or CI fixtures without
+# requiring a mounted Google Drive workspace. When the environment variables
+# are unset, behavior is unchanged from the original hard-coded production
+# paths.
+CODE_ROOT = Path(
+    os.environ.get(
+        "ATLAS_CODE_ROOT",
+        _DEFAULT_CODE_ROOT,
+    )
+)
+DATA_ROOT = Path(
+    os.environ.get(
+        "ATLAS_DATA_ROOT",
+        _DEFAULT_DATA_ROOT,
+    )
+)
 
 MASTER_DIR = DATA_ROOT / "master"
 
