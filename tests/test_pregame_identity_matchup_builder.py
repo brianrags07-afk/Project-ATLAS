@@ -1,9 +1,9 @@
 import json
-from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from atlas.config import DATA_ROOT
 from atlas.game_intelligence.pregame_identity_matchup_builder import (
     ENGINE_VERSION,
     assert_reproduces_reference_matchups,
@@ -14,13 +14,8 @@ from atlas.game_intelligence.pregame_identity_matchup_builder import (
 )
 
 
-PROJECT_ROOT = Path(
-    "/content/drive/MyDrive/Project_Atlas"
-)
-
 TIMELINE_PATH = (
-    PROJECT_ROOT
-    / "data"
+    DATA_ROOT
     / "game_intelligence"
     / "pregame_team_identities"
     / "2024"
@@ -28,8 +23,7 @@ TIMELINE_PATH = (
 )
 
 REGISTRY_PATH = (
-    PROJECT_ROOT
-    / "data"
+    DATA_ROOT
     / "game_intelligence"
     / "pregame_identity_registry"
     / "2024"
@@ -37,8 +31,7 @@ REGISTRY_PATH = (
 )
 
 REFERENCE_MATCHUP_PATH = (
-    PROJECT_ROOT
-    / "data"
+    DATA_ROOT
     / "game_intelligence"
     / "pregame_identity_matchups"
     / "2024"
