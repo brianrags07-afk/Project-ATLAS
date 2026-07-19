@@ -1,0 +1,77 @@
+name: ATLAS Historical Readiness Audit
+
+# Read-only audit only. This workflow must never delete, overwrite,
+# rename, move, or upload any Cloud Storage object, and must never run
+# the 2024 rebuild or the 2025 backtest. It only reads from
+# gs://atlas-mlb-data-brian-4817 and writes reports as GitHub Actions
+# artifacts.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ATLAS_BUCKET: gs://atlas-mlb-data-brian-4817
+
+jobs:
+  historical-readiness-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow
+
+      # Uses the repository's existing Workload Identity Federation setup
+      # (same pattern as .github/workflows/atlas-cloud-data-test.yml and
+      # .github/workflows/google-cloud-auth-test.yml). This grants
+      # short-lived, read-scoped credentials only.
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify authentication (read-only)
+        run: |
+          set -euo pipefail
+          gcloud auth list
+          gcloud storage ls "${ATLAS_BUCKET}" || {
+            echo "::error::Authentication or read access to ${ATLAS_BUCKET} failed." >&2
+            exit 1
+          }
+
+      - name: Run historical readiness audit (read-only)
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/audits
+          python scripts/run_historical_readiness_audit.py \
+            --bucket "${ATLAS_BUCKET}" \
+            --local-data-dir data/master \
+            --output-dir artifacts/audits
+
+      # The job summary is written directly to $GITHUB_STEP_SUMMARY by
+      # scripts/run_historical_readiness_audit.py during the audit step.
+      - name: Upload audit reports as GitHub Actions artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-historical-readiness-audit-reports
+          path: artifacts/audits/
+          if-no-files-found: warn
+          retention-days: 90

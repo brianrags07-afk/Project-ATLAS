@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-atlas.local/schemas/pregame_game_card.schema.json",
+  "title": "ATLAS Pregame Game Card",
+  "description": "Contract for a frozen, pregame-only Game Card. A Game Card is immutable once frozen: nothing observed after feature_cutoff_time_utc may be added to card_identity, temporal_provenance, schedule_context, starters, lineups, bullpen, team_and_player_memories, environment, market, or predictions. Postgame facts are stored separately and never merged back into this object.",
+  "type": "object",
+  "required": [
+    "card_identity",
+    "temporal_provenance",
+    "schedule_context",
+    "starters",
+    "lineups",
+    "bullpen",
+    "team_and_player_memories",
+    "environment",
+    "predictions",
+    "postgame"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "card_identity": {
+      "type": "object",
+      "description": "Primary key: card_id. Natural key: (game_pk, card_version).",
+      "required": [
+        "card_id",
+        "game_pk",
+        "season",
+        "game_date",
+        "scheduled_start_time_utc",
+        "home_team",
+        "away_team",
+        "venue",
+        "card_version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "card_id": {"type": "string", "description": "Globally unique, immutable identifier for this frozen card instance."},
+        "game_pk": {"type": "integer", "description": "Durable game identifier. Never a team/player name."},
+        "season": {"type": "integer", "minimum": 2000},
+        "game_date": {"type": "string", "format": "date"},
+        "scheduled_start_time_utc": {"type": "string", "format": "date-time"},
+        "home_team": {"type": "string", "description": "Team identifier code, not a display name used as a key."},
+        "away_team": {"type": "string"},
+        "venue": {"type": "string"},
+        "card_version": {"type": "integer", "minimum": 1, "description": "Monotonically increasing per game_pk. A new fact after cutoff requires a new version, never an in-place edit."}
+      }
+    },
+    "temporal_provenance": {
+      "type": "object",
+      "required": [
+        "card_created_at_utc",
+        "feature_cutoff_time_utc",
+        "source_retrieved_at_utc",
+        "code_commit_sha",
+        "pipeline_version",
+        "source_manifest_id",
+        "pregame_safe",
+        "leakage_audit_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "card_created_at_utc": {"type": "string", "format": "date-time"},
+        "feature_cutoff_time_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "No feature on this card may be sourced from data observed after this instant. Must be <= scheduled_start_time_utc."
+        },
+        "source_retrieved_at_utc": {
+          "type": "object",
+          "description": "Per-section retrieval timestamps proving each section was known before feature_cutoff_time_utc.",
+          "additionalProperties": {"type": "string", "format": "date-time"}
+        },
+        "code_commit_sha": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+        "pipeline_version": {"type": "string"},
+        "source_manifest_id": {"type": "string", "description": "Foreign key into a pipeline_manifest (schemas/pipeline_manifest.schema.json)."},
+        "pregame_safe": {"type": "boolean", "description": "True only if every field with a source timestamp was retrieved at or before feature_cutoff_time_utc."},
+        "leakage_audit_status": {"type": "string", "enum": ["passed", "failed", "not_run", "unknown"]}
+      }
+    },
+    "schedule_context": {
+      "type": "object",
+      "required": [
+        "published_series_length",
+        "series_game_number",
+        "home_rest_days",
+        "away_rest_days",
+        "home_travel_context",
+        "away_travel_context",
+        "doubleheader_status",
+        "schedule_source",
+        "schedule_source_timestamp_utc"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "published_series_length": {"type": ["integer", "null"], "description": "Pregame-safe only when sourced from the published schedule, not derived after the fact."},
+        "series_game_number": {"type": ["integer", "null"]},
+        "home_rest_days": {"type": ["integer", "null"]},
+        "away_rest_days": {"type": ["integer", "null"]},
+        "home_travel_context": {"type": ["string", "null"]},
+        "away_travel_context": {"type": ["string", "null"]},
+        "doubleheader_status": {"type": "string", "enum": ["none", "game_1", "game_2", "unknown"]},
+        "schedule_source": {"type": "string"},
+        "schedule_source_timestamp_utc": {"type": "string", "format": "date-time"}
+      }
+    },
+    "starters": {
+      "type": "object",
+      "required": ["home", "away"],
+      "additionalProperties": false,
+      "properties": {
+        "home": {"$ref": "#/$defs/starter_entry"},
+        "away": {"$ref": "#/$defs/starter_entry"}
+      }
+    },
+    "lineups": {
+      "type": "object",
+      "required": ["home", "away"],
+      "additionalProperties": false,
+      "properties": {
+        "home": {"$ref": "#/$defs/lineup_entry"},
+        "away": {"$ref": "#/$defs/lineup_entry"}
+      }
+    },
+    "bullpen": {
+      "type": "object",
+      "required": ["home", "away"],
+      "additionalProperties": false,
+      "properties": {
+        "home": {"$ref": "#/$defs/bullpen_entry"},
+        "away": {"$ref": "#/$defs/bullpen_entry"}
+      }
+    },
+    "team_and_player_memories": {
+      "type": "object",
+      "required": ["team_memories", "player_memories"],
+      "additionalProperties": false,
+      "properties": {
+        "team_memories": {"$ref": "#/$defs/memory_block"},
+        "player_memories": {"$ref": "#/$defs/memory_block"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["venue", "park_factors", "weather", "roof_status", "umpire", "source_timestamps_utc", "missingness_flags"],
+      "additionalProperties": false,
+      "properties": {
+        "venue": {"type": "string"},
+        "park_factors": {"type": ["object", "null"]},
+        "weather": {"type": ["object", "null"]},
+        "roof_status": {"type": "string", "enum": ["open", "closed", "retractable_unknown", "not_applicable", "unknown"]},
+        "umpire": {"type": ["object", "null"]},
+        "source_timestamps_utc": {"type": "object", "additionalProperties": {"type": "string", "format": "date-time"}},
+        "missingness_flags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "market": {
+      "type": "object",
+      "description": "Optional and isolated from the baseball-only model by default.",
+      "required": ["included_in_baseball_model"],
+      "additionalProperties": false,
+      "properties": {
+        "included_in_baseball_model": {"type": "boolean", "const": false, "default": false},
+        "sportsbook": {"type": ["string", "null"]},
+        "market_type": {"type": ["string", "null"]},
+        "price": {"type": ["number", "null"]},
+        "observed_timestamp_utc": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "predictions": {
+      "type": "object",
+      "required": ["model_versions"],
+      "additionalProperties": false,
+      "properties": {
+        "home_win_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "away_win_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "predicted_winner": {"type": ["string", "null"]},
+        "home_minus_1_5_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "away_minus_1_5_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "projected_home_runs": {"type": ["number", "null"]},
+        "projected_away_runs": {"type": ["number", "null"]},
+        "projected_total": {"type": ["number", "null"]},
+        "over_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "under_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "supported_player_props": {"type": "array", "items": {"type": "object"}},
+        "fair_prices": {"type": ["object", "null"]},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "volatility": {"type": ["number", "null"], "minimum": 0},
+        "uncertainty_reasons": {"type": "array", "items": {"type": "string"}},
+        "model_versions": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "postgame": {
+      "type": ["null", "object"],
+      "const": null,
+      "description": "Always null/absent on a frozen pregame card. Real results are stored as a separate linked result object keyed by card_id/game_pk and must never mutate this card."
+    }
+  },
+  "$defs": {
+    "starter_entry": {
+      "type": "object",
+      "required": ["status", "confirmation_status", "source_timestamp_utc", "handedness", "uncertainty_flags"],
+      "additionalProperties": false,
+      "properties": {
+        "player_id": {"type": ["string", "integer", "null"]},
+        "status": {"type": "string", "enum": ["expected", "confirmed"]},
+        "confirmation_status": {"type": "string", "enum": ["unconfirmed", "probable", "confirmed"]},
+        "source_timestamp_utc": {"type": "string", "format": "date-time"},
+        "handedness": {"type": "string", "enum": ["L", "R", "S", "unknown"]},
+        "workload": {"type": ["object", "null"]},
+        "repertoire_identity": {"type": ["string", "null"]},
+        "matchup_features": {"type": ["object", "null"]},
+        "uncertainty_flags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "lineup_entry": {
+      "type": "object",
+      "required": ["status", "source_timestamp_utc", "batting_order", "completeness", "uncertainty_flags"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"type": "string", "enum": ["expected", "confirmed"]},
+        "source_timestamp_utc": {"type": "string", "format": "date-time"},
+        "batting_order": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["batting_position", "player_id", "handedness"],
+            "additionalProperties": false,
+            "properties": {
+              "batting_position": {"type": "integer", "minimum": 1, "maximum": 9},
+              "player_id": {"type": ["string", "integer"]},
+              "handedness": {"type": "string", "enum": ["L", "R", "S", "unknown"]}
+            }
+          }
+        },
+        "completeness": {"type": "string", "enum": ["complete", "partial", "missing"]},
+        "uncertainty_flags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "bullpen_entry": {
+      "type": "object",
+      "required": ["prior_usage_only", "pitch_counts", "appearances", "uncertainty_flags"],
+      "additionalProperties": false,
+      "properties": {
+        "prior_usage_only": {"type": "boolean", "const": true, "description": "Bullpen facts must reflect only games completed before feature_cutoff_time_utc."},
+        "pitch_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "appearances": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "rest": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "likely_availability": {"type": "object", "additionalProperties": {"type": "string"}},
+        "roles": {"type": "object", "additionalProperties": {"type": "string"}},
+        "matchup_identity": {"type": ["object", "null"]},
+        "uncertainty_flags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "memory_block": {
+      "type": "object",
+      "required": ["values", "observation_count", "recency", "sample_sufficiency", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {"type": "object", "description": "Calculated strictly from games completed before feature_cutoff_time_utc."},
+        "observation_count": {"type": "integer", "minimum": 0},
+        "recency": {"type": ["string", "null"], "format": "date-time"},
+        "sample_sufficiency": {"type": "string", "enum": ["sufficient", "insufficient", "unknown"]},
+        "version": {"type": "string"}
+      }
+    }
+  }
+}
