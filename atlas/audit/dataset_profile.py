@@ -72,6 +72,8 @@ NEEDS_TIMESTAMP_PROOF_PATTERNS = (
     "market",
 )
 
+HIGH_NULL_THRESHOLD_PERCENT = 50.0
+
 SEASON_COLUMN_CANDIDATES = ("season", "game_year", "year")
 GAME_DATE_COLUMN_CANDIDATES = ("game_date", "date", "game_datetime")
 GAME_PK_COLUMN_CANDIDATES = ("game_pk", "game_id")
@@ -370,7 +372,9 @@ def write_dataset_profile_reports(
                 "duplicate_key_count": profile.get("duplicate_key_count"),
                 "duplicate_columns": profile.get("duplicate_columns"),
                 "high_null_columns": [
-                    col for col, pct in profile.get("null_percentages", {}).items() if pct is not None and pct > 50.0
+                    col
+                    for col, pct in profile.get("null_percentages", {}).items()
+                    if pct is not None and pct > HIGH_NULL_THRESHOLD_PERCENT
                 ],
                 "unknown_columns": [
                     col

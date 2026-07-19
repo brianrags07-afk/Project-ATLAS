@@ -167,7 +167,10 @@ def build_coverage_matrix(
                     status, evidence = "missing", "no master_game_database rows found for this season"
             elif row_name in ("pitch_by_pitch", "plate_appearances", "batted_ball_data"):
                 pitch_profile = dataset_profiles.get("master_pitch_database")
-                if pitch_profile and _season_has_rows(pitch_profile.get("pitches_by_season", pitch_profile.get("rows_by_season", {})), season):
+                pitch_season_counts = {}
+                if pitch_profile:
+                    pitch_season_counts = pitch_profile.get("pitches_by_season") or pitch_profile.get("rows_by_season", {})
+                if _season_has_rows(pitch_season_counts, season):
                     status = "present_but_not_pregame_safe"
                     evidence = f"master_pitch_database has rows for season {season} (postgame pitch-level facts)"
                 else:

@@ -34,7 +34,11 @@ def test_workflow_file_exists_and_parses():
 def test_workflow_is_workflow_dispatch_only():
     with WORKFLOW_PATH.open() as fh:
         doc = yaml.safe_load(fh)
-    triggers = doc.get(True, doc.get("on"))
+    # YAML 1.1 parses the unquoted `on:` key as the boolean `True`, so
+    # PyYAML's safe_load stores GitHub Actions triggers under that key
+    # instead of the string "on".
+    on_key = True if True in doc else "on"
+    triggers = doc[on_key]
     assert list(triggers.keys()) == ["workflow_dispatch"]
 
 
