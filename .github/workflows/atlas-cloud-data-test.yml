@@ -30,19 +30,15 @@ jobs:
 
       - name: Download ATLAS master datasets
         run: |
+          BUCKET_MASTER_PATH="gs://atlas-mlb-data-brian-4817/data/master"
           mkdir -p data/master
-          gcloud storage cp \
-            gs://atlas-mlb-data-brian-4817/data/master/master_game_database.parquet \
-            data/master/master_game_database.parquet
-          gcloud storage cp \
-            gs://atlas-mlb-data-brian-4817/data/master/master_pitch_database.parquet \
-            data/master/master_pitch_database.parquet
-          gcloud storage cp \
-            gs://atlas-mlb-data-brian-4817/data/master/master_game_database_metadata.json \
-            data/master/master_game_database_metadata.json
-          gcloud storage cp \
-            gs://atlas-mlb-data-brian-4817/data/master/team_game_state.parquet \
-            data/master/team_game_state.parquet
+          for f in \
+            master_game_database.parquet \
+            master_pitch_database.parquet \
+            master_game_database_metadata.json \
+            team_game_state.parquet; do
+            gcloud storage cp "${BUCKET_MASTER_PATH}/${f}" "data/master/${f}"
+          done
 
       - name: Verify ATLAS master datasets
         run: |
