@@ -56,7 +56,7 @@ FOCUS_AREA_KEYWORDS: dict[str, tuple[str, ...]] = {
     "cloud_sync": ("cloud", "bucket", "gcs", "upload_to_bucket"),
 }
 
-HARDCODED_SEASON_RE = re.compile(r"(?<!\d)(20[12]\d)(?!\d)")
+HARDCODED_SEASON_RE = re.compile(r"(?<!\d)(20\d{2})(?!\d)")
 BUCKET_RE = re.compile(r"gs://[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]*)?")
 ABS_PATH_RE = re.compile(
     r"(?:/content/drive/[^\s\"'\)]+|/(?:Users|home)/[^\s\"'\)]+|[A-Za-z]:\\\\[^\s\"'\)]+)"

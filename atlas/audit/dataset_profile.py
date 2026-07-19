@@ -147,6 +147,13 @@ def detect_game_pk_column(df: pd.DataFrame) -> str | None:
 
 
 def derive_season_from_date(df: pd.DataFrame, date_col: str) -> pd.Series:
+    """Fallback season derivation used only when no explicit season/year
+    column is present. This intentionally uses the calendar year of
+    ``game_date`` as the season, which is a simplification: MLB
+    postseason games can occur in a later calendar year than the
+    season's opening day. When a dataset has an explicit season column,
+    that column is used instead (see ``rows_by_season``/
+    ``unique_games_by_season``) and this fallback is not invoked."""
     parsed = pd.to_datetime(df[date_col], errors="coerce", utc=True)
     return parsed.dt.year
 

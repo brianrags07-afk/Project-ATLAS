@@ -160,7 +160,7 @@ def build_coverage_matrix(
             if row_name == "published_schedule":
                 if schedule_profile and _season_has_rows(schedule_profile.get("rows_by_season", {}), season):
                     status, evidence = "complete", (
-                        f"master_game_database has {schedule_profile['rows_by_season'][str(season)]} "
+                        f"master_game_database has {schedule_profile.get('rows_by_season', {}).get(str(season), 0)} "
                         f"rows for season {season}"
                     )
                 else:
