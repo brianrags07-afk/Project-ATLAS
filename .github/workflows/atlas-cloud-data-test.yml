@@ -28,14 +28,29 @@ jobs:
         run: |
           gcloud storage ls gs://atlas-mlb-data-brian-4817
 
-      - name: Download ATLAS data
+      - name: Download ATLAS master datasets
         run: |
-          mkdir -p cloud_data
-          gcloud storage cp --recursive \
-            gs://atlas-mlb-data-brian-4817/* \
-            cloud_data/ || true
+          BUCKET_MASTER_PATH="gs://atlas-mlb-data-brian-4817/data/master"
+          mkdir -p data/master
+          for f in \
+            master_game_database.parquet \
+            master_pitch_database.parquet \
+            master_game_database_metadata.json \
+            team_game_state.parquet; do
+            gcloud storage cp "${BUCKET_MASTER_PATH}/${f}" "data/master/${f}"
+          done
 
-      - name: Show downloaded files
+      - name: Verify ATLAS master datasets
         run: |
-          echo "Downloaded ATLAS cloud files:"
-          find cloud_data -maxdepth 4 -type f | sort | head -200
+          for f in \
+            data/master/master_game_database.parquet \
+            data/master/master_pitch_database.parquet \
+            data/master/master_game_database_metadata.json \
+            data/master/team_game_state.parquet; do
+            if [ ! -f "$f" ]; then
+              echo "Missing expected file: $f" >&2
+              exit 1
+            fi
+          done
+          echo "All expected ATLAS master datasets are present."
+          ls -la data/master/
