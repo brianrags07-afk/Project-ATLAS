@@ -1,0 +1,41 @@
+name: ATLAS Cloud Data Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test-cloud-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: List ATLAS bucket contents
+        run: |
+          gcloud storage ls gs://atlas-mlb-data-brian-4817
+
+      - name: Download ATLAS data
+        run: |
+          mkdir -p cloud_data
+          gcloud storage cp --recursive \
+            gs://atlas-mlb-data-brian-4817/* \
+            cloud_data/ || true
+
+      - name: Show downloaded files
+        run: |
+          echo "Downloaded ATLAS cloud files:"
+          find cloud_data -maxdepth 4 -type f | sort | head -200
