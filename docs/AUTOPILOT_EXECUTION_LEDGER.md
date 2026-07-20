@@ -454,3 +454,43 @@ Phase 2E.5A can proceed using `ATLAS_DATA_ROOT` instead of a live Drive
 mount.
 
 
+
+## Repository alignment and Baseball Brain dependency audit (this session)
+
+Added three new audit documents, produced without any live Cloud
+Storage or Google Drive access (offline, repository-evidence only):
+
+- `docs/ATLAS_DATA_ALIGNMENT_AUDIT.md` — repository-code inventory
+  (150 `atlas/` modules, 19 duplicate-symbol groups, 13 Colab/Drive-
+  dependent modules), and an explicit flag that `config/atlas_config.py`
+  / most of `atlas/` assume Google Drive (`/content/drive/MyDrive/
+  Project_Atlas`) while `.github/workflows/atlas-historical-readiness-
+  audit.yml` assumes `gs://atlas-mlb-data-brian-4817` — an unresolved
+  lineage question that must be settled before any 2024 rebuild.
+- `docs/ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md` — software +
+  baseball-knowledge dependency graph. Identifies 7 baseball-knowledge
+  objectives (`park_factors`, `weather`, `umpire_tendencies`,
+  `travel_context`, `handedness_splits`, `manager_tendencies`,
+  `roster_transactions`) with zero corresponding dataset anywhere in
+  `atlas_reference/manifests/table_catalog.json`, flagged as future
+  canonical datasets, plus 4 future postgame/historical Game Card
+  artifacts (`game_anatomy`, `game_story_record`, per-game
+  `learning_observations`, `identity_update_log`) needed to satisfy the
+  task's 5-section historical Game Card requirement beyond the existing
+  Pregame Game Card contract.
+- `docs/ATLAS_2024_BRAIN_UPLOAD_MANIFEST.md` — targeted upload
+  recommendations (staging-only, under a new `staging/uploads/` prefix,
+  never overwriting canonical paths), scoped to the specific gaps found
+  above, plus a recommendation to route any real uploads through the
+  existing `docs/DEV_DATA_BUNDLE.md` checksum-verified bridge rather than
+  a new ad hoc path.
+
+No rebuild, backtest, training, or prediction run was performed. No
+Cloud Storage object was read, written, or listed (no credentials
+available in this session). `python -m pytest tests/test_atlas_audit_*.py -q`
+re-confirmed 124/124 passing before and after these doc additions.
+
+**Next action for a maintainer with Drive/GCS access:** dispatch
+`atlas-historical-readiness-audit.yml`, reconcile it against
+`atlas_reference/dev_data_bundle_required_artifacts.json`, and update
+`docs/ATLAS_DATA_ALIGNMENT_AUDIT.md` Section 5 with real findings.
