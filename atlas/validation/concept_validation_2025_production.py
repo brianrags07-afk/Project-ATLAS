@@ -375,17 +375,27 @@ def run_production_validation(
     passed = execution_error is None and certification["passed"]
 
     if passed:
+        # Atomic write-via-rename: write to a temporary sibling file first
+        # (e.g. "concept_validation_production_manifest.json.tmp"), then
+        # rename it into place, so a crash mid-write can never leave a
+        # partially-written canonical manifest/report on disk.
         manifest_dir.mkdir(parents=True, exist_ok=True)
-        with open(manifest_path.with_suffix(".json.tmp"), "w", encoding="utf-8") as file:
+        manifest_tmp_path = manifest_path.with_suffix(
+            manifest_path.suffix + ".tmp"
+        )
+        with open(manifest_tmp_path, "w", encoding="utf-8") as file:
             json.dump(manifest, file, indent=2, default=str)
-        manifest_path.with_suffix(".json.tmp").replace(manifest_path)
+        manifest_tmp_path.replace(manifest_path)
 
         report_text = _render_certification_report(manifest)
-        report_path.with_suffix(".md.tmp").write_text(
+        report_tmp_path = report_path.with_suffix(
+            report_path.suffix + ".tmp"
+        )
+        report_tmp_path.write_text(
             report_text,
             encoding="utf-8",
         )
-        report_path.with_suffix(".md.tmp").replace(report_path)
+        report_tmp_path.replace(report_path)
 
         print(f"Production manifest written to: {manifest_path}")
         print(f"Production certification report written to: {report_path}")

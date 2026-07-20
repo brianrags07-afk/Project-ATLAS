@@ -29,6 +29,9 @@ import pandas as pd
 # The canonical, certified frozen-2024 concept discovery run produced
 # exactly this many frozen definitions. This is a fixed production
 # expectation, not something re-derived from the data being checked.
+# It must only be updated if a *new*, separately-certified frozen 2024
+# concept discovery run officially replaces the current frozen
+# registries under data/learning/frozen_concept_definitions/2024/.
 PRODUCTION_EXPECTED_FROZEN_DEFINITION_COUNT = 2138
 
 DISCOVERY_SEASON = 2024
