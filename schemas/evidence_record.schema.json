@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-atlas.local/schemas/evidence_record.schema.json",
+  "title": "ATLAS Audit Evidence Record",
+  "description": "Contract for one structured evidence record supporting a coverage-matrix dimension or a readiness decision. Missing evidence must remain missing/unknown and must never be inferred.",
+  "type": "object",
+  "required": ["evidence_type", "source", "confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "evidence_type": {
+      "type": "string",
+      "enum": [
+        "column_presence",
+        "row_presence",
+        "completed_game_record",
+        "published_schedule_source",
+        "series_inferred_from_results",
+        "cloud_object_metadata",
+        "storage_upload_timestamp",
+        "source_retrieved_at_timestamp",
+        "pipeline_manifest",
+        "source_hash",
+        "code_commit_lineage",
+        "schema_fingerprint",
+        "schema_compatibility_report",
+        "repository_module",
+        "null_value_preserved",
+        "leakage_guard_result",
+        "other"
+      ]
+    },
+    "source": {"type": "string", "description": "Dataset name, module path, or other origin of this evidence."},
+    "path_or_object": {"type": ["string", "null"]},
+    "field_or_column": {"type": ["string", "null"]},
+    "season": {"type": ["integer", "null"], "minimum": 2000},
+    "observed_value": {},
+    "confidence": {"type": "string", "enum": ["observed", "heuristic", "unknown"]},
+    "limitation": {"type": ["string", "null"]}
+  }
+}

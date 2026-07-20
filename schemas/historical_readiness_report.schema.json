@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-atlas.local/schemas/historical_readiness_report.schema.json",
+  "title": "ATLAS Historical Readiness Report",
+  "description": "Contract for the redesigned historical-readiness coverage matrix and readiness-decisions reports. Every coverage row/season carries five independent evidence dimensions; no dimension may be derived from another except via the explicit, tested mapping functions documented in atlas/audit/temporal_proof.py and atlas/audit/schedule_source_assessment.py.",
+  "type": "object",
+  "required": ["coverage_matrix", "readiness"],
+  "additionalProperties": false,
+  "properties": {
+    "coverage_matrix": {
+      "type": "object",
+      "required": ["generated_at_utc", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "generated_at_utc": {"type": "string", "format": "date-time"},
+        "rows": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/coverage_row"}
+        }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "required": ["generated_at_utc", "decisions", "note"],
+      "additionalProperties": false,
+      "properties": {
+        "generated_at_utc": {"type": "string", "format": "date-time"},
+        "note": {"type": "string"},
+        "decisions": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/decision"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "coverage_row": {
+      "type": "object",
+      "required": [
+        "row", "season",
+        "data_presence", "source_completeness", "provenance_status",
+        "temporal_availability", "pregame_safety",
+        "evidence", "risks", "required_next_evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "row": {"type": "string"},
+        "season": {"type": "integer", "minimum": 2000},
+        "data_presence": {"type": "string", "enum": ["present", "partial", "missing", "unknown"]},
+        "source_completeness": {"type": "string", "enum": ["complete", "partial", "incomplete", "unknown", "not_applicable"]},
+        "provenance_status": {"type": "string", "enum": ["verified", "partial", "missing", "unknown"]},
+        "temporal_availability": {"type": "string", "enum": ["pregame_proven", "postgame_only", "mixed", "unknown", "not_applicable"]},
+        "pregame_safety": {"type": "string", "enum": ["safe", "unsafe", "conditional", "unknown", "not_applicable"]},
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "evidence_record.schema.json"}
+        },
+        "risks": {"type": "array", "items": {"type": "string"}},
+        "required_next_evidence": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": [
+        "verdict", "required_dimensions", "evidence_used",
+        "blockers", "warnings", "next_action", "does_not_authorize"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {"type": "string", "enum": ["ready", "ready_with_warnings", "not_ready", "unknown"]},
+        "required_dimensions": {"type": "object"},
+        "evidence_used": {"type": "array"},
+        "blockers": {"type": "array", "items": {"type": "string"}},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "next_action": {"type": "string"},
+        "does_not_authorize": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

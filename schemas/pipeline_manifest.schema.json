@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-atlas.local/schemas/pipeline_manifest.schema.json",
+  "title": "ATLAS Pipeline Manifest",
+  "description": "Contract for a pipeline run manifest. Every builder/backtest/rebuild run must produce one of these before any output is promoted out of staging. Manifests are append-only records; a rerun creates a new manifest linked via parent_manifest_id, it never edits a prior manifest in place.",
+  "type": "object",
+  "required": [
+    "pipeline_run_id",
+    "run_mode",
+    "season",
+    "commit_sha",
+    "pipeline_version",
+    "source_objects",
+    "output_objects",
+    "started_at_utc",
+    "run_extent",
+    "validation_results",
+    "leakage_audit_results",
+    "promotion_status",
+    "error_status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "pipeline_run_id": {"type": "string", "description": "Primary key. Globally unique."},
+    "run_mode": {"type": "string", "enum": ["discovery_2024", "backtest_2025", "forward_2026", "rebuild", "audit"]},
+    "season": {"type": "integer", "minimum": 2000},
+    "commit_sha": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "pipeline_version": {"type": "string"},
+    "source_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "hash", "hash_algorithm", "date_range", "season_range", "row_count", "column_count", "schema_ref"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string", "description": "Full gs:// or repository-relative path. Never invented."},
+          "hash": {"type": "string"},
+          "hash_algorithm": {"type": "string", "enum": ["sha256", "md5", "crc32c"]},
+          "date_range": {
+            "type": "object",
+            "required": ["min_date", "max_date"],
+            "additionalProperties": false,
+            "properties": {
+              "min_date": {"type": ["string", "null"], "format": "date"},
+              "max_date": {"type": ["string", "null"], "format": "date"}
+            }
+          },
+          "season_range": {"type": "array", "items": {"type": "integer"}},
+          "row_count": {"type": "integer", "minimum": 0},
+          "column_count": {"type": "integer", "minimum": 0},
+          "schema_ref": {"type": "string", "description": "Path to the schema this source object was validated against."}
+        }
+      }
+    },
+    "output_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "hash", "hash_algorithm", "row_count", "column_count", "schema_ref", "promotion_status"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string"},
+          "hash": {"type": "string"},
+          "hash_algorithm": {"type": "string", "enum": ["sha256", "md5", "crc32c"]},
+          "row_count": {"type": "integer", "minimum": 0},
+          "column_count": {"type": "integer", "minimum": 0},
+          "schema_ref": {"type": "string"},
+          "promotion_status": {"type": "string", "enum": ["staging", "promoted", "rejected"]}
+        }
+      }
+    },
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "completed_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "last_completed_game": {"type": ["object", "null"], "properties": {"game_pk": {"type": ["string", "integer"]}, "game_date": {"type": "string", "format": "date"}}},
+    "run_extent": {"type": "string", "enum": ["full", "incremental"]},
+    "rerun_reason": {"type": ["string", "null"]},
+    "validation_results": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"type": "string", "enum": ["passed", "failed", "not_run", "unknown"]},
+        "details": {"type": ["object", "null"]}
+      }
+    },
+    "leakage_audit_results": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"type": "string", "enum": ["passed", "failed", "not_run", "unknown"]},
+        "details": {"type": ["object", "null"]}
+      }
+    },
+    "promotion_status": {"type": "string", "enum": ["staging", "promoted", "rejected"]},
+    "error_status": {"type": "string", "enum": ["ok", "failed", "unknown"]},
+    "parent_manifest_id": {"type": ["string", "null"], "description": "Foreign key to the manifest this run was rerun from, if any."},
+    "frozen_discovery_artifact_ids": {"type": "array", "items": {"type": "string"}},
+    "model_artifact_ids": {"type": "array", "items": {"type": "string"}}
+  }
+}
