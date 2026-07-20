@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import numpy as np
@@ -14,6 +15,10 @@ from atlas.learning.concept_definition_freeze import (
 from atlas.validation.concept_validation_2025_certification import (
     certify_production_run,
 )
+
+
+def _hex_sha256(seed: str) -> str:
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
 
 def _raw_frozen_source() -> pd.DataFrame:
@@ -313,12 +318,54 @@ def _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
     )
 
 
-def _base_valid_registry_summary_metadata_audit():
+def _base_valid_registry_summary_metadata_audit(tmp_path):
+    """Build a synthetic-but-fully-lineage-complete set of production
+    outputs, plus the two frozen source files whose actual on-disk
+    SHA-256 the source_*_registry_sha256 columns must match."""
+
+    frozen_dir = tmp_path / "frozen_source"
+    frozen_dir.mkdir(exist_ok=True)
+
+    frozen_definition_path = frozen_dir / "frozen_concept_definition_registry.parquet"
+    frozen_member_path = frozen_dir / "frozen_concept_member_registry.parquet"
+
+    pd.DataFrame({"frozen_definition_id": ["def_a", "def_b"]}).to_parquet(
+        frozen_definition_path, index=False
+    )
+    pd.DataFrame({"frozen_definition_id": ["def_a", "def_b"]}).to_parquet(
+        frozen_member_path, index=False
+    )
+
+    source_definition_sha256 = production_module.file_sha256(
+        str(frozen_definition_path)
+    )
+    source_member_sha256 = production_module.file_sha256(str(frozen_member_path))
+
     registry = pd.DataFrame({
         "frozen_definition_id": ["def_a", "def_b"],
+        "definition_sha256": [_hex_sha256("def_a"), _hex_sha256("def_b")],
+        "member_registry_sha256": [
+            _hex_sha256("members_a"),
+            _hex_sha256("members_b"),
+        ],
+        "source_definition_registry_sha256": [
+            source_definition_sha256,
+            source_definition_sha256,
+        ],
+        "source_member_registry_sha256": [
+            source_member_sha256,
+            source_member_sha256,
+        ],
         "discovery_season": [2024, 2024],
         "validation_season": [2025, 2025],
+        "validation_engine_version": ["2.0.0", "2.0.0"],
+        "validation_timestamp_utc": [
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00+00:00",
+        ],
         "prediction_weight_assigned": [False, False],
+        "2026_used": [False, False],
+        "validation_status": ["tested", "tested"],
     })
     summary = pd.DataFrame({
         "target_name": ["__all_targets__"],
@@ -355,26 +402,55 @@ def _base_valid_registry_summary_metadata_audit():
         },
         "certified_fully_reproducible": True,
     }
-    return registry, summary, metadata, lineage_audit
+    return (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    )
 
 
 def test_valid_synthetic_outputs_pass_certification(tmp_path):
-    registry, summary, metadata, lineage_audit = (
-        _base_valid_registry_summary_metadata_audit()
-    )
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
     output_dir = tmp_path / "outputs"
     _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
 
-    result = certify_production_run(output_dir, expected_frozen_definition_count=2)
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
 
     assert result["passed"] is True
     assert result["errors"] == []
+    assert set(result["output_hashes"]) == {
+        "concept_validation_registry.parquet",
+        "concept_validation_summary.parquet",
+        "concept_validation_metadata.json",
+        "concept_validation_lineage_audit.json",
+    }
+    assert all(result["output_hashes"].values())
 
 
 def test_incorrect_record_count_fails_certification(tmp_path):
-    registry, summary, metadata, lineage_audit = (
-        _base_valid_registry_summary_metadata_audit()
-    )
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
     # Metadata claims 3 records tested, but the registry only has 2.
     metadata["concepts_tested"] = 3
     lineage_audit["total_validation_records_produced"] = 3
@@ -382,16 +458,26 @@ def test_incorrect_record_count_fails_certification(tmp_path):
     output_dir = tmp_path / "outputs"
     _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
 
-    result = certify_production_run(output_dir, expected_frozen_definition_count=2)
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
 
     assert result["passed"] is False
     assert result["checks"]["validation_records_produced_consistent"] is False
 
 
 def test_duplicate_frozen_definition_id_fails_certification(tmp_path):
-    registry, summary, metadata, lineage_audit = (
-        _base_valid_registry_summary_metadata_audit()
-    )
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
     # Duplicate a frozen_definition_id row.
     registry = pd.concat([registry, registry.iloc[[0]]], ignore_index=True)
     metadata["concepts_tested"] = 3
@@ -400,7 +486,12 @@ def test_duplicate_frozen_definition_id_fails_certification(tmp_path):
     output_dir = tmp_path / "outputs"
     _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
 
-    result = certify_production_run(output_dir, expected_frozen_definition_count=2)
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
 
     assert result["passed"] is False
     assert (
@@ -424,3 +515,356 @@ def test_input_and_output_hashes_recorded(rigged_module, tmp_path):
 
     for name, info in manifest["outputs"].items():
         assert info["sha256"], f"missing output hash for {name}"
+
+
+def test_certification_result_contains_all_four_output_hashes(rigged_module, tmp_path):
+    manifest_dir = tmp_path / "manifest"
+
+    exit_code, manifest = production_module.run_production_validation(
+        manifest_dir=manifest_dir,
+        expected_frozen_definition_count=2,
+    )
+
+    assert exit_code == 0
+
+    output_hashes = manifest["certification"]["output_hashes"]
+    assert set(output_hashes) == {
+        "concept_validation_registry.parquet",
+        "concept_validation_summary.parquet",
+        "concept_validation_metadata.json",
+        "concept_validation_lineage_audit.json",
+    }
+    assert all(output_hashes.values())
+
+
+def test_missing_validation_season_column_fails_certification(tmp_path):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry = registry.drop(columns=["validation_season"])
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"]["required_registry_columns_present"] is False
+    assert "validation_season" in result["errors"][-1]
+
+
+def test_missing_discovery_season_column_fails_certification(tmp_path):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry = registry.drop(columns=["discovery_season"])
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"]["required_registry_columns_present"] is False
+    assert "discovery_season" in result["errors"][-1]
+
+
+def test_missing_prediction_weight_assigned_column_fails_certification(tmp_path):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry = registry.drop(columns=["prediction_weight_assigned"])
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"]["required_registry_columns_present"] is False
+    assert "prediction_weight_assigned" in result["errors"][-1]
+
+
+def test_missing_prediction_weights_assigned_summary_column_fails_certification(
+    tmp_path,
+):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    summary = summary.drop(columns=["prediction_weights_assigned"])
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"]["required_summary_columns_present"] is False
+
+
+@pytest.mark.parametrize(
+    "column",
+    [
+        "definition_sha256",
+        "member_registry_sha256",
+        "source_definition_registry_sha256",
+        "source_member_registry_sha256",
+    ],
+)
+def test_missing_source_lineage_hash_column_fails_certification(tmp_path, column):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry = registry.drop(columns=[column])
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"]["required_registry_columns_present"] is False
+    assert column in result["errors"][-1]
+
+
+@pytest.mark.parametrize(
+    "column",
+    [
+        "definition_sha256",
+        "member_registry_sha256",
+        "source_definition_registry_sha256",
+        "source_member_registry_sha256",
+    ],
+)
+def test_null_lineage_hash_fails_certification(tmp_path, column):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry.loc[0, column] = None
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"][f"zero_null_{column}"] is False
+
+
+@pytest.mark.parametrize(
+    "column",
+    [
+        "definition_sha256",
+        "member_registry_sha256",
+        "source_definition_registry_sha256",
+        "source_member_registry_sha256",
+    ],
+)
+def test_malformed_sha256_fails_certification(tmp_path, column):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry.loc[0, column] = "not-a-valid-sha256"
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert result["checks"][f"{column}_is_valid_sha256_hex"] is False
+
+
+def test_incorrect_source_definition_file_hash_fails_certification(tmp_path):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    # Registry claims a source hash that does not match the actual
+    # frozen definition registry file on disk.
+    registry["source_definition_registry_sha256"] = _hex_sha256("wrong_definitions")
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert (
+        result["checks"]["source_definition_registry_sha256_matches_frozen_file"]
+        is False
+    )
+
+
+def test_incorrect_source_member_file_hash_fails_certification(tmp_path):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    # Registry claims a source hash that does not match the actual
+    # frozen member registry file on disk.
+    registry["source_member_registry_sha256"] = _hex_sha256("wrong_members")
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert (
+        result["checks"]["source_member_registry_sha256_matches_frozen_file"]
+        is False
+    )
+
+
+def test_inconsistent_source_definition_hash_across_rows_fails_certification(
+    tmp_path,
+):
+    (
+        registry,
+        summary,
+        metadata,
+        lineage_audit,
+        frozen_definition_path,
+        frozen_member_path,
+    ) = _base_valid_registry_summary_metadata_audit(tmp_path)
+    registry.loc[0, "source_definition_registry_sha256"] = _hex_sha256(
+        "different_definitions"
+    )
+
+    output_dir = tmp_path / "outputs"
+    _write_valid_outputs(output_dir, registry, summary, metadata, lineage_audit)
+
+    result = certify_production_run(
+        output_dir,
+        expected_frozen_definition_count=2,
+        frozen_definition_registry_path=frozen_definition_path,
+        frozen_member_registry_path=frozen_member_path,
+    )
+
+    assert result["passed"] is False
+    assert (
+        result["checks"][
+            "source_definition_registry_sha256_consistent_across_rows"
+        ]
+        is False
+    )
+
+
+def test_missing_required_input_preflight_never_calls_validation_engine(
+    rigged_module, tmp_path, monkeypatch
+):
+    # Remove a required input before the run so pre-flight must fail
+    # fast, and the (heavily instrumented) validation engine must
+    # never be invoked.
+    rigged_module.INTERACTION_PATH.unlink()
+
+    called = {"count": 0}
+    original = rigged_module.run_concept_validation_2025
+
+    def _spy(*args, **kwargs):
+        called["count"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(rigged_module, "run_concept_validation_2025", _spy)
+
+    manifest_dir = tmp_path / "manifest"
+
+    exit_code, manifest = production_module.run_production_validation(
+        manifest_dir=manifest_dir,
+        expected_frozen_definition_count=2,
+    )
+
+    assert exit_code != 0
+    assert called["count"] == 0
+    assert "pre-flight" in manifest["execution_error"].lower()
+    assert not rigged_module.VALIDATION_REGISTRY_PATH.exists()
+

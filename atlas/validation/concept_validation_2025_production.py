@@ -121,11 +121,20 @@ def canonical_output_paths() -> dict[str, Path]:
     }
 
 
-def print_preflight_diagnostics(input_paths: dict[str, Path]) -> dict[str, Any]:
+def print_preflight_diagnostics(
+    input_paths: dict[str, Path],
+) -> tuple[dict[str, Any], list[str]]:
     """
     Print all input paths, their SHA-256 hashes, and row/season counts
-    before execution. Returns the collected diagnostics for inclusion
-    in the production manifest. Read-only: never mutates any input.
+    before execution. Returns ``(diagnostics, errors)``. Read-only:
+    never mutates any input.
+
+    ``errors`` is non-empty (and the caller must fail fast, never
+    proceeding into the validation engine) whenever:
+
+    - a required input does not exist,
+    - a required input's SHA-256 could not be calculated, or
+    - a required Parquet input could not be read.
     """
 
     print("=" * 78)
@@ -133,29 +142,50 @@ def print_preflight_diagnostics(input_paths: dict[str, Path]) -> dict[str, Any]:
     print("=" * 78)
 
     diagnostics: dict[str, Any] = {}
+    errors: list[str] = []
 
     for name, path in input_paths.items():
         print(f"Input [{name}]: {path}")
 
         exists = path.exists()
-        sha256 = _hash_if_exists(path)
-
-        print(f"  exists...... {exists}")
-        print(f"  sha256...... {sha256}")
-
+        sha256: str | None = None
         row_count = None
         season_counts: dict[str, int] = {}
 
-        if exists and path.suffix == ".parquet":
-            try:
-                frame = pd.read_parquet(path)
-                row_count = int(len(frame))
-                season_counts = _season_counts(frame)
-            except Exception as exc:  # pragma: no cover - defensive
-                print(f"  WARNING: could not read parquet for counts: {exc}")
+        print(f"  exists...... {exists}")
 
-        print(f"  row_count... {row_count}")
-        print(f"  season_counts {season_counts}")
+        if not exists:
+            message = f"Required input '{name}' does not exist: {path}"
+            print(f"  PREFLIGHT FAILURE: {message}")
+            errors.append(message)
+        else:
+            try:
+                sha256 = file_sha256(str(path))
+            except Exception as exc:
+                message = (
+                    f"Could not calculate SHA-256 for required input "
+                    f"'{name}' ({path}): {exc}"
+                )
+                print(f"  PREFLIGHT FAILURE: {message}")
+                errors.append(message)
+
+            print(f"  sha256...... {sha256}")
+
+            if path.suffix == ".parquet":
+                try:
+                    frame = pd.read_parquet(path)
+                    row_count = int(len(frame))
+                    season_counts = _season_counts(frame)
+                except Exception as exc:
+                    message = (
+                        f"Could not read required Parquet input '{name}' "
+                        f"({path}): {exc}"
+                    )
+                    print(f"  PREFLIGHT FAILURE: {message}")
+                    errors.append(message)
+
+            print(f"  row_count... {row_count}")
+            print(f"  season_counts {season_counts}")
 
         diagnostics[name] = {
             "path": str(path),
@@ -167,7 +197,7 @@ def print_preflight_diagnostics(input_paths: dict[str, Path]) -> dict[str, Any]:
 
     print("=" * 78)
 
-    return diagnostics
+    return diagnostics, errors
 
 
 def _existing_manifest_is_certified(manifest_path: Path) -> bool:
@@ -223,6 +253,22 @@ def _render_certification_report(manifest: dict[str, Any]) -> str:
         lines.append(
             f"| {name} | `{info['path']}` | `{info['sha256']}` |"
         )
+
+    certified_output_hashes = certification.get("output_hashes", {})
+
+    if certified_output_hashes:
+        lines += [
+            "",
+            "## Certified Output Hashes",
+            "",
+            "SHA-256 of the exact four output artifacts inspected by the "
+            "certification checker.",
+            "",
+            "| Output File | SHA-256 |",
+            "| --- | --- |",
+        ]
+        for filename, sha256 in certified_output_hashes.items():
+            lines.append(f"| {filename} | `{sha256}` |")
 
     lines += [
         "",
@@ -305,21 +351,31 @@ def run_production_validation(
     input_paths = canonical_input_paths()
     output_paths = canonical_output_paths()
 
-    input_diagnostics = print_preflight_diagnostics(input_paths)
+    input_diagnostics, preflight_errors = print_preflight_diagnostics(
+        input_paths
+    )
 
     engine_result: dict[str, Any] | None = None
     execution_error: str | None = None
 
-    try:
-        engine_result = validation_module.run_concept_validation_2025()
-    except validation_module.LineageAuditCertificationError as exc:
-        execution_error = f"Lineage certification failure: {exc}"
-    except (AssertionError, KeyError, FileNotFoundError) as exc:
-        execution_error = (
-            f"Frozen registry immutability / input validation failure: {exc}"
+    if preflight_errors:
+        # Fail fast: never call the validation engine when a required
+        # input is missing, unhashable, or (for Parquet inputs)
+        # unreadable.
+        execution_error = "Production pre-flight failure: " + "; ".join(
+            preflight_errors
         )
-    except Exception as exc:  # pragma: no cover - defensive
-        execution_error = f"Unexpected execution failure: {exc}"
+    else:
+        try:
+            engine_result = validation_module.run_concept_validation_2025()
+        except validation_module.LineageAuditCertificationError as exc:
+            execution_error = f"Lineage certification failure: {exc}"
+        except (AssertionError, KeyError, FileNotFoundError) as exc:
+            execution_error = (
+                f"Frozen registry immutability / input validation failure: {exc}"
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            execution_error = f"Unexpected execution failure: {exc}"
 
     elapsed_seconds = time.time() - started
 
@@ -338,11 +394,18 @@ def run_production_validation(
             "errors": [execution_error],
             "missing_outputs": [],
             "counts": {},
+            "output_hashes": {},
         }
     else:
         certification = certify_production_run(
             output_dir=Path(output_paths["validation_registry"]).parent,
             expected_frozen_definition_count=expected_frozen_definition_count,
+            frozen_definition_registry_path=(
+                input_paths["frozen_concept_definition_registry"]
+            ),
+            frozen_member_registry_path=(
+                input_paths["frozen_concept_member_registry"]
+            ),
         )
 
     manifest = {

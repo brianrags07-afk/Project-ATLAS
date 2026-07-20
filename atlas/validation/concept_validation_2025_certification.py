@@ -20,10 +20,13 @@ published production output without repeating the validation run.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from atlas.learning.concept_definition_freeze import file_sha256
 
 
 # The canonical, certified frozen-2024 concept discovery run produced
@@ -49,6 +52,39 @@ REQUIRED_OUTPUT_FILENAMES = (
     METADATA_FILENAME,
     LINEAGE_AUDIT_FILENAME,
 )
+
+# Required lineage-complete contract columns. A missing column is a
+# certification failure -- it must never be treated as equivalent to
+# ``False`` or otherwise "compliant" by omission.
+REQUIRED_REGISTRY_COLUMNS = (
+    "frozen_definition_id",
+    "definition_sha256",
+    "member_registry_sha256",
+    "source_definition_registry_sha256",
+    "source_member_registry_sha256",
+    "discovery_season",
+    "validation_season",
+    "validation_engine_version",
+    "validation_timestamp_utc",
+    "prediction_weight_assigned",
+    "2026_used",
+    "validation_status",
+)
+
+REQUIRED_SUMMARY_COLUMNS = (
+    "prediction_weights_assigned",
+)
+
+# Row-level SHA-256 lineage fields that must be present, non-null, and
+# well-formed on every validation registry row.
+ROW_LEVEL_SHA256_COLUMNS = (
+    "definition_sha256",
+    "member_registry_sha256",
+    "source_definition_registry_sha256",
+    "source_member_registry_sha256",
+)
+
+_SHA256_HEX_PATTERN = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 
 
 class CertificationLoadError(RuntimeError):
@@ -126,11 +162,59 @@ def _load_outputs(
     return registry, summary, metadata, lineage_audit, missing
 
 
+def _output_file_hashes(output_dir: Path) -> dict[str, str | None]:
+    """SHA-256 of the exact four output artifacts inspected by this
+    checker, keyed by filename. ``None`` if a file could not be hashed
+    (e.g. it does not exist)."""
+
+    hashes: dict[str, str | None] = {}
+
+    for filename in REQUIRED_OUTPUT_FILENAMES:
+        path = output_dir / filename
+        try:
+            hashes[filename] = file_sha256(str(path)) if path.exists() else None
+        except Exception:
+            hashes[filename] = None
+
+    return hashes
+
+
+def _resolve_expected_hash(
+    expected_hash: str | None,
+    source_path: Path | str | None,
+) -> str | None:
+    """Resolve the expected hash for a canonical input either from an
+    explicitly provided hash or by independently hashing the file at
+    ``source_path``. Never trusts hashes copied from output metadata --
+    the whole point of this check is to recompute the hash from the
+    actual canonical input artifact."""
+
+    if expected_hash is not None:
+        return expected_hash
+
+    if source_path is None:
+        return None
+
+    source_path = Path(source_path)
+
+    if not source_path.exists():
+        return None
+
+    try:
+        return file_sha256(str(source_path))
+    except Exception:
+        return None
+
+
 def certify_production_run(
     output_dir: Path,
     expected_frozen_definition_count: int | None = (
         PRODUCTION_EXPECTED_FROZEN_DEFINITION_COUNT
     ),
+    frozen_definition_registry_path: Path | str | None = None,
+    frozen_member_registry_path: Path | str | None = None,
+    expected_source_definition_registry_sha256: str | None = None,
+    expected_source_member_registry_sha256: str | None = None,
 ) -> dict[str, Any]:
     """
     Load and verify the four production validation outputs in
@@ -143,6 +227,17 @@ def certify_production_run(
     different value (or ``None`` to skip the exact-count checks and
     rely on internal cross-file consistency only).
 
+    ``frozen_definition_registry_path`` / ``frozen_member_registry_path``
+    are the canonical, on-disk frozen registry files. When provided,
+    this checker independently recomputes their SHA-256 (never trusting
+    the hash recorded in the output metadata) and verifies that every
+    validation row's ``source_definition_registry_sha256`` /
+    ``source_member_registry_sha256`` matches. Callers that already
+    know the expected hash may instead pass
+    ``expected_source_definition_registry_sha256`` /
+    ``expected_source_member_registry_sha256`` directly; an explicit
+    hash always takes precedence over a path.
+
     Returns a dict with:
 
     - ``passed``: overall bool certification result
@@ -150,6 +245,8 @@ def certify_production_run(
     - ``errors``: list of human-readable failure descriptions
     - ``missing_outputs``: list of required files that could not be found
     - ``counts``: key counts pulled from the outputs for reporting
+    - ``output_hashes``: SHA-256 of each of the four inspected output
+      artifacts, keyed by filename
     """
 
     (
@@ -175,12 +272,53 @@ def certify_production_run(
             "errors": errors,
             "missing_outputs": sorted(missing_outputs),
             "counts": {},
+            "output_hashes": _output_file_hashes(output_dir),
         }
 
     def check(name: str, condition: bool, failure_message: str) -> None:
         checks[name] = bool(condition)
         if not condition:
             errors.append(failure_message)
+
+    # --- Required-column contract ------------------------------------
+    # A missing required column is a hard certification failure. It
+    # must never be treated as equivalent to ``False``/compliant.
+    missing_registry_columns = sorted(
+        column
+        for column in REQUIRED_REGISTRY_COLUMNS
+        if column not in registry.columns
+    )
+    missing_summary_columns = sorted(
+        column
+        for column in REQUIRED_SUMMARY_COLUMNS
+        if column not in summary.columns
+    )
+
+    check(
+        "required_registry_columns_present",
+        not missing_registry_columns,
+        "Validation registry is missing required column(s): "
+        f"{missing_registry_columns}.",
+    )
+
+    check(
+        "required_summary_columns_present",
+        not missing_summary_columns,
+        "Validation summary is missing required column(s): "
+        f"{missing_summary_columns}.",
+    )
+
+    if missing_registry_columns or missing_summary_columns:
+        # Every remaining check below assumes these columns exist. Fail
+        # fast rather than silently substituting empty/False defaults.
+        return {
+            "passed": False,
+            "checks": checks,
+            "errors": errors,
+            "missing_outputs": [],
+            "counts": {},
+            "output_hashes": _output_file_hashes(output_dir),
+        }
 
     frozen_definitions_evaluated = metadata.get("frozen_definitions_evaluated")
     concepts_tested = metadata.get("concepts_tested")
@@ -372,7 +510,7 @@ def certify_production_run(
         (
             metadata.get("validation_season") == VALIDATION_SEASON
             and reproducibility.get("validation_season") == VALIDATION_SEASON
-            and registry_validation_seasons in ({VALIDATION_SEASON}, set())
+            and registry_validation_seasons == {VALIDATION_SEASON}
         ),
         "validation season must be exactly "
         f"{VALIDATION_SEASON} everywhere "
@@ -392,7 +530,7 @@ def certify_production_run(
         (
             metadata.get("discovery_season") == DISCOVERY_SEASON
             and reproducibility.get("discovery_season") == DISCOVERY_SEASON
-            and registry_discovery_seasons in ({DISCOVERY_SEASON}, set())
+            and registry_discovery_seasons == {DISCOVERY_SEASON}
         ),
         "discovery season must be exactly "
         f"{DISCOVERY_SEASON} everywhere "
@@ -437,6 +575,113 @@ def certify_production_run(
         f"metadata ({metadata.get('certified_fully_reproducible')!r}).",
     )
 
+    # --- Independent row-level lineage certification -----------------
+    # These checks are computed directly from the validation registry
+    # itself (and from independently recomputed source-file hashes),
+    # rather than relying on aggregate flags reported by the engine's
+    # own lineage audit.
+    null_sha_counts: dict[str, int] = {}
+    malformed_sha_columns: list[str] = []
+
+    for column in ROW_LEVEL_SHA256_COLUMNS:
+        series = registry[column]
+        null_count = int(series.isna().sum())
+        null_sha_counts[column] = null_count
+
+        check(
+            f"zero_null_{column}",
+            null_count == 0,
+            f"{null_count} null {column} value(s) found in the validation "
+            "registry.",
+        )
+
+        non_null_values = series.dropna().astype(str)
+        malformed = non_null_values[
+            ~non_null_values.map(lambda value: bool(_SHA256_HEX_PATTERN.match(value)))
+        ]
+
+        if not malformed.empty:
+            malformed_sha_columns.append(column)
+
+        check(
+            f"{column}_is_valid_sha256_hex",
+            malformed.empty,
+            f"{len(malformed)} {column} value(s) are not valid 64-character "
+            "hexadecimal SHA-256 strings.",
+        )
+
+    source_definition_hashes = (
+        registry["source_definition_registry_sha256"].dropna().astype(str)
+    )
+    source_member_hashes = (
+        registry["source_member_registry_sha256"].dropna().astype(str)
+    )
+
+    check(
+        "source_definition_registry_sha256_consistent_across_rows",
+        source_definition_hashes.nunique() <= 1,
+        "source_definition_registry_sha256 is not consistent across all "
+        f"validation rows: {sorted(source_definition_hashes.unique())!r}.",
+    )
+
+    check(
+        "source_member_registry_sha256_consistent_across_rows",
+        source_member_hashes.nunique() <= 1,
+        "source_member_registry_sha256 is not consistent across all "
+        f"validation rows: {sorted(source_member_hashes.unique())!r}.",
+    )
+
+    expected_definition_hash = _resolve_expected_hash(
+        expected_source_definition_registry_sha256,
+        frozen_definition_registry_path,
+    )
+    expected_member_hash = _resolve_expected_hash(
+        expected_source_member_registry_sha256,
+        frozen_member_registry_path,
+    )
+
+    if expected_definition_hash is not None:
+        check(
+            "source_definition_registry_sha256_matches_frozen_file",
+            (
+                source_definition_hashes.nunique() == 1
+                and source_definition_hashes.iloc[0] == expected_definition_hash
+            ),
+            "source_definition_registry_sha256 does not match the actual "
+            "SHA-256 of the frozen concept definition registry file "
+            f"(expected {expected_definition_hash!r}, found "
+            f"{sorted(source_definition_hashes.unique())!r}).",
+        )
+    else:
+        check(
+            "source_definition_registry_sha256_matches_frozen_file",
+            False,
+            "Could not independently verify source_definition_registry_sha256: "
+            "no frozen_definition_registry_path or expected hash was provided "
+            "to certify_production_run.",
+        )
+
+    if expected_member_hash is not None:
+        check(
+            "source_member_registry_sha256_matches_frozen_file",
+            (
+                source_member_hashes.nunique() == 1
+                and source_member_hashes.iloc[0] == expected_member_hash
+            ),
+            "source_member_registry_sha256 does not match the actual "
+            "SHA-256 of the frozen concept member registry file "
+            f"(expected {expected_member_hash!r}, found "
+            f"{sorted(source_member_hashes.unique())!r}).",
+        )
+    else:
+        check(
+            "source_member_registry_sha256_matches_frozen_file",
+            False,
+            "Could not independently verify source_member_registry_sha256: "
+            "no frozen_member_registry_path or expected hash was provided "
+            "to certify_production_run.",
+        )
+
     passed = all(checks.values())
 
     counts = {
@@ -455,6 +700,8 @@ def certify_production_run(
             "definition_sha256_mismatch_count"
         ),
         "validation_frame_2026_row_count": validation_frame_2026_row_count,
+        "null_row_level_sha256_counts": null_sha_counts,
+        "malformed_sha256_columns": malformed_sha_columns,
         "validation_status_counts": (
             registry["validation_status"].value_counts().to_dict()
             if "validation_status" in registry.columns
@@ -468,4 +715,6 @@ def certify_production_run(
         "errors": errors,
         "missing_outputs": [],
         "counts": counts,
+        "output_hashes": _output_file_hashes(output_dir),
     }
+
