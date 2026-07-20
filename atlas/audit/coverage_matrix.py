@@ -81,7 +81,17 @@ SERIES_CONTEXT_ROWS = ("published_series_context",)
 
 # Rows that are postgame facts by definition -- never pregame-safe,
 # regardless of completeness.
-POSTGAME_FACT_ROWS = ("final_scores", "pitch_by_pitch", "plate_appearances", "batted_ball_data")
+#
+# "final_scores" is a game-level fact evidenced by master_game_database's
+# final-outcome columns (home_score/away_score/final_score/winning_team/
+# result) and is handled by ``_final_scores_row``. The remaining rows are
+# pitch/plate-appearance/batted-ball-level facts evidenced by
+# master_pitch_database and are handled by ``_pitch_level_fact_row``.
+# These two evidence sources must never be conflated: final-score
+# availability must not depend on the pitch database, and vice versa.
+FINAL_SCORE_ROWS = ("final_scores",)
+PITCH_LEVEL_FACT_ROWS = ("pitch_by_pitch", "plate_appearances", "batted_ball_data")
+POSTGAME_FACT_ROWS = FINAL_SCORE_ROWS + PITCH_LEVEL_FACT_ROWS
 
 # Rows that are dynamic pregame fields requiring per-game timestamp proof.
 DYNAMIC_PREGAME_ROWS = (
@@ -147,6 +157,39 @@ DIMENSION_KEYS = (
 
 def _season_has_rows(rows_by_season: dict[str, int], season: int) -> bool:
     return rows_by_season.get(str(season), 0) > 0
+
+
+def _unique_games_for_season(profile: dict[str, Any] | None, season: int) -> int | None:
+    """Return the observed unique-``game_pk`` count for ``season`` from a
+    dataset profile, or ``None`` when no such evidence exists. Prefer this
+    over raw row counts for any game-level completeness comparison -- a
+    dataset can have many rows per game (e.g. one row per team, or one row
+    per pitch) without that implying anything about season coverage."""
+    if not profile:
+        return None
+    counts = profile.get("unique_games_by_season") or {}
+    if str(season) not in counts:
+        return None
+    return int(counts[str(season)])
+
+
+def _source_completeness_from_game_counts(
+    observed_games: int | None, expected_games: int | None
+) -> str:
+    """Compare observed unique-game coverage against an explicit expected
+    game count for a season. ``complete`` is returned only when both an
+    expected count is known and the observed count meets or exceeds it --
+    a single observed row or a single represented game can never produce
+    ``complete`` when more than one game is expected. When no reliable
+    expected-count reference is available, but data exists, the result is
+    ``unknown`` rather than an assumed ``complete``."""
+    if not observed_games or observed_games <= 0:
+        return "not_applicable"
+    if expected_games is None or expected_games <= 0:
+        return "unknown"
+    if observed_games >= expected_games:
+        return "complete"
+    return "partial"
 
 
 def _find_dataset_evidence(
@@ -273,28 +316,126 @@ def _module_row(row: str, season: int, repository_inventory: dict[str, Any]) -> 
     }
 
 
-def _postgame_fact_row(
+def _final_scores_row(season: int, dataset_profiles: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Evidence for the ``final_scores`` row comes exclusively from
+    ``master_game_database``'s game-level final-outcome columns
+    (home_score/away_score/final_score/winning_team/result via the
+    ``final_outcomes`` feature-presence key). This must never depend on
+    ``master_pitch_database`` -- pitch-level presence is neither necessary
+    nor sufficient evidence that final-score outcomes are present."""
+    game_profile = dataset_profiles.get("master_game_database")
+    score_column = None
+    if game_profile:
+        score_column = game_profile.get("feature_presence", {}).get("final_outcomes")
+
+    dims = unknown_dimensions()
+    has_rows = bool(game_profile) and _season_has_rows(game_profile.get("rows_by_season", {}), season)
+
+    if score_column and has_rows:
+        row_count = game_profile.get("rows_by_season", {}).get(str(season), 0)
+        null_pct = game_profile.get("null_percentages", {}).get(score_column)
+        observed_games = _unique_games_for_season(game_profile, season)
+        evidence = [
+            make_evidence(
+                "column_presence",
+                source="master_game_database",
+                field_or_column=score_column,
+                season=season,
+                observed_value={
+                    "row_count": row_count,
+                    "null_percentage": null_pct,
+                    "unique_games_observed": observed_games,
+                },
+                confidence="observed",
+                limitation="Postgame final-outcome fact; never a same-game pregame input.",
+            )
+        ]
+        dims["data_presence"] = "present"
+        # "complete" requires the final-outcome column to be fully
+        # populated (0% null) across every observed game for the season --
+        # a null-percentage figure this audit can compare against the
+        # unambiguous "0% missing" expectation. Any other observed
+        # null-percentage is only "partial" evidence, and no null-
+        # percentage evidence at all stays "unknown" rather than assumed
+        # complete.
+        if null_pct is None or observed_games is None:
+            dims["source_completeness"] = "unknown"
+        elif null_pct >= 100:
+            dims["source_completeness"] = "not_applicable"
+        elif null_pct == 0:
+            dims["source_completeness"] = "complete"
+        else:
+            dims["source_completeness"] = "partial"
+        dims["provenance_status"] = "partial"
+        risks = [
+            f"'final_scores' for season {season} is complete/present but is a postgame fact. "
+            "It may support historical reconstruction/learning but must never serve as a "
+            "same-game pregame input."
+        ]
+        required = [
+            "No further evidence required to use this as a postgame reconstruction input; "
+            "pregame use is never authorized regardless of additional evidence."
+        ]
+    else:
+        evidence = []
+        dims["data_presence"] = "missing"
+        dims["source_completeness"] = "not_applicable"
+        dims["provenance_status"] = "missing"
+        risks = [f"No master_game_database final-outcome columns/rows found for season {season}."]
+        required = [
+            f"Locate final-outcome fields (home_score/away_score/final_score/winning_team/"
+            f"result) in master_game_database for season {season}."
+        ]
+    dims["temporal_availability"] = "postgame_only"
+    dims["pregame_safety"] = "unsafe" if dims["data_presence"] != "missing" else "not_applicable"
+    return {
+        "row": "final_scores",
+        "season": season,
+        **dims,
+        "evidence": evidence,
+        "risks": risks,
+        "required_next_evidence": required,
+    }
+
+
+def _pitch_level_fact_row(
     row: str, season: int, dataset_profiles: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
+    """Evidence for pitch_by_pitch/plate_appearances/batted_ball_data comes
+    from ``master_pitch_database``. Row presence alone never proves
+    complete season coverage: the observed unique-``game_pk`` count for
+    ``master_pitch_database`` is compared against the expected game count
+    from ``master_game_database`` (the season's game universe) where that
+    reference is available; otherwise completeness stays ``unknown``."""
     pitch_profile = dataset_profiles.get("master_pitch_database")
+    game_profile = dataset_profiles.get("master_game_database")
     pitch_season_counts: dict[str, int] = {}
     if pitch_profile:
         pitch_season_counts = pitch_profile.get("pitches_by_season") or pitch_profile.get("rows_by_season", {})
     dims = unknown_dimensions()
     if _season_has_rows(pitch_season_counts, season):
         row_count = pitch_season_counts.get(str(season), 0)
+        observed_games = _unique_games_for_season(pitch_profile, season)
+        expected_games = _unique_games_for_season(game_profile, season)
         evidence = [
             make_evidence(
                 "row_presence",
                 source="master_pitch_database",
                 season=season,
-                observed_value={"row_count": row_count},
+                observed_value={
+                    "row_count": row_count,
+                    "unique_games_observed": observed_games,
+                    "unique_games_expected": expected_games,
+                },
                 confidence="observed",
-                limitation="Postgame pitch-level fact; never a same-game pregame input.",
+                limitation=(
+                    "Postgame pitch-level fact; never a same-game pregame input. Row "
+                    "presence alone does not prove full-season game coverage."
+                ),
             )
         ]
         dims["data_presence"] = "present"
-        dims["source_completeness"] = "complete" if row_count > 0 else "unknown"
+        dims["source_completeness"] = _source_completeness_from_game_counts(observed_games, expected_games)
         dims["provenance_status"] = "partial"
         risks = [
             f"'{row}' for season {season} is complete/present but is a postgame fact. "
@@ -305,6 +446,11 @@ def _postgame_fact_row(
             "No further evidence required to use this as a postgame reconstruction input; "
             "pregame use is never authorized regardless of additional evidence."
         ]
+        if dims["source_completeness"] == "unknown":
+            required.append(
+                f"Supply a reliable expected-game-count reference (e.g. master_game_database "
+                f"unique game counts) for season {season} to evaluate '{row}' coverage."
+            )
     else:
         evidence = []
         dims["data_presence"] = "missing"
@@ -324,6 +470,7 @@ def _postgame_fact_row(
     }
 
 
+
 def _schedule_provenance_row(
     row: str, season: int, dataset_profiles: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
@@ -336,7 +483,12 @@ def _schedule_provenance_row(
         row_count = schedule_profile.get("rows_by_season", {}).get(str(season), 0)
         evidence.append(evidence_from_completed_games("master_game_database", season, row_count))
         dims["data_presence"] = "present"
-        dims["source_completeness"] = "complete"
+        # Row presence alone is not proof of complete season coverage --
+        # this audit has no independent, explicit expected-game-count
+        # reference for the schedule itself (master_game_database IS the
+        # candidate schedule source being assessed), so completeness stays
+        # "unknown" rather than being inferred from row_count > 0.
+        dims["source_completeness"] = "unknown"
     else:
         dims["data_presence"] = "missing"
         dims["source_completeness"] = "not_applicable"
@@ -386,7 +538,10 @@ def _series_context_row(season: int, dataset_profiles: dict[str, dict[str, Any]]
         has_rows = _season_has_rows(schedule_profile.get("rows_by_season", {}), season)
         if has_rows:
             dims["data_presence"] = "present"
-            dims["source_completeness"] = "complete"
+            # No independent expected-count reference exists for series
+            # length/boundaries in this audit -- row presence alone must
+            # never be treated as "complete" season coverage.
+            dims["source_completeness"] = "unknown"
             # This audit cannot verify whether the column came from a
             # timestamped published schedule vs. being back-filled from
             # completed results -- treat conservatively as inferred from
@@ -494,8 +649,10 @@ def build_coverage_matrix(
                 entry = _schedule_provenance_row(row_name, season, dataset_profiles)
             elif row_name in SERIES_CONTEXT_ROWS:
                 entry = _series_context_row(season, dataset_profiles)
-            elif row_name in POSTGAME_FACT_ROWS:
-                entry = _postgame_fact_row(row_name, season, dataset_profiles)
+            elif row_name in FINAL_SCORE_ROWS:
+                entry = _final_scores_row(season, dataset_profiles)
+            elif row_name in PITCH_LEVEL_FACT_ROWS:
+                entry = _pitch_level_fact_row(row_name, season, dataset_profiles)
             elif row_name in MODULE_ONLY_ROWS:
                 entry = _module_row(row_name, season, repository_inventory)
             else:

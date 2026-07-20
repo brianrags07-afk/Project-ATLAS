@@ -56,6 +56,20 @@ def test_classify_column_needs_timestamp_proof():
     assert classify_column("bullpen_rest_days") == "pregame_possible_but_needs_timestamp_proof"
 
 
+def test_classify_column_series_fields_need_timestamp_proof_not_schedule_safe():
+    """Series length/boundaries are pregame-safe only when sourced from a
+    published schedule with timestamp/provenance proof (see
+    atlas.audit.schedule_source_assessment). A column name containing
+    "series" alone must never be classified "schedule_safe"."""
+    assert classify_column("series_length") == "pregame_possible_but_needs_timestamp_proof"
+    assert classify_column("series_game_number") == "pregame_possible_but_needs_timestamp_proof"
+    # series_id is caught earlier as an identifier column (contains "_id"),
+    # which is also not "schedule_safe".
+    assert classify_column("series_id") == "identifier"
+    for column in ("series_length", "series_game_number", "series_id"):
+        assert classify_column(column) != "schedule_safe"
+
+
 def test_classify_column_unknown_when_no_evidence():
     assert classify_column("zzz_totally_unrecognized_field") == "unknown"
 

@@ -30,6 +30,7 @@ def _dataset_profiles_fixture():
         "master_game_database": {
             "cloud_path": "data/master/master_game_database.parquet",
             "rows_by_season": {"2024": 100, "2025": 50},
+            "unique_games_by_season": {"2024": 100, "2025": 50},
             "feature_presence": {
                 "final_outcomes": "home_score",
                 "starter_information": None,
@@ -56,6 +57,7 @@ def _dataset_profiles_fixture():
             "cloud_path": "data/master/master_pitch_database.parquet",
             "rows_by_season": {"2024": 1000},
             "pitches_by_season": {"2024": 1000},
+            "unique_games_by_season": {"2024": 100},
             "schema_fingerprint": "pitch-fp-1",
             "data_layer": "normalized_master",
         },
@@ -103,6 +105,73 @@ def test_complete_and_postgame_only_valid_for_reconstruction_but_unsafe_pregame(
     assert any("historical reconstruction" in r for r in row["risks"])
 
 
+def test_final_scores_evidenced_by_game_database_not_pitch_database():
+    """final_scores must be evidenced by master_game_database's
+    final-outcome columns only. Removing master_pitch_database entirely
+    must not change the final_scores row at all."""
+    profiles = _dataset_profiles_fixture()
+    matrix_with_pitch = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row_with_pitch = _matrix_row(matrix_with_pitch, "final_scores", 2024)
+
+    profiles_without_pitch = _dataset_profiles_fixture()
+    del profiles_without_pitch["master_pitch_database"]
+    matrix_without_pitch = build_coverage_matrix(profiles_without_pitch, REPO_INVENTORY_FIXTURE)
+    row_without_pitch = _matrix_row(matrix_without_pitch, "final_scores", 2024)
+
+    for key in DIMENSION_KEYS:
+        assert row_with_pitch[key] == row_without_pitch[key]
+    assert row_without_pitch["data_presence"] == "present"
+    assert row_without_pitch["source_completeness"] == "complete"
+
+    # Conversely, removing master_game_database (final_scores' real
+    # source) must make final_scores missing even though
+    # master_pitch_database is still fully populated.
+    profiles_without_game_db = _dataset_profiles_fixture()
+    del profiles_without_game_db["master_game_database"]
+    matrix_without_game_db = build_coverage_matrix(profiles_without_game_db, REPO_INVENTORY_FIXTURE)
+    row_without_game_db = _matrix_row(matrix_without_game_db, "final_scores", 2024)
+    assert row_without_game_db["data_presence"] == "missing"
+
+
+def test_single_pitch_row_representing_one_game_cannot_be_complete():
+    """A single observed game in master_pitch_database, when
+    master_game_database expects many games that season, must be
+    'partial', never 'complete'. Row/game presence alone is not evidence
+    of complete season coverage."""
+    profiles = _dataset_profiles_fixture()
+    profiles["master_pitch_database"]["pitches_by_season"] = {"2024": 1}
+    profiles["master_pitch_database"]["rows_by_season"] = {"2024": 1}
+    profiles["master_pitch_database"]["unique_games_by_season"] = {"2024": 1}
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "pitch_by_pitch", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "partial"
+    assert row["source_completeness"] != "complete"
+
+
+def test_pitch_level_completeness_unknown_without_expected_game_reference():
+    """When master_game_database's expected-game-count reference is
+    unavailable, pitch-level completeness must stay 'unknown' rather than
+    being inferred 'complete' from row presence."""
+    profiles = _dataset_profiles_fixture()
+    del profiles["master_game_database"]
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "pitch_by_pitch", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "unknown"
+
+
+def test_single_final_score_row_with_partial_nulls_is_not_complete():
+    """A season where the final-outcome column is only partially populated
+    (nonzero null percentage) must be 'partial', never 'complete'."""
+    profiles = _dataset_profiles_fixture()
+    profiles["master_game_database"]["null_percentages"]["home_score"] = 25.0
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "final_scores", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "partial"
+
+
 def test_processed_master_tables_do_not_prove_raw_source_readiness():
     """master_game_database/master_pitch_database are classified
     normalized_master, never raw_source, and this classification alone
@@ -118,7 +187,11 @@ def test_completed_game_tables_do_not_prove_published_schedule_provenance():
     matrix = build_coverage_matrix(_dataset_profiles_fixture(), REPO_INVENTORY_FIXTURE)
     row = _matrix_row(matrix, "published_schedule", 2024)
     assert row["data_presence"] == "present"
-    assert row["source_completeness"] == "complete"
+    # Row presence in master_game_database is not proof of complete season
+    # coverage: there is no independent expected-game-count reference for
+    # the schedule itself, so completeness must stay "unknown" rather than
+    # being inferred from row_count > 0.
+    assert row["source_completeness"] == "unknown"
     assert row["provenance_status"] != "verified"
     assert row["pregame_safety"] == "unsafe"
 
@@ -138,6 +211,19 @@ def test_series_context_inferred_from_results_is_unsafe():
     assert row["data_presence"] == "present"
     assert row["pregame_safety"] == "unsafe"
     assert row["temporal_availability"] == "postgame_only"
+
+
+def test_series_context_row_presence_alone_cannot_be_complete():
+    """published_series_context has no independent expected-count
+    reference in this audit; row presence must yield 'unknown' source
+    completeness, never 'complete'."""
+    profiles = _dataset_profiles_fixture()
+    profiles["master_game_database"]["feature_presence"]["published_series_context"] = "series_length"
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "published_series_context", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "unknown"
+    assert row["source_completeness"] != "complete"
 
 
 def test_dynamic_pregame_field_missing_evidence_stays_unknown_not_unsafe():

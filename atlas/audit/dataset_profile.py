@@ -36,7 +36,6 @@ SCHEDULE_SAFE_PATTERNS = (
     "double_header",
     "doubleheader",
     "game_number",
-    "series",
 )
 POSTGAME_FACT_PATTERNS = (
     "final_score",
@@ -70,6 +69,11 @@ NEEDS_TIMESTAMP_PROOF_PATTERNS = (
     "odds",
     "line",
     "market",
+    # Series length/boundaries are pregame-safe ONLY when sourced from a
+    # published schedule with timestamp/provenance proof (see
+    # atlas.audit.schedule_source_assessment). A column name containing
+    # "series" alone is never sufficient evidence of schedule-safety.
+    "series",
 )
 
 HIGH_NULL_THRESHOLD_PERCENT = 50.0
