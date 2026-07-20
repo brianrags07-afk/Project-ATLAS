@@ -114,14 +114,14 @@ def test_totals_family_is_structurally_independent_of_moneyline_and_run_margin()
     }
 
     assert forbidden_columns.isdisjoint(totals.columns)
-    assert (totals["moneyline_independent"] == True).all()  # noqa: E712
-    assert (totals["run_margin_independent"] == True).all()  # noqa: E712
+    assert totals["moneyline_independent"].all()
+    assert totals["run_margin_independent"].all()
 
 
 def test_market_line_never_used_by_totals_family():
     totals = _build_totals()
 
-    assert (totals["market_line_used"] == False).all()  # noqa: E712
+    assert not totals["market_line_used"].any()
 
 
 def test_inputs_are_not_mutated():

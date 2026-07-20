@@ -249,13 +249,14 @@ come from the canonical 2024 completed-game `game_total_runs`
 distribution (2,428 games; `atlas_reference/samples/games/
 data__game_intelligence__factual_learning_targets__2024__factual_game_learning_targets.parquet.games.parquet`):
 25th percentile = 5, median = 8, 75th percentile = 11, 90th percentile
-= 15. `total_run_bucket` therefore separates `low` (≤5, "approximately
-4-run games" territory), `average` (6-11), `high` (≥12, matching this
-family's explicit "12+-run games" requirement — one run above the
-75th-percentile cut point), and `extreme_high` (≥15, the 90th-percentile
-cut point). This is exactly the boundary the dependency graph must
-support analysis across: what separates ~4-run games from 12+-run
-games.
+= 15. `total_run_bucket` therefore separates `low` (≤5, the bottom
+quartile — the same territory referenced by this family's
+"approximately 4-run games" requirement), `average` (6-11), `high`
+(≥12, matching this family's explicit "12+-run games" requirement —
+one run above the 75th-percentile cut point), and `extreme_high` (≥15,
+the 90th-percentile cut point). This is exactly the boundary the
+dependency graph must support analysis across: what separates the
+bottom-quartile (~4-run) games from 12+-run games.
 
 **Do not reduce totals learning to a single over/under 8.5 label.**
 `actual_total_runs` (continuous), `total_run_bucket` (categorical
