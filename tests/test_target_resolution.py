@@ -28,7 +28,7 @@ def test_win_maps_directly_from_won():
 
     resolved, _ = resolve_frozen_targets(frame)
 
-    assert list(resolved[TARGET_TEAM_WIN]) == [1.0, 0.0]
+    assert list(resolved[TARGET_TEAM_WIN]) == pytest.approx([1.0, 0.0])
 
 
 def test_margin_plus_2_maps_to_win_by_2_equals_1():
@@ -36,7 +36,7 @@ def test_margin_plus_2_maps_to_win_by_2_equals_1():
 
     resolved, _ = resolve_frozen_targets(frame)
 
-    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == 1.0
+    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == pytest.approx(1.0)
 
 
 def test_margin_plus_1_maps_to_win_by_2_equals_0():
@@ -44,17 +44,18 @@ def test_margin_plus_1_maps_to_win_by_2_equals_0():
 
     resolved, _ = resolve_frozen_targets(frame)
 
-    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == 0.0
+    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == pytest.approx(0.0)
 
 
 def test_margin_0_maps_to_win_by_2_equals_0():
-    # A zero margin has no winner, so `won` must be False to keep the
-    # won/run_differential agreement check satisfied.
+    # `won` must be `False` here to satisfy the won/run_differential
+    # agreement check, which treats `won` as equivalent to
+    # `run_differential > 0`; a zero margin is not `> 0`.
     frame = _canonical_frame([False], [0])
 
     resolved, _ = resolve_frozen_targets(frame)
 
-    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == 0.0
+    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == pytest.approx(0.0)
 
 
 def test_negative_margin_maps_to_win_by_2_equals_0():
@@ -62,18 +63,40 @@ def test_negative_margin_maps_to_win_by_2_equals_0():
 
     resolved, _ = resolve_frozen_targets(frame)
 
-    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == 0.0
+    assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0] == pytest.approx(0.0)
 
 
 def test_null_run_differential_remains_null():
+    # `won` is null (unavailable) for row 1, together with
+    # `run_differential`, so agreement cannot be violated; row 0 has an
+    # available `won` but a null `run_differential`, which is also
+    # permitted (nothing to disagree with).
     frame = _canonical_frame([True, np.nan], [np.nan, np.nan])
-    # Both won and run_differential are null for row 1, so agreement
-    # cannot be violated; row 0 has a null run_differential with won
-    # available, which is also permitted (nothing to disagree with).
 
     resolved, _ = resolve_frozen_targets(frame)
 
     assert resolved[TARGET_TEAM_WIN_BY_2_PLUS].isna().all()
+
+
+def test_null_run_differential_with_won_true_remains_null():
+    # `won=True` with an unavailable `run_differential` is permitted:
+    # there is no other value to disagree with, and the win-by-2 target
+    # simply stays null because its only source column is unavailable.
+    frame = _canonical_frame([True], [np.nan])
+
+    resolved, _ = resolve_frozen_targets(frame)
+
+    assert resolved[TARGET_TEAM_WIN].iloc[0] == pytest.approx(1.0)
+    assert pd.isna(resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0])
+
+
+def test_null_run_differential_with_won_false_remains_null():
+    frame = _canonical_frame([False], [np.nan])
+
+    resolved, _ = resolve_frozen_targets(frame)
+
+    assert resolved[TARGET_TEAM_WIN].iloc[0] == pytest.approx(0.0)
+    assert pd.isna(resolved[TARGET_TEAM_WIN_BY_2_PLUS].iloc[0])
 
 
 def test_missing_required_source_columns_fail():

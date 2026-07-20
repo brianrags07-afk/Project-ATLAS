@@ -165,8 +165,9 @@ def _validation_frame_sources() -> tuple[pd.DataFrame, pd.DataFrame]:
     # The canonical team-game target artifact only ever physically
     # contains the factual columns `won` and `run_differential`; it
     # never contains the frozen `target_team_win` column. The margin
-    # magnitude is unrelated to the `wins` outcome direction, but the
-    # sign always agrees with `wins` so source integrity checks pass.
+    # magnitude is chosen at random, but its sign is deterministically
+    # derived from `wins` so `run_differential > 0` always agrees with
+    # `won`, satisfying the source integrity check.
     margin_magnitude = rng.integers(1, 7, size=n_games)
     run_differential = np.where(
         wins == 1,

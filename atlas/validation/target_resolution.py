@@ -65,6 +65,16 @@ FROZEN_TARGET_RESOLUTION_RULES: dict[str, dict[str, Any]] = {
     },
 }
 
+# Computed once at import time: ``FROZEN_TARGET_RESOLUTION_RULES`` is
+# frozen and never mutated at runtime, so recomputing this hash on every
+# call to ``target_resolution_rules_fingerprint`` would be wasted work.
+_FROZEN_TARGET_RESOLUTION_RULES_FINGERPRINT = hashlib.sha256(
+    json.dumps(
+        FROZEN_TARGET_RESOLUTION_RULES,
+        sort_keys=True,
+    ).encode("utf-8")
+).hexdigest()
+
 
 class TargetResolutionIntegrityError(RuntimeError):
     """
@@ -86,12 +96,7 @@ def target_resolution_rules_fingerprint() -> str:
     in lineage/manifest artifacts, guarding against silent code drift.
     """
 
-    return hashlib.sha256(
-        json.dumps(
-            FROZEN_TARGET_RESOLUTION_RULES,
-            sort_keys=True,
-        ).encode("utf-8")
-    ).hexdigest()
+    return _FROZEN_TARGET_RESOLUTION_RULES_FINGERPRINT
 
 
 def _require_target_source_columns(dataframe: pd.DataFrame) -> None:
@@ -264,6 +269,10 @@ def resolve_frozen_targets(
 
     resolution_stats: dict[str, Any] = {
         "rules_fingerprint": target_resolution_rules_fingerprint(),
+        # The `_2025` suffix indicates these counts reflect the data
+        # passed to this function; callers are responsible for any
+        # season filtering (in production, only the already
+        # season-filtered 2025 validation frame is ever passed in).
         "resolved_targets": {
             target_name: {
                 "source_columns": list(
