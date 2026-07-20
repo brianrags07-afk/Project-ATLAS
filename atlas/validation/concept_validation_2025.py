@@ -1,3 +1,28 @@
+"""
+ATLAS 2025 blind concept validation engine (lineage-complete).
+
+Phase 2E.5 replaces the legacy team-scoped 2025 validation registry, which
+belonged to an older, pre-freeze concept generation, with a validation layer
+built directly from the certified frozen concept artifacts:
+
+- frozen_concept_definition_registry.parquet
+- frozen_concept_member_registry.parquet
+
+Every validation record produced here is keyed by ``frozen_definition_id``
+and carries complete lineage metadata back to the certified frozen
+definition and member registries. The legacy ``concept_id`` is retained on
+each record for backward compatibility only; it is no longer authoritative.
+
+This module never rebuilds, mutates, or reorders the frozen discovery
+artifacts. It only reads them and produces a new, independent validation
+registry, summary, metadata file, and lineage audit report.
+
+Blind validation policy:
+- Discovery season is frozen at 2024.
+- Validation season is 2025.
+- 2026 data is never read or used.
+- No prediction weights are assigned here.
+"""
 
 from __future__ import annotations
 
@@ -12,11 +37,29 @@ import numpy as np
 import pandas as pd
 
 from atlas.config import DATA_DIR
+from atlas.learning.concept_definition_freeze import (
+    dataframe_registry_fingerprint,
+    file_sha256,
+    frozen_definition_fingerprint,
+)
 
 
-ENGINE_VERSION = "1.0.0"
+VALIDATION_ENGINE_VERSION = "2.0.0"
+
 DISCOVERY_SEASON = 2024
 VALIDATION_SEASON = 2025
+FORBIDDEN_SEASON = 2026
+
+SUPPORTS_TARGET = "SUPPORTS_TARGET"
+OPPOSES_TARGET = "OPPOSES_TARGET"
+
+JOIN_KEYS = (
+    "game_pk",
+    "game_date",
+    "atlas_season",
+    "team",
+)
+
 
 INTERACTION_PATH = (
     DATA_DIR
@@ -32,20 +75,21 @@ TEAM_TARGET_PATH = (
     / "team_game_targets.parquet"
 )
 
-CONCEPT_REGISTRY_PATH = (
+FROZEN_CONCEPT_DIR = (
     DATA_DIR
     / "learning"
-    / "team_concepts"
+    / "frozen_concept_definitions"
     / str(DISCOVERY_SEASON)
-    / "team_concept_registry.parquet"
 )
 
-CONCEPT_MEMBER_MAP_PATH = (
-    DATA_DIR
-    / "learning"
-    / "team_concepts"
-    / str(DISCOVERY_SEASON)
-    / "team_concept_member_map.parquet"
+FROZEN_DEFINITION_REGISTRY_PATH = (
+    FROZEN_CONCEPT_DIR
+    / "frozen_concept_definition_registry.parquet"
+)
+
+FROZEN_MEMBER_REGISTRY_PATH = (
+    FROZEN_CONCEPT_DIR
+    / "frozen_concept_member_registry.parquet"
 )
 
 OUTPUT_DIR = (
@@ -53,11 +97,6 @@ OUTPUT_DIR = (
     / "validation"
     / "concepts"
     / str(VALIDATION_SEASON)
-)
-
-TEAM_CHECKPOINT_DIR = (
-    OUTPUT_DIR
-    / "team_checkpoints"
 )
 
 VALIDATION_REGISTRY_PATH = (
@@ -75,11 +114,15 @@ METADATA_PATH = (
     / "concept_validation_metadata.json"
 )
 
+LINEAGE_AUDIT_PATH = (
+    OUTPUT_DIR
+    / "concept_validation_lineage_audit.json"
+)
 
-ALLOWED_CONCEPT_STATUSES = {
-    "strong_concept_candidate",
-    "concept_candidate",
-}
+
+# ---------------------------------------------------------------------------
+# Generic IO helpers
+# ---------------------------------------------------------------------------
 
 
 def _atomic_parquet_write(
@@ -137,6 +180,13 @@ def _load_parquet(
     return pd.read_parquet(path)
 
 
+def _utc_now_iso() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .isoformat()
+    )
+
+
 def _normalize_dates(
     dataframe: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -148,6 +198,11 @@ def _normalize_dates(
     ).dt.normalize()
 
     return dataframe
+
+
+# ---------------------------------------------------------------------------
+# Statistical helpers (unchanged blind-validation philosophy)
+# ---------------------------------------------------------------------------
 
 
 def _condition_is_active(
@@ -175,22 +230,11 @@ def _condition_is_active(
     if operator == "==":
         return numeric.eq(threshold)
 
+    if operator == "!=":
+        return numeric.ne(threshold)
+
     raise ValueError(
         f"Unsupported threshold operator: {operator}"
-    )
-
-
-def _required_active_members(
-    total_members: int,
-) -> int:
-    if total_members <= 2:
-        return 1
-
-    return max(
-        2,
-        int(
-            np.ceil(total_members * 0.50)
-        ),
     )
 
 
@@ -234,7 +278,6 @@ def _two_proportion_p_value(
             / math.sqrt(2.0)
         )
     )
-
 
 
 def _benjamini_hochberg(
@@ -306,7 +349,7 @@ def _validation_status(
 
     expected_sign = (
         1
-        if discovery_effect_direction == "supports_target"
+        if discovery_effect_direction == SUPPORTS_TARGET
         else -1
     )
 
@@ -389,33 +432,425 @@ def _validation_status(
     return "not_confirmed"
 
 
-def _team_paths(
-    team: str,
-) -> tuple[Path, Path]:
-    return (
-        TEAM_CHECKPOINT_DIR
-        / f"{team}_concept_validation.parquet",
-        TEAM_CHECKPOINT_DIR
-        / f"{team}_validation_summary.parquet",
+# ---------------------------------------------------------------------------
+# Frozen registry loading and integrity enforcement
+# ---------------------------------------------------------------------------
+
+
+def _require_columns(
+    dataframe: pd.DataFrame,
+    columns: tuple[str, ...],
+    label: str,
+) -> None:
+    missing = sorted(
+        set(columns).difference(
+            dataframe.columns
+        )
     )
 
+    if missing:
+        raise KeyError(
+            f"{label} missing required columns: {missing}"
+        )
 
-def _team_complete(
-    team: str,
-) -> bool:
-    registry_path, summary_path = _team_paths(team)
 
-    return (
-        registry_path.exists()
-        and summary_path.exists()
+REQUIRED_DEFINITION_COLUMNS = (
+    "frozen_definition_id",
+    "definition_sha256",
+    "registry_sha256",
+    "member_registry_sha256",
+    "concept_id",
+    "target_name",
+    "concept_status",
+    "discovery_season",
+    "member_1_feature",
+    "member_1_threshold_operator",
+    "member_1_threshold_value",
+    "member_1_effect_direction",
+    "member_2_feature",
+    "member_2_threshold_operator",
+    "member_2_threshold_value",
+    "member_2_effect_direction",
+    "same_effect_direction",
+    "definitions_frozen",
+    "thresholds_mutable",
+    "member_features_mutable",
+    "target_mutable",
+)
+
+REQUIRED_MEMBER_COLUMNS = (
+    "frozen_definition_id",
+    "definition_sha256",
+    "target_name",
+    "discovery_season",
+    "member_order",
+    "feature_name",
+    "threshold_operator",
+    "threshold_value",
+    "member_definition_sha256",
+    "member_definition_frozen",
+    "threshold_mutable",
+    "registry_sha256",
+    "member_registry_sha256",
+)
+
+
+def _assert_frozen_registries_immutable(
+    definitions: pd.DataFrame,
+    members: pd.DataFrame,
+) -> None:
+    """
+    Refuse to proceed unless the frozen artifacts are exactly what the
+    certified freeze contract promises: immutable, 2024-only, and never
+    touched by 2025/2026 results.
+    """
+
+    _require_columns(
+        definitions,
+        REQUIRED_DEFINITION_COLUMNS,
+        "frozen concept definition registry",
     )
 
+    _require_columns(
+        members,
+        REQUIRED_MEMBER_COLUMNS,
+        "frozen concept member registry",
+    )
 
-def _prepare_validation_data() -> tuple[
-    pd.DataFrame,
+    if not definitions["definitions_frozen"].all():
+        raise AssertionError(
+            "Frozen concept definition registry contains "
+            "rows not marked definitions_frozen."
+        )
+
+    if definitions["thresholds_mutable"].any():
+        raise AssertionError(
+            "Frozen concept definition registry has mutable thresholds."
+        )
+
+    if definitions["member_features_mutable"].any():
+        raise AssertionError(
+            "Frozen concept definition registry has mutable member features."
+        )
+
+    if definitions["target_mutable"].any():
+        raise AssertionError(
+            "Frozen concept definition registry has a mutable target."
+        )
+
+    if not definitions["discovery_season"].eq(DISCOVERY_SEASON).all():
+        raise AssertionError(
+            "Frozen concept definition registry contains a "
+            f"discovery_season other than {DISCOVERY_SEASON}."
+        )
+
+    if not members["discovery_season"].eq(DISCOVERY_SEASON).all():
+        raise AssertionError(
+            "Frozen concept member registry contains a "
+            f"discovery_season other than {DISCOVERY_SEASON}."
+        )
+
+    if not members["member_definition_frozen"].all():
+        raise AssertionError(
+            "Frozen concept member registry contains rows not "
+            "marked member_definition_frozen."
+        )
+
+    if members["threshold_mutable"].any():
+        raise AssertionError(
+            "Frozen concept member registry has mutable thresholds."
+        )
+
+    for used_column in (
+        "2025_used",
+        "2026_used",
+        "2025_validation_used",
+        "2026_results_used",
+    ):
+        if used_column in definitions.columns and definitions[used_column].any():
+            raise AssertionError(
+                "Frozen concept definition registry reports "
+                f"{used_column}=True; discovery must remain blind."
+            )
+
+    if definitions["frozen_definition_id"].isna().any():
+        raise AssertionError(
+            "Frozen concept definition registry has a null frozen_definition_id."
+        )
+
+    if members["frozen_definition_id"].isna().any():
+        raise AssertionError(
+            "Frozen concept member registry has a null frozen_definition_id."
+        )
+
+
+def _load_frozen_registries() -> tuple[
     pd.DataFrame,
     pd.DataFrame,
 ]:
+    definitions = _load_parquet(
+        FROZEN_DEFINITION_REGISTRY_PATH,
+        "frozen concept definition registry",
+    )
+
+    members = _load_parquet(
+        FROZEN_MEMBER_REGISTRY_PATH,
+        "frozen concept member registry",
+    )
+
+    _assert_frozen_registries_immutable(
+        definitions,
+        members,
+    )
+
+    return definitions, members
+
+
+# ---------------------------------------------------------------------------
+# Lineage audit
+# ---------------------------------------------------------------------------
+
+
+def _build_lineage_audit(
+    definitions: pd.DataFrame,
+    members: pd.DataFrame,
+    registry: pd.DataFrame,
+    source_definition_registry_sha256: str,
+    source_member_registry_sha256: str,
+    detected_2026_rows_in_source: int,
+    validation_frame_2026_row_count: int,
+) -> dict[str, Any]:
+    frozen_ids = (
+        definitions["frozen_definition_id"]
+        .astype(str)
+    )
+
+    frozen_id_set = set(frozen_ids)
+
+    registry_ids = (
+        registry["frozen_definition_id"]
+        if "frozen_definition_id" in registry.columns
+        else pd.Series(dtype="object")
+    )
+
+    validation_rows_missing_frozen_definition_id = int(
+        registry_ids.isna().sum()
+        if not registry_ids.empty
+        else 0
+    )
+
+    validated_id_set = set(
+        registry_ids.dropna().astype(str)
+    )
+
+    missing_validation = sorted(
+        frozen_id_set - validated_id_set
+    )
+
+    orphan_validation_ids = sorted(
+        validated_id_set - frozen_id_set
+    )
+
+    duplicate_frozen_definition_ids_in_registry = sorted(
+        set(
+            registry_ids[
+                registry_ids.astype(str).duplicated()
+            ].dropna().astype(str)
+        )
+        if not registry_ids.empty
+        else set()
+    )
+
+    duplicate_frozen_definition_ids_in_source = sorted(
+        set(
+            frozen_ids[
+                frozen_ids.duplicated()
+            ]
+        )
+    )
+
+    # Recompute each frozen definition's content hash directly from the
+    # certified payload fields and compare it against the stored hash.
+    recomputed_hashes = pd.Series(
+        [
+            frozen_definition_fingerprint(
+                row._asdict()
+            )
+            for row in definitions.itertuples(index=False)
+        ],
+        index=definitions.index,
+    )
+
+    definition_sha256_mismatch_ids = sorted(
+        definitions.loc[
+            recomputed_hashes.values
+            != definitions["definition_sha256"].values,
+            "frozen_definition_id",
+        ].astype(str)
+    )
+
+    expected_definition_registry_hash = dataframe_registry_fingerprint(
+        definitions,
+        "definition_sha256",
+    )
+
+    stored_definition_registry_hashes = set(
+        definitions["registry_sha256"]
+        .astype(str)
+        .unique()
+    )
+
+    definition_registry_hash_consistent = bool(
+        stored_definition_registry_hashes
+        == {expected_definition_registry_hash}
+    )
+
+    expected_member_registry_hash = dataframe_registry_fingerprint(
+        members,
+        "member_definition_sha256",
+    )
+
+    stored_member_registry_hashes_in_definitions = set(
+        definitions["member_registry_sha256"]
+        .astype(str)
+        .unique()
+    )
+
+    stored_member_registry_hashes_in_members = set(
+        members["member_registry_sha256"]
+        .astype(str)
+        .unique()
+    )
+
+    member_registry_hash_consistent = bool(
+        stored_member_registry_hashes_in_definitions
+        == {expected_member_registry_hash}
+        and stored_member_registry_hashes_in_members
+        == {expected_member_registry_hash}
+    )
+
+    # Cross-check that every frozen definition has exactly two member rows
+    # whose payload agrees with the definition registry's own member_1/
+    # member_2 fields.
+    member_counts = members.groupby(
+        "frozen_definition_id"
+    ).size()
+
+    definitions_without_two_members = sorted(
+        str(frozen_id)
+        for frozen_id in frozen_id_set
+        if int(member_counts.get(frozen_id, 0)) != 2
+    )
+
+    effect_direction_inconsistent_ids = sorted(
+        definitions.loc[
+            ~definitions["same_effect_direction"].astype(bool),
+            "frozen_definition_id",
+        ].astype(str)
+    )
+
+    used_2026_data = bool(
+        validation_frame_2026_row_count > 0
+    )
+
+    return {
+        "total_frozen_definitions_evaluated":
+            int(len(definitions)),
+        "total_validation_records_produced":
+            int(len(registry)),
+        "frozen_definitions_missing_validation":
+            missing_validation,
+        "frozen_definitions_missing_validation_count":
+            int(len(missing_validation)),
+        "validation_rows_missing_frozen_definition_id":
+            validation_rows_missing_frozen_definition_id,
+        "orphan_validation_records":
+            orphan_validation_ids,
+        "orphan_validation_record_count":
+            int(len(orphan_validation_ids)),
+        "definition_sha256_mismatches":
+            definition_sha256_mismatch_ids,
+        "definition_sha256_mismatch_count":
+            int(len(definition_sha256_mismatch_ids)),
+        "registry_sha256_mismatches": {
+            "definition_registry_hash_consistent":
+                definition_registry_hash_consistent,
+            "member_registry_hash_consistent":
+                member_registry_hash_consistent,
+        },
+        "unexpected_duplicate_frozen_definition_id_mappings": {
+            "in_frozen_definition_registry":
+                duplicate_frozen_definition_ids_in_source,
+            "in_validation_registry":
+                duplicate_frozen_definition_ids_in_registry,
+        },
+        "frozen_definitions_without_exactly_two_members":
+            definitions_without_two_members,
+        "effect_direction_inconsistent_frozen_definitions":
+            effect_direction_inconsistent_ids,
+        # `used_2026_data` and `validation_frame_2026_row_count` reflect the
+        # final, already-filtered validation frame that concept evaluation
+        # actually consumed. `detected_2026_rows_in_source` is purely
+        # informational: shared upstream source files may legitimately
+        # contain 2026 rows (e.g. for other consumers) as long as this
+        # engine never reads them into the validation frame.
+        "used_2026_data":
+            used_2026_data,
+        "validation_frame_2026_row_count":
+            int(validation_frame_2026_row_count),
+        "detected_2026_rows_in_source":
+            int(detected_2026_rows_in_source),
+        "reproducibility": {
+            "discovery_season":
+                DISCOVERY_SEASON,
+            "validation_season":
+                VALIDATION_SEASON,
+            "validation_engine_version":
+                VALIDATION_ENGINE_VERSION,
+            "source_definition_registry_path":
+                str(FROZEN_DEFINITION_REGISTRY_PATH),
+            "source_definition_registry_sha256":
+                source_definition_registry_sha256,
+            "source_member_registry_path":
+                str(FROZEN_MEMBER_REGISTRY_PATH),
+            "source_member_registry_sha256":
+                source_member_registry_sha256,
+            "generated_at_utc":
+                _utc_now_iso(),
+        },
+        "certified_fully_reproducible":
+            bool(
+                not missing_validation
+                and not orphan_validation_ids
+                and validation_rows_missing_frozen_definition_id == 0
+                and not definition_sha256_mismatch_ids
+                and definition_registry_hash_consistent
+                and member_registry_hash_consistent
+                and not duplicate_frozen_definition_ids_in_registry
+                and not definitions_without_two_members
+                and not used_2026_data
+                and validation_frame_2026_row_count == 0
+            ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Validation data preparation
+# ---------------------------------------------------------------------------
+
+
+def _prepare_validation_frame() -> tuple[
+    pd.DataFrame,
+    int,
+]:
+    """
+    Load 2025 pregame interactions joined to 2025 team-game targets.
+
+    Returns the joined validation frame plus the number of forbidden
+    (2026) rows encountered in the raw source files, which are always
+    excluded and never used.
+    """
+
     interactions = _normalize_dates(
         _load_parquet(
             INTERACTION_PATH,
@@ -430,14 +865,9 @@ def _prepare_validation_data() -> tuple[
         )
     )
 
-    concept_registry = _load_parquet(
-        CONCEPT_REGISTRY_PATH,
-        "2024 concept registry",
-    )
-
-    member_map = _load_parquet(
-        CONCEPT_MEMBER_MAP_PATH,
-        "2024 concept member map",
+    forbidden_rows = int(
+        interactions["atlas_season"].eq(FORBIDDEN_SEASON).sum()
+        + targets["atlas_season"].eq(FORBIDDEN_SEASON).sum()
     )
 
     interactions = interactions[
@@ -446,20 +876,28 @@ def _prepare_validation_data() -> tuple[
         )
     ].copy()
 
-    target_columns = sorted(
-        set(
-            concept_registry["target"]
-            .dropna()
-            .astype(str)
+    targets = targets[
+        targets["atlas_season"].eq(
+            VALIDATION_SEASON
         )
-        & set(targets.columns)
-    )
+    ].copy()
 
-    join_keys = [
-        "game_pk",
-        "game_date",
-        "atlas_season",
-        "team",
+    if interactions["atlas_season"].eq(FORBIDDEN_SEASON).any():
+        raise AssertionError(
+            "2026 interaction rows leaked into the 2025 validation frame."
+        )
+
+    if targets["atlas_season"].eq(FORBIDDEN_SEASON).any():
+        raise AssertionError(
+            "2026 target rows leaked into the 2025 validation frame."
+        )
+
+    join_keys = list(JOIN_KEYS)
+
+    target_columns = [
+        column
+        for column in targets.columns
+        if column not in join_keys
     ]
 
     validation = interactions.merge(
@@ -471,23 +909,6 @@ def _prepare_validation_data() -> tuple[
         validate="one_to_one",
     )
 
-    concept_registry = concept_registry[
-        concept_registry[
-            "concept_lifecycle_status"
-        ].isin(ALLOWED_CONCEPT_STATUSES)
-    ].copy()
-
-    selected_ids = set(
-        concept_registry["concept_id"]
-        .astype(str)
-    )
-
-    member_map = member_map[
-        member_map["concept_id"]
-        .astype(str)
-        .isin(selected_ids)
-    ].copy()
-
     validation = validation.sort_values(
         [
             "team",
@@ -497,512 +918,454 @@ def _prepare_validation_data() -> tuple[
         kind="stable",
     ).reset_index(drop=True)
 
-    return (
-        validation,
-        concept_registry,
-        member_map,
+    return validation, forbidden_rows
+
+
+# ---------------------------------------------------------------------------
+# Core evaluation
+# ---------------------------------------------------------------------------
+
+
+def _evaluate_definition(
+    definition: dict[str, Any],
+    validation_frame: pd.DataFrame,
+    source_definition_registry_sha256: str,
+    source_member_registry_sha256: str,
+) -> dict[str, Any]:
+    target_name = str(
+        definition["target_name"]
     )
 
-
-def _validate_one_team(
-    team_rows: pd.DataFrame,
-    team_concepts: pd.DataFrame,
-    team_members: pd.DataFrame,
-    team: str,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    records: list[dict[str, Any]] = []
-
-    concept_lookup = (
-        team_concepts
-        .set_index("concept_id", drop=False)
+    feature_1 = str(
+        definition["member_1_feature"]
     )
 
-    for concept_id, members in team_members.groupby(
-        "concept_id",
-        sort=True,
+    feature_2 = str(
+        definition["member_2_feature"]
+    )
+
+    effect_1 = str(
+        definition["member_1_effect_direction"]
+    )
+
+    effect_2 = str(
+        definition["member_2_effect_direction"]
+    )
+
+    effect_direction_consistent = bool(
+        effect_1 == effect_2
+    )
+
+    effect_direction = (
+        effect_1
+        if effect_direction_consistent
+        else "INCONSISTENT"
+    )
+
+    base_record = {
+        "frozen_definition_id":
+            str(definition["frozen_definition_id"]),
+        "concept_id":
+            str(definition.get("concept_id", "")),
+        "definition_sha256":
+            str(definition["definition_sha256"]),
+        "member_registry_sha256":
+            str(definition["member_registry_sha256"]),
+        "source_definition_registry_sha256":
+            str(source_definition_registry_sha256),
+        "source_member_registry_sha256":
+            str(source_member_registry_sha256),
+        "discovery_season":
+            DISCOVERY_SEASON,
+        "validation_season":
+            VALIDATION_SEASON,
+        "validation_engine_version":
+            VALIDATION_ENGINE_VERSION,
+        "validation_timestamp_utc":
+            _utc_now_iso(),
+        "target_name":
+            target_name,
+        "concept_status":
+            str(definition.get("concept_status", "")),
+        "member_1_feature":
+            feature_1,
+        "member_2_feature":
+            feature_2,
+        "effect_direction":
+            effect_direction,
+        "effect_direction_consistent":
+            effect_direction_consistent,
+        "prediction_weight_assigned":
+            False,
+        "2026_used":
+            False,
+    }
+
+    if target_name not in validation_frame.columns:
+        return {
+            **base_record,
+            "feature_availability_status":
+                "target_unavailable_2025",
+            "available_2025_sample": 0,
+            "active_2025_sample": 0,
+            "inactive_2025_sample": 0,
+            "active_2025_successes": 0,
+            "inactive_2025_successes": 0,
+            "active_2025_rate": None,
+            "inactive_2025_rate": None,
+            "validation_lift": None,
+            "validation_absolute_lift": None,
+            "direction_retained": False,
+            "validation_p_value": None,
+            "validation_q_value": None,
+            "validation_status": "target_unavailable_2025",
+        }
+
+    if (
+        feature_1 not in validation_frame.columns
+        or feature_2 not in validation_frame.columns
     ):
-        concept_id = str(concept_id)
+        return {
+            **base_record,
+            "feature_availability_status":
+                "member_feature_unavailable_2025",
+            "available_2025_sample": 0,
+            "active_2025_sample": 0,
+            "inactive_2025_sample": 0,
+            "active_2025_successes": 0,
+            "inactive_2025_successes": 0,
+            "active_2025_rate": None,
+            "inactive_2025_rate": None,
+            "validation_lift": None,
+            "validation_absolute_lift": None,
+            "direction_retained": False,
+            "validation_p_value": None,
+            "validation_q_value": None,
+            "validation_status": "member_feature_unavailable_2025",
+        }
 
-        if concept_id not in concept_lookup.index:
-            continue
+    feature_1_values = pd.to_numeric(
+        validation_frame[feature_1],
+        errors="coerce",
+    )
 
-        concept = concept_lookup.loc[concept_id]
+    feature_2_values = pd.to_numeric(
+        validation_frame[feature_2],
+        errors="coerce",
+    )
 
-        target = str(concept["target"])
+    target_values = pd.to_numeric(
+        validation_frame[target_name],
+        errors="coerce",
+    )
 
-        if target not in team_rows.columns:
-            continue
+    member_1_available = feature_1_values.notna()
+    member_2_available = feature_2_values.notna()
 
-        member_flags = []
-        available_members = 0
+    pair_available = (
+        member_1_available
+        & member_2_available
+        & target_values.notna()
+    )
 
-        for member in members.itertuples(
-            index=False
-        ):
-            feature = str(member.feature)
+    member_1_active = _condition_is_active(
+        values=feature_1_values,
+        operator=str(
+            definition["member_1_threshold_operator"]
+        ),
+        threshold=float(
+            definition["member_1_threshold_value"]
+        ),
+    ).fillna(False)
 
-            if feature not in team_rows.columns:
-                continue
+    member_2_active = _condition_is_active(
+        values=feature_2_values,
+        operator=str(
+            definition["member_2_threshold_operator"]
+        ),
+        threshold=float(
+            definition["member_2_threshold_value"]
+        ),
+    ).fillna(False)
 
-            available_members += 1
+    joint_active = (
+        member_1_active
+        & member_2_active
+        & pair_available
+    )
 
-            flag = _condition_is_active(
-                values=team_rows[feature],
-                operator=str(
-                    member.threshold_operator
-                ),
-                threshold=float(
-                    member.threshold_value
-                ),
-            )
+    joint_inactive = (
+        pair_available
+        & ~joint_active
+    )
 
-            member_flags.append(
-                flag.fillna(False)
-            )
+    active_sample = int(joint_active.sum())
+    inactive_sample = int(joint_inactive.sum())
 
-        if not member_flags:
-            continue
+    active_successes = int(
+        target_values[joint_active].sum()
+    )
 
-        flag_matrix = pd.concat(
-            member_flags,
-            axis=1,
+    inactive_successes = int(
+        target_values[joint_inactive].sum()
+    )
+
+    active_rate = (
+        active_successes / active_sample
+        if active_sample > 0
+        else None
+    )
+
+    inactive_rate = (
+        inactive_successes / inactive_sample
+        if inactive_sample > 0
+        else None
+    )
+
+    validation_lift = (
+        active_rate - inactive_rate
+        if (
+            active_rate is not None
+            and inactive_rate is not None
         )
+        else None
+    )
 
-        active_count = (
-            flag_matrix.sum(axis=1)
-            .astype("int16")
+    p_value = _two_proportion_p_value(
+        successes_a=active_successes,
+        sample_a=active_sample,
+        successes_b=inactive_successes,
+        sample_b=inactive_sample,
+    )
+
+    # expected_sign is None whenever the discovery-time effect direction
+    # cannot be trusted (inconsistent members or an unrecognized value).
+    # A None expected_sign always forces direction_retained to False below.
+    if (
+        not effect_direction_consistent
+        or effect_direction not in (
+            SUPPORTS_TARGET,
+            OPPOSES_TARGET,
         )
+    ):
+        expected_sign = None
 
-        required_count = _required_active_members(
-            available_members
-        )
-
-        active_mask = (
-            active_count >= required_count
-        )
-
-        target_values = pd.to_numeric(
-            team_rows[target],
-            errors="coerce",
-        )
-
-        valid_mask = target_values.notna()
-
-        active_valid = (
-            active_mask & valid_mask
-        )
-
-        inactive_valid = (
-            (~active_mask) & valid_mask
-        )
-
-        active_sample = int(
-            active_valid.sum()
-        )
-
-        inactive_sample = int(
-            inactive_valid.sum()
-        )
-
-        active_successes = int(
-            target_values[
-                active_valid
-            ].sum()
-        )
-
-        inactive_successes = int(
-            target_values[
-                inactive_valid
-            ].sum()
-        )
-
-        active_rate = (
-            active_successes / active_sample
-            if active_sample > 0
-            else None
-        )
-
-        inactive_rate = (
-            inactive_successes / inactive_sample
-            if inactive_sample > 0
-            else None
-        )
-
-        validation_lift = (
-            active_rate - inactive_rate
-            if (
-                active_rate is not None
-                and inactive_rate is not None
-            )
-            else None
-        )
-
-        p_value = _two_proportion_p_value(
-            successes_a=active_successes,
-            sample_a=active_sample,
-            successes_b=inactive_successes,
-            sample_b=inactive_sample,
-        )
-
-        effect_direction = str(
-            concept["effect_direction"]
-        )
-
+    else:
         expected_sign = (
             1
-            if effect_direction == "supports_target"
+            if effect_direction == SUPPORTS_TARGET
             else -1
         )
 
-        direction_retained = bool(
-            validation_lift is not None
-            and np.sign(validation_lift)
-            == expected_sign
+    direction_retained = bool(
+        validation_lift is not None
+        and expected_sign is not None
+        and np.sign(validation_lift) == expected_sign
+    )
+
+    return {
+        **base_record,
+        "feature_availability_status":
+            "both_features_available",
+        "available_2025_sample":
+            int(pair_available.sum()),
+        "active_2025_sample":
+            active_sample,
+        "inactive_2025_sample":
+            inactive_sample,
+        "active_2025_successes":
+            active_successes,
+        "inactive_2025_successes":
+            inactive_successes,
+        "active_2025_rate":
+            active_rate,
+        "inactive_2025_rate":
+            inactive_rate,
+        "validation_lift":
+            validation_lift,
+        "validation_absolute_lift": (
+            abs(validation_lift)
+            if validation_lift is not None
+            else None
+        ),
+        "direction_retained":
+            direction_retained,
+        "validation_p_value":
+            p_value,
+        "validation_q_value":
+            None,
+        "validation_status":
+            None,
+    }
+
+
+def _build_validation_registry(
+    definitions: pd.DataFrame,
+    validation_frame: pd.DataFrame,
+    source_definition_registry_sha256: str,
+    source_member_registry_sha256: str,
+) -> pd.DataFrame:
+    records = [
+        _evaluate_definition(
+            definition=row._asdict(),
+            validation_frame=validation_frame,
+            source_definition_registry_sha256=source_definition_registry_sha256,
+            source_member_registry_sha256=source_member_registry_sha256,
         )
-
-        # Status is assigned after within-target
-        # multiple-testing correction.
-        status = None
-
-        records.append({
-            "concept_id":
-                concept_id,
-            "discovery_season":
-                DISCOVERY_SEASON,
-            "validation_season":
-                VALIDATION_SEASON,
-            "team":
-                team,
-            "target":
-                target,
-            "concept_domain":
-                str(
-                    concept["concept_domain"]
-                ),
-            "concept_scope":
-                str(
-                    concept["concept_scope"]
-                ),
-            "batting_order_slot": (
-                None
-                if pd.isna(
-                    concept[
-                        "batting_order_slot"
-                    ]
-                )
-                else str(
-                    concept[
-                        "batting_order_slot"
-                    ]
-                )
-            ),
-            "concept_name":
-                str(
-                    concept["concept_name"]
-                ),
-            "effect_direction":
-                effect_direction,
-            "discovery_status":
-                str(
-                    concept[
-                        "concept_lifecycle_status"
-                    ]
-                ),
-            "discovery_confidence":
-                float(
-                    concept[
-                        "concept_confidence_score"
-                    ]
-                ),
-            "discovery_weighted_lift":
-                float(
-                    concept["weighted_lift"]
-                ),
-            "total_concept_members":
-                int(
-                    concept["member_count"]
-                ),
-            "available_2025_members":
-                int(available_members),
-            "required_active_members":
-                int(required_count),
-            "validation_games":
-                int(valid_mask.sum()),
-            "active_2025_sample":
-                active_sample,
-            "inactive_2025_sample":
-                inactive_sample,
-            "active_2025_successes":
-                active_successes,
-            "inactive_2025_successes":
-                inactive_successes,
-            "active_2025_rate":
-                active_rate,
-            "inactive_2025_rate":
-                inactive_rate,
-            "validation_lift":
-                validation_lift,
-            "validation_absolute_lift": (
-                abs(validation_lift)
-                if validation_lift is not None
-                else None
-            ),
-            "direction_retained":
-                direction_retained,
-            "validation_p_value":
-                p_value,
-            "validation_q_value":
-                None,
-            "validation_status":
-                status,
-            "prediction_weight_assigned":
-                False,
-            "2026_used":
-                False,
-            "engine_version":
-                ENGINE_VERSION,
-        })
+        for row in definitions.itertuples(index=False)
+    ]
 
     registry = pd.DataFrame(records)
 
-    if not registry.empty:
-        registry["validation_q_value"] = (
-            registry.groupby(
-                "target",
-                sort=False,
-            )["validation_p_value"]
-            .transform(
-                _benjamini_hochberg
-            )
+    if registry.empty:
+        return registry
+
+    testable = registry["validation_status"].isna()
+
+    registry.loc[
+        testable,
+        "validation_q_value",
+    ] = (
+        registry.loc[testable]
+        .groupby("target_name")["validation_p_value"]
+        .transform(_benjamini_hochberg)
+    )
+
+    registry.loc[
+        testable,
+        "validation_status",
+    ] = [
+        _validation_status(
+            discovery_effect_direction=row.effect_direction,
+            validation_lift=row.validation_lift,
+            validation_sample=row.active_2025_sample,
+            q_value=row.validation_q_value,
+            active_successes=row.active_2025_successes,
+            inactive_successes=row.inactive_2025_successes,
         )
+        for row in registry.loc[testable].itertuples(index=False)
+    ]
 
-        registry["validation_status"] = [
-            _validation_status(
-                discovery_effect_direction=
-                    row.effect_direction,
-                validation_lift=
-                    row.validation_lift,
-                validation_sample=
-                    row.active_2025_sample,
-                q_value=
-                    row.validation_q_value,
-                active_successes=
-                    row.active_2025_successes,
-                inactive_successes=
-                    row.inactive_2025_successes,
-            )
-            for row in registry.itertuples(
-                index=False
-            )
-        ]
+    registry = registry.sort_values(
+        [
+            "validation_status",
+            "validation_absolute_lift",
+        ],
+        ascending=[
+            True,
+            False,
+        ],
+        kind="stable",
+        na_position="last",
+    ).reset_index(drop=True)
 
-        registry = registry.sort_values(
-            [
-                "validation_status",
-                "validation_absolute_lift",
-                "discovery_confidence",
-            ],
-            ascending=[
-                True,
-                False,
-                False,
-            ],
-            kind="stable",
-        ).reset_index(drop=True)
+    return registry
+
+
+def _build_validation_summary(
+    registry: pd.DataFrame,
+) -> pd.DataFrame:
+    status_columns = (
+        "validated_strong",
+        "validated",
+        "direction_retained_weak",
+        "not_confirmed",
+        "reversed",
+        "reversed_strong",
+        "insufficient_2025_sample",
+        "target_unavailable_2025",
+        "member_feature_unavailable_2025",
+    )
 
     if registry.empty:
-        summary = pd.DataFrame(
-            [{
-                "team": team,
+        rows = [
+            {
+                "target_name": None,
                 "concepts_tested": 0,
-                "validated_strong": 0,
-                "validated": 0,
-                "direction_retained_weak": 0,
-                "not_confirmed": 0,
-                "reversed": 0,
-                "insufficient_2025_sample": 0,
-            }]
-        )
+                **{status: 0 for status in status_columns},
+            }
+        ]
 
     else:
-        counts = (
-            registry["validation_status"]
-            .value_counts()
+        rows = []
+
+        for target_name, group in registry.groupby(
+            "target_name",
+            sort=True,
+            dropna=False,
+        ):
+            counts = group["validation_status"].value_counts()
+
+            rows.append(
+                {
+                    "target_name": target_name,
+                    "concepts_tested": int(len(group)),
+                    **{
+                        status: int(counts.get(status, 0))
+                        for status in status_columns
+                    },
+                }
+            )
+
+        overall_counts = registry["validation_status"].value_counts()
+
+        rows.append(
+            {
+                "target_name": "__all_targets__",
+                "concepts_tested": int(len(registry)),
+                **{
+                    status: int(overall_counts.get(status, 0))
+                    for status in status_columns
+                },
+            }
         )
 
-        summary = pd.DataFrame(
-            [{
-                "team":
-                    team,
-                "concepts_tested":
-                    int(len(registry)),
-                "validated_strong":
-                    int(
-                        counts.get(
-                            "validated_strong",
-                            0,
-                        )
-                    ),
-                "validated":
-                    int(
-                        counts.get(
-                            "validated",
-                            0,
-                        )
-                    ),
-                "direction_retained_weak":
-                    int(
-                        counts.get(
-                            "direction_retained_weak",
-                            0,
-                        )
-                    ),
-                "not_confirmed":
-                    int(
-                        counts.get(
-                            "not_confirmed",
-                            0,
-                        )
-                    ),
-                "reversed":
-                    int(
-                        counts.get(
-                            "reversed",
-                            0,
-                        )
-                    ),
-                "reversed_strong":
-                    int(
-                        counts.get(
-                            "reversed_strong",
-                            0,
-                        )
-                    ),
-                "insufficient_2025_sample":
-                    int(
-                        counts.get(
-                            "insufficient_2025_sample",
-                            0,
-                        )
-                    ),
-            }]
-        )
+    summary = pd.DataFrame(rows)
 
     summary["discovery_season"] = DISCOVERY_SEASON
     summary["validation_season"] = VALIDATION_SEASON
+    summary["validation_engine_version"] = VALIDATION_ENGINE_VERSION
     summary["prediction_weights_assigned"] = False
-    summary["engine_version"] = ENGINE_VERSION
 
-    return registry, summary
-
-
-def _assemble_master(
-    teams: list[str],
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    registry_frames = []
-    summary_frames = []
-
-    for team in teams:
-        registry_path, summary_path = _team_paths(team)
-
-        if registry_path.exists():
-            registry_frames.append(
-                pd.read_parquet(
-                    registry_path
-                )
-            )
-
-        if summary_path.exists():
-            summary_frames.append(
-                pd.read_parquet(
-                    summary_path
-                )
-            )
-
-    registry = (
-        pd.concat(
-            registry_frames,
-            ignore_index=True,
-        )
-        if registry_frames
-        else pd.DataFrame()
-    )
-
-    summary = (
-        pd.concat(
-            summary_frames,
-            ignore_index=True,
-        )
-        if summary_frames
-        else pd.DataFrame()
-    )
-
-    return registry, summary
+    return summary
 
 
-def run_concept_validation_2025(
-    only_team: str | None = None,
-    limit: int | None = None,
-    resume: bool = True,
-) -> dict[str, Any]:
+# ---------------------------------------------------------------------------
+# Orchestration
+# ---------------------------------------------------------------------------
+
+
+class LineageAuditCertificationError(RuntimeError):
+    """
+    Raised when the lineage audit fails to certify full reproducibility.
+
+    Canonical validation outputs must never be published when this is
+    raised; the caller is expected to leave any existing canonical files
+    untouched.
+    """
+
+
+def run_concept_validation_2025() -> dict[str, Any]:
     started = time.time()
 
-    (
-        validation_rows,
-        concept_registry,
-        member_map,
-    ) = _prepare_validation_data()
+    definitions, members = _load_frozen_registries()
 
-    all_teams = sorted(
-        validation_rows["team"]
-        .dropna()
-        .astype(str)
-        .unique()
+    validation_frame, forbidden_rows = _prepare_validation_frame()
+
+    validation_frame_2026_row_count = int(
+        validation_frame["atlas_season"].eq(FORBIDDEN_SEASON).sum()
     )
 
-    alias_map = {
-        "ARI": "AZ",
-        "OAK": "ATH",
-    }
-
-    if only_team is not None:
-        requested = alias_map.get(
-            str(only_team).upper(),
-            str(only_team).upper(),
-        )
-
-        if requested not in all_teams:
-            raise ValueError(
-                f"Unknown 2025 team code: {requested}"
-            )
-
-        target_teams = [requested]
-
-    elif limit is not None:
-        target_teams = all_teams[:limit]
-
-    else:
-        target_teams = all_teams
-
-    TEAM_CHECKPOINT_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
+    source_definition_registry_sha256 = file_sha256(
+        str(FROZEN_DEFINITION_REGISTRY_PATH)
     )
 
-    complete = [
-        team
-        for team in target_teams
-        if resume and _team_complete(team)
-    ]
-
-    remaining = [
-        team
-        for team in target_teams
-        if team not in complete
-    ]
+    source_member_registry_sha256 = file_sha256(
+        str(FROZEN_MEMBER_REGISTRY_PATH)
+    )
 
     print("=" * 78)
-    print("ATLAS 2025 BLIND CONCEPT VALIDATION")
+    print("ATLAS 2025 BLIND CONCEPT VALIDATION (LINEAGE-COMPLETE)")
     print("=" * 78)
     print(
         f"Discovery Season......... {DISCOVERY_SEASON}"
@@ -1011,137 +1374,75 @@ def run_concept_validation_2025(
         f"Validation Season........ {VALIDATION_SEASON}"
     )
     print(
-        f"2025 Team-Game Rows...... {len(validation_rows):,}"
+        f"2025 Team-Game Rows...... {len(validation_frame):,}"
     )
     print(
-        f"Frozen Concepts.......... {len(concept_registry):,}"
+        f"Frozen Definitions....... {len(definitions):,}"
     )
     print(
-        f"Frozen Members........... {len(member_map):,}"
-    )
-    print(
-        f"Target Teams............. {len(target_teams):,}"
-    )
-    print(
-        f"Already Complete......... {len(complete):,}"
-    )
-    print(
-        f"Remaining................ {len(remaining):,}"
+        f"Frozen Members........... {len(members):,}"
     )
     print("=" * 78)
 
-    newly_built = 0
-
-    for team in remaining:
-        team_started = time.time()
-
-        team_rows = validation_rows[
-            validation_rows["team"].eq(team)
-        ].copy()
-
-        team_concepts = concept_registry[
-            concept_registry["team"].eq(team)
-        ].copy()
-
-        concept_ids = set(
-            team_concepts["concept_id"]
-            .astype(str)
-        )
-
-        team_members = member_map[
-            member_map["concept_id"]
-            .astype(str)
-            .isin(concept_ids)
-        ].copy()
-
-        registry, summary = _validate_one_team(
-            team_rows=team_rows,
-            team_concepts=team_concepts,
-            team_members=team_members,
-            team=team,
-        )
-
-        registry_path, summary_path = _team_paths(team)
-
-        _atomic_parquet_write(
-            registry,
-            registry_path,
-        )
-
-        _atomic_parquet_write(
-            summary,
-            summary_path,
-        )
-
-        newly_built += 1
-
-        elapsed = time.time() - team_started
-
-        validated_count = int(
-            registry[
-                "validation_status"
-            ].isin(
-                [
-                    "validated_strong",
-                    "validated",
-                ]
-            ).sum()
-            if not registry.empty
-            else 0
-        )
-
-        print(
-            f"Completed {team:<4} | "
-            f"{len(complete) + newly_built:>2}/"
-            f"{len(target_teams):<2} | "
-            f"tested={len(registry):>4,} | "
-            f"validated={validated_count:>3,} | "
-            f"time={elapsed:>5.1f}s"
-        )
-
-    registry, summary = _assemble_master(
-        target_teams
+    # Everything below is built entirely in memory. No canonical output
+    # path is touched until the lineage audit has certified the run as
+    # fully reproducible.
+    registry = _build_validation_registry(
+        definitions=definitions,
+        validation_frame=validation_frame,
+        source_definition_registry_sha256=source_definition_registry_sha256,
+        source_member_registry_sha256=source_member_registry_sha256,
     )
 
-    complete_teams = int(
-        summary["team"].nunique()
-        if not summary.empty
-        else 0
-    )
+    summary = _build_validation_summary(registry)
 
-    full_run_complete = bool(
-        only_team is None
-        and limit is None
-        and complete_teams == len(all_teams)
-    )
-
-    if full_run_complete:
-        _atomic_parquet_write(
-            registry,
-            VALIDATION_REGISTRY_PATH,
-        )
-
-        _atomic_parquet_write(
-            summary,
-            VALIDATION_SUMMARY_PATH,
-        )
-
-    duplicate_ids = int(
-        registry["concept_id"]
-        .duplicated()
-        .sum()
-        if not registry.empty
-        else 0
-    )
-
-    if duplicate_ids:
+    if registry["frozen_definition_id"].duplicated().any():
         raise AssertionError(
-            f"Duplicate validated concept IDs: {duplicate_ids}"
+            "Duplicate frozen_definition_id rows in the validation registry."
         )
+
+    lineage_audit = _build_lineage_audit(
+        definitions=definitions,
+        members=members,
+        registry=registry,
+        source_definition_registry_sha256=source_definition_registry_sha256,
+        source_member_registry_sha256=source_member_registry_sha256,
+        detected_2026_rows_in_source=forbidden_rows,
+        validation_frame_2026_row_count=validation_frame_2026_row_count,
+    )
+
+    if not lineage_audit["certified_fully_reproducible"]:
+        raise LineageAuditCertificationError(
+            "Lineage audit failed certification; refusing to publish "
+            "canonical validation outputs. Existing canonical outputs, "
+            "if any, are left untouched. Audit: "
+            + json.dumps(
+                lineage_audit,
+                indent=2,
+                default=str,
+            )
+        )
+
+    # Certification passed: atomically promote the in-memory outputs to
+    # their canonical paths (each write lands on a temp file first, then
+    # is renamed into place).
+    _atomic_parquet_write(
+        registry,
+        VALIDATION_REGISTRY_PATH,
+    )
+
+    _atomic_parquet_write(
+        summary,
+        VALIDATION_SUMMARY_PATH,
+    )
+
+    _atomic_json_write(
+        lineage_audit,
+        LINEAGE_AUDIT_PATH,
+    )
 
     status_counts = (
-        registry["validation_status"]
-        .value_counts()
+        registry["validation_status"].value_counts()
         if not registry.empty
         else pd.Series(dtype="int64")
     )
@@ -1152,84 +1453,50 @@ def run_concept_validation_2025(
         "engine":
             "ATLAS 2025 Blind Concept Validation Engine",
         "engine_version":
-            ENGINE_VERSION,
+            VALIDATION_ENGINE_VERSION,
         "discovery_season":
             DISCOVERY_SEASON,
         "validation_season":
             VALIDATION_SEASON,
-        "teams_complete":
-            complete_teams,
-        "target_teams":
-            int(len(target_teams)),
-        "newly_built":
-            int(newly_built),
+        "frozen_definitions_evaluated":
+            int(len(definitions)),
         "concepts_tested":
             int(len(registry)),
         "validated_strong":
-            int(
-                status_counts.get(
-                    "validated_strong",
-                    0,
-                )
-            ),
+            int(status_counts.get("validated_strong", 0)),
         "validated":
-            int(
-                status_counts.get(
-                    "validated",
-                    0,
-                )
-            ),
+            int(status_counts.get("validated", 0)),
         "direction_retained_weak":
-            int(
-                status_counts.get(
-                    "direction_retained_weak",
-                    0,
-                )
-            ),
+            int(status_counts.get("direction_retained_weak", 0)),
         "not_confirmed":
-            int(
-                status_counts.get(
-                    "not_confirmed",
-                    0,
-                )
-            ),
+            int(status_counts.get("not_confirmed", 0)),
         "reversed":
-            int(
-                status_counts.get(
-                    "reversed",
-                    0,
-                )
-            ),
+            int(status_counts.get("reversed", 0)),
+        "reversed_strong":
+            int(status_counts.get("reversed_strong", 0)),
         "insufficient_2025_sample":
-            int(
-                status_counts.get(
-                    "insufficient_2025_sample",
-                    0,
-                )
-            ),
-        "duplicate_concept_ids":
-            duplicate_ids,
+            int(status_counts.get("insufficient_2025_sample", 0)),
+        "target_unavailable_2025":
+            int(status_counts.get("target_unavailable_2025", 0)),
+        "member_feature_unavailable_2025":
+            int(status_counts.get("member_feature_unavailable_2025", 0)),
         "prediction_weights_assigned":
             False,
         "2026_used":
-            False,
-        "full_run_complete":
-            full_run_complete,
+            lineage_audit["used_2026_data"],
+        "2026_rows_detected_in_source":
+            int(forbidden_rows),
+        "certified_fully_reproducible":
+            lineage_audit["certified_fully_reproducible"],
         "elapsed_seconds":
             float(elapsed),
         "outputs": {
-            "validation_registry": (
-                str(VALIDATION_REGISTRY_PATH)
-                if full_run_complete
-                else None
-            ),
-            "validation_summary": (
-                str(VALIDATION_SUMMARY_PATH)
-                if full_run_complete
-                else None
-            ),
-            "checkpoint_directory":
-                str(TEAM_CHECKPOINT_DIR),
+            "validation_registry":
+                str(VALIDATION_REGISTRY_PATH),
+            "validation_summary":
+                str(VALIDATION_SUMMARY_PATH),
+            "lineage_audit":
+                str(LINEAGE_AUDIT_PATH),
         },
     }
 
@@ -1242,44 +1509,31 @@ def run_concept_validation_2025(
     print("2025 BLIND CONCEPT VALIDATION COMPLETE")
     print("=" * 78)
     print(
-        f"Teams Complete........... "
-        f"{complete_teams:,}/{len(target_teams):,}"
+        f"Frozen Definitions Evaluated. {result['frozen_definitions_evaluated']:,}"
     )
     print(
-        f"Concepts Tested.......... "
-        f"{len(registry):,}"
+        f"Concepts Tested............. {result['concepts_tested']:,}"
     )
     print(
-        f"Validated Strong......... "
-        f"{result['validated_strong']:,}"
+        f"Validated Strong............. {result['validated_strong']:,}"
     )
     print(
-        f"Validated................ "
-        f"{result['validated']:,}"
+        f"Validated..................... {result['validated']:,}"
     )
     print(
-        f"Direction Retained Weak.. "
-        f"{result['direction_retained_weak']:,}"
+        f"Direction Retained Weak....... {result['direction_retained_weak']:,}"
     )
     print(
-        f"Not Confirmed............ "
-        f"{result['not_confirmed']:,}"
+        f"Not Confirmed................. {result['not_confirmed']:,}"
     )
     print(
-        f"Reversed................. "
-        f"{result['reversed']:,}"
+        f"Reversed....................... {result['reversed']:,}"
     )
     print(
-        f"Insufficient Sample...... "
-        f"{result['insufficient_2025_sample']:,}"
+        f"Insufficient Sample........... {result['insufficient_2025_sample']:,}"
     )
     print(
-        f"Prediction Weights....... "
-        f"{result['prediction_weights_assigned']}"
-    )
-    print(
-        f"Full Master Built........ "
-        f"{full_run_complete}"
+        f"Fully Reproducible............ {result['certified_fully_reproducible']}"
     )
     print("=" * 78)
 

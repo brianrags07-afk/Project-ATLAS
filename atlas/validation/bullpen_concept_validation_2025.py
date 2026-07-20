@@ -1,6 +1,21 @@
 
 from __future__ import annotations
 
+# KNOWN ISSUE (see docs/ATLAS_KNOWN_ISSUES.md, OPEN-1):
+# `run_bullpen_concept_validation_2025` below monkey-patches globals on
+# `atlas.validation.concept_validation_2025` (via
+# `_redirect_validation_globals`) and calls
+# `run_concept_validation_2025(only_team=..., limit=..., resume=...)`.
+# The lineage-complete rewrite of that engine removed the
+# `CONCEPT_REGISTRY_PATH` / `CONCEPT_MEMBER_MAP_PATH` globals and the
+# `only_team`/`limit`/`resume` arguments it relied on, so calling
+# `run_bullpen_concept_validation_2025()` will now raise `AttributeError`
+# before it ever reaches the underlying engine. Importing this module is
+# still completely safe; only invoking that one function is affected.
+# Tracked as a follow-up in docs/ATLAS_KNOWN_ISSUES.md rather than fixed
+# here, since a real fix requires its own lineage-complete bullpen
+# validation pass rather than reuse-by-monkey-patch.
+
 import hashlib
 import importlib
 import json
