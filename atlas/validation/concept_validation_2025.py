@@ -42,6 +42,12 @@ from atlas.learning.concept_definition_freeze import (
     file_sha256,
     frozen_definition_fingerprint,
 )
+from atlas.validation.target_resolution import (
+    FROZEN_TARGET_RESOLUTION_RULES,
+    TargetResolutionIntegrityError,
+    certify_target_resolution_matches_rules,
+    resolve_frozen_targets,
+)
 
 
 VALIDATION_ENGINE_VERSION = "2.0.0"
@@ -619,6 +625,7 @@ def _build_lineage_audit(
     source_member_registry_sha256: str,
     detected_2026_rows_in_source: int,
     validation_frame_2026_row_count: int,
+    target_resolution_stats: dict[str, Any],
 ) -> dict[str, Any]:
     frozen_ids = (
         definitions["frozen_definition_id"]
@@ -753,6 +760,12 @@ def _build_lineage_audit(
         validation_frame_2026_row_count > 0
     )
 
+    target_resolution_rule_consistent = (
+        certify_target_resolution_matches_rules(
+            target_resolution_stats
+        )
+    )
+
     return {
         "total_frozen_definitions_evaluated":
             int(len(definitions)),
@@ -800,6 +813,11 @@ def _build_lineage_audit(
             int(validation_frame_2026_row_count),
         "detected_2026_rows_in_source":
             int(detected_2026_rows_in_source),
+        "target_resolution": {
+            **target_resolution_stats,
+            "rule_matches_manifest":
+                target_resolution_rule_consistent,
+        },
         "reproducibility": {
             "discovery_season":
                 DISCOVERY_SEASON,
@@ -830,6 +848,7 @@ def _build_lineage_audit(
                 and not definitions_without_two_members
                 and not used_2026_data
                 and validation_frame_2026_row_count == 0
+                and target_resolution_rule_consistent
             ),
     }
 
@@ -842,13 +861,24 @@ def _build_lineage_audit(
 def _prepare_validation_frame() -> tuple[
     pd.DataFrame,
     int,
+    dict[str, Any],
 ]:
     """
     Load 2025 pregame interactions joined to 2025 team-game targets.
 
-    Returns the joined validation frame plus the number of forbidden
-    (2026) rows encountered in the raw source files, which are always
-    excluded and never used.
+    The canonical team-game target artifact only physically contains the
+    factual columns ``won`` and ``run_differential``; it never contains
+    the frozen ``target_name`` columns referenced by frozen concept
+    definitions. Those frozen target columns are materialized here, via
+    ``atlas.validation.target_resolution.resolve_frozen_targets``,
+    strictly *before* target availability, validation masks, or
+    validation status are ever computed downstream.
+
+    Returns the joined validation frame (with frozen target columns
+    materialized), the number of forbidden (2026) rows encountered in
+    the raw source files (which are always excluded and never used),
+    and the target-resolution lineage stats produced during
+    materialization.
     """
 
     interactions = _normalize_dates(
@@ -918,7 +948,13 @@ def _prepare_validation_frame() -> tuple[
         kind="stable",
     ).reset_index(drop=True)
 
-    return validation, forbidden_rows
+    # Materialize the frozen target-name columns from the canonical
+    # factual target columns (``won``, ``run_differential``) before any
+    # downstream code checks target availability, builds validation
+    # masks, or computes active/inactive successes or validation status.
+    validation, target_resolution_stats = resolve_frozen_targets(validation)
+
+    return validation, forbidden_rows, target_resolution_stats
 
 
 # ---------------------------------------------------------------------------
@@ -1350,7 +1386,11 @@ def run_concept_validation_2025() -> dict[str, Any]:
 
     definitions, members = _load_frozen_registries()
 
-    validation_frame, forbidden_rows = _prepare_validation_frame()
+    (
+        validation_frame,
+        forbidden_rows,
+        target_resolution_stats,
+    ) = _prepare_validation_frame()
 
     validation_frame_2026_row_count = int(
         validation_frame["atlas_season"].eq(FORBIDDEN_SEASON).sum()
@@ -1409,6 +1449,7 @@ def run_concept_validation_2025() -> dict[str, Any]:
         source_member_registry_sha256=source_member_registry_sha256,
         detected_2026_rows_in_source=forbidden_rows,
         validation_frame_2026_row_count=validation_frame_2026_row_count,
+        target_resolution_stats=target_resolution_stats,
     )
 
     if not lineage_audit["certified_fully_reproducible"]:
@@ -1486,6 +1527,8 @@ def run_concept_validation_2025() -> dict[str, Any]:
             lineage_audit["used_2026_data"],
         "2026_rows_detected_in_source":
             int(forbidden_rows),
+        "target_resolution":
+            lineage_audit["target_resolution"],
         "certified_fully_reproducible":
             lineage_audit["certified_fully_reproducible"],
         "elapsed_seconds":

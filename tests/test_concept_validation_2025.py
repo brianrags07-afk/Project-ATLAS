@@ -162,12 +162,25 @@ def _validation_frame_sources() -> tuple[pd.DataFrame, pd.DataFrame]:
     win_probability = np.where(joint, 0.75, 0.40)
     wins = (rng.uniform(size=n_games) < win_probability).astype(int)
 
+    # The canonical team-game target artifact only ever physically
+    # contains the factual columns `won` and `run_differential`; it
+    # never contains the frozen `target_team_win` column. The margin
+    # magnitude is unrelated to the `wins` outcome direction, but the
+    # sign always agrees with `wins` so source integrity checks pass.
+    margin_magnitude = rng.integers(1, 7, size=n_games)
+    run_differential = np.where(
+        wins == 1,
+        margin_magnitude,
+        -margin_magnitude,
+    )
+
     targets = pd.DataFrame({
         "game_pk": interactions["game_pk"],
         "game_date": interactions["game_date"],
         "atlas_season": interactions["atlas_season"],
         "team": interactions["team"],
-        "target_team_win": wins,
+        "won": wins.astype(bool),
+        "run_differential": run_differential,
     })
 
     return interactions, targets
@@ -324,6 +337,67 @@ def test_available_concept_is_validated_from_features(rigged_module):
         "reversed_strong",
         "insufficient_2025_sample",
     }
+
+
+def test_regression_canonical_targets_without_frozen_column_are_resolved(
+    rigged_module,
+):
+    """
+    Regression test for the real production failure: the canonical
+    team-game target artifact only physically contains `won` and
+    `run_differential`, never the frozen `target_team_win` column
+    directly. The engine must resolve the frozen target column before
+    checking target availability, and must never classify a concept as
+    `target_unavailable_2025` purely because the frozen column is
+    absent from the canonical source.
+    """
+
+    targets = pd.read_parquet(rigged_module.TEAM_TARGET_PATH)
+
+    assert "target_team_win" not in targets.columns
+    assert "won" in targets.columns
+    assert "run_differential" in targets.columns
+
+    result = rigged_module.run_concept_validation_2025()
+
+    assert result["target_unavailable_2025"] == 0
+
+    registry = pd.read_parquet(rigged_module.VALIDATION_REGISTRY_PATH)
+
+    assert not (
+        registry["validation_status"] == "target_unavailable_2025"
+    ).any()
+    assert not (
+        registry["feature_availability_status"] == "target_unavailable_2025"
+    ).any()
+
+
+def test_target_resolution_lineage_recorded_in_metadata_and_audit(
+    rigged_module,
+):
+    result = rigged_module.run_concept_validation_2025()
+
+    target_resolution = result["target_resolution"]
+
+    assert target_resolution["rule_matches_manifest"] is True
+
+    win_stats = target_resolution["resolved_targets"]["target_team_win"]
+    win_by_2_stats = target_resolution["resolved_targets"][
+        "target_team_win_by_2_plus"
+    ]
+
+    assert win_stats["non_null_resolved_rows"] == 200
+    assert win_stats["positive_2025"] + win_stats["negative_2025"] == 200
+    assert win_by_2_stats["non_null_resolved_rows"] == 200
+    assert (
+        win_by_2_stats["positive_2025"] + win_by_2_stats["negative_2025"]
+        == 200
+    )
+
+    audit = json.loads(rigged_module.LINEAGE_AUDIT_PATH.read_text())
+
+    assert audit["target_resolution"]["rule_matches_manifest"] is True
+    assert audit["certified_fully_reproducible"] is True
 
 
 def test_missing_feature_concept_still_produces_a_record(rigged_module):

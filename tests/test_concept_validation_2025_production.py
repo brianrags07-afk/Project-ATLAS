@@ -130,12 +130,23 @@ def _validation_frame_sources() -> tuple[pd.DataFrame, pd.DataFrame]:
     win_probability = np.where(joint, 0.75, 0.40)
     wins = (rng.uniform(size=n_games) < win_probability).astype(int)
 
+    # The canonical team-game target artifact only ever physically
+    # contains the factual columns `won` and `run_differential`; it
+    # never contains the frozen `target_team_win` column.
+    margin_magnitude = rng.integers(1, 7, size=n_games)
+    run_differential = np.where(
+        wins == 1,
+        margin_magnitude,
+        -margin_magnitude,
+    )
+
     targets = pd.DataFrame({
         "game_pk": interactions["game_pk"],
         "game_date": interactions["game_date"],
         "atlas_season": interactions["atlas_season"],
         "team": interactions["team"],
-        "target_team_win": wins,
+        "won": wins.astype(bool),
+        "run_differential": run_differential,
     })
 
     return interactions, targets
