@@ -67,19 +67,33 @@ ENGINE_VERSION: Final[str] = "1.0.1"
 
 TOTALS_TARGET_FAMILY: Final[str] = "totals"
 
-# The total-run bucket boundaries are governed by a versioned, frozen
-# contract file, not recomputed here. See
+# The total-run bucket boundaries are governed by a versioned contract
+# file, not recomputed here. See
 # ``atlas_reference/manifests/frozen_scoring_bucket_contract_2024_v1.json``
 # for the discovery season, source dataset, sample size, percentile
 # method, percentile values, and immutability rules. This module only
-# *reads* that frozen contract at import time; it never derives
-# percentiles from its own runtime inputs, and the 2024 boundaries are
-# reused unchanged for 2025+ blind validation.
+# *reads* that contract at import time; it never derives percentiles
+# from its own runtime inputs. Whether the 2024 boundaries may be
+# reused for 2025+ blind validation or production depends on the
+# contract's provenance -- see ``_validate_contract_provenance`` and
+# ``SCORING_BUCKET_CONTRACT_PRODUCTION_READY`` below: a contract is
+# only production-ready once it is ``status == "frozen"`` *and* carries
+# a resolved, authoritative full-source-population hash, not merely a
+# checked-in sample-file hash.
 FROZEN_SCORING_BUCKET_CONTRACT_PATH: Final[Path] = (
     Path(__file__).resolve().parents[2]
     / "atlas_reference"
     / "manifests"
     / "frozen_scoring_bucket_contract_2024_v1.json"
+)
+
+# Statuses that represent a canonically frozen, production-ready
+# contract. A contract declaring one of these statuses must carry a
+# resolved authoritative full-source hash -- if it does not, that is a
+# provenance contradiction and must fail loudly rather than silently
+# be treated as trustworthy.
+_FROZEN_PRODUCTION_READY_STATUSES: Final[frozenset[str]] = frozenset(
+    {"frozen"}
 )
 
 
@@ -91,17 +105,80 @@ def _load_frozen_scoring_bucket_contract() -> dict:
         return json.load(handle)
 
 
+def _validate_contract_provenance(contract: dict) -> bool:
+    """
+    Determine whether ``contract`` is genuinely production-ready, and
+    refuse to load a contract that misrepresents itself.
+
+    A contract that declares a canonically frozen/production-ready
+    ``status`` (see ``_FROZEN_PRODUCTION_READY_STATUSES``) but has no
+    resolved authoritative full-source-population hash is a provenance
+    contradiction: percentile boundaries were derived from "the full
+    2024 source population", yet nothing here proves the input used
+    to derive them matches that population. This must fail loudly at
+    import time rather than let a frozen/production-ready contract with
+    an absent or explicitly pending hash load silently.
+
+    Returns ``True`` when the contract carries a resolved authoritative
+    full-source hash (i.e. it is safe to use for 2025+ blind validation
+    or production), ``False`` otherwise (e.g. a provisional /
+    source-unverified contract, which may still be loaded -- to expose
+    its boundaries for inspection and 2024-only, non-production use --
+    but must not be usable for 2025+ blind validation or production).
+    """
+
+    status = contract.get("status")
+    source_dataset = contract.get("source_dataset", {})
+    authoritative_hash = source_dataset.get(
+        "authoritative_full_source_sha256"
+    )
+    hash_status = source_dataset.get(
+        "authoritative_full_source_hash_status"
+    )
+
+    hash_resolved = bool(authoritative_hash) and hash_status == "resolved"
+
+    if status in _FROZEN_PRODUCTION_READY_STATUSES and not hash_resolved:
+        raise ValueError(
+            f"Scoring bucket contract declares status={status!r} "
+            "(canonically frozen/production-ready) but "
+            "source_dataset.authoritative_full_source_sha256/"
+            "authoritative_full_source_hash_status is absent or not "
+            "'resolved'. A frozen discovery contract must be tied to "
+            "the exact full source population used to derive its "
+            "percentile values -- refusing to load a contract that "
+            "represents itself as frozen while its authoritative "
+            "source hash remains unresolved. Either attach and verify "
+            "the authoritative full-source hash, or mark this "
+            "contract's status as provisional/source_unverified."
+        )
+
+    return hash_resolved
+
+
 _FROZEN_SCORING_BUCKET_CONTRACT: Final[dict] = (
     _load_frozen_scoring_bucket_contract()
+)
+
+# Whether the loaded contract is verified against its authoritative
+# full-source population and therefore safe to use for 2025+ blind
+# validation or production. See ``_validate_contract_provenance``.
+SCORING_BUCKET_CONTRACT_PRODUCTION_READY: Final[bool] = (
+    _validate_contract_provenance(_FROZEN_SCORING_BUCKET_CONTRACT)
 )
 
 FROZEN_SCORING_BUCKET_CONTRACT_VERSION: Final[str] = (
     _FROZEN_SCORING_BUCKET_CONTRACT["contract_version"]
 )
 
+_CONTRACT_DISCOVERY_SEASON: Final[int] = _FROZEN_SCORING_BUCKET_CONTRACT[
+    "discovery_season"
+]
+
 _FROZEN_BOUNDARIES: Final[dict] = _FROZEN_SCORING_BUCKET_CONTRACT[
     "bucket_boundaries"
 ]
+
 
 # Derived from the canonical 2024 completed-game total-runs distribution,
 # and loaded from the frozen contract above -- not recomputed here. See
@@ -229,6 +306,45 @@ def _side_scoring_shape(
             ].to_numpy(),
         }
     )
+
+
+def _assert_scoring_bucket_contract_may_be_used(
+    game_targets: pd.DataFrame,
+) -> None:
+    """
+    Enforce the frozen scoring-bucket contract's usage restrictions.
+    The 2024-derived boundaries may always be used to label 2024
+    (the discovery season) itself, but reusing them unchanged for
+    2025+ blind validation or production requires the contract to be
+    verified against its authoritative full-source population (see
+    ``SCORING_BUCKET_CONTRACT_PRODUCTION_READY``). Refuses -- rather
+    than silently proceeding -- to label a post-discovery season with
+    an unverified contract.
+    """
+
+    if SCORING_BUCKET_CONTRACT_PRODUCTION_READY:
+        return
+
+    post_discovery_seasons = sorted(
+        set(
+            game_targets["atlas_season"][
+                game_targets["atlas_season"].gt(_CONTRACT_DISCOVERY_SEASON)
+            ]
+        )
+    )
+
+    if post_discovery_seasons:
+        raise ValueError(
+            "The frozen scoring bucket contract "
+            f"({FROZEN_SCORING_BUCKET_CONTRACT_PATH.name}) is not "
+            "production-ready: its authoritative full-source hash is "
+            "absent or pending, so it may not be used for 2025+ blind "
+            "validation or production. Refusing to build totals "
+            f"targets for season(s) {post_discovery_seasons} until the "
+            "authoritative full-source hash is attached and verified "
+            "(or the contract's status is otherwise re-marked "
+            "'frozen')."
+        )
 
 
 def _assert_data_quality(game_targets: pd.DataFrame) -> None:
@@ -574,6 +690,7 @@ def build_total_runs_targets(
         )
 
     _assert_data_quality(game_targets)
+    _assert_scoring_bucket_contract_may_be_used(game_targets)
     _assert_team_game_scoring_consistency(game_targets, team_game_targets)
 
     totals = pd.DataFrame(

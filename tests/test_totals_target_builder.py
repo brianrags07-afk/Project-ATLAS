@@ -9,11 +9,14 @@ this file are the exception: they read the real, checked-in
 dtypes.
 """
 
+import copy
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from atlas.learning import totals_target_builder
 from atlas.learning.factual_target_builder import (
     build_game_targets,
     build_team_game_targets,
@@ -26,6 +29,7 @@ from atlas.learning.totals_target_builder import (
     HIGH_SCORING_MIN_RUNS,
     LOW_SCORING_MAX_RUNS,
     RESERVED_REGULATION_EXTRA_INNING_COLUMNS,
+    SCORING_BUCKET_CONTRACT_PRODUCTION_READY,
     TOTAL_RUN_BUCKET_AVERAGE,
     TOTAL_RUN_BUCKET_EXTREME_HIGH,
     TOTAL_RUN_BUCKET_HIGH,
@@ -204,6 +208,111 @@ def test_frozen_scoring_bucket_contract_governs_the_boundaries():
     }
     assert contract["validation_isolation"]["2025_outcomes_used"] is False
     assert contract["validation_isolation"]["recomputed_at_runtime"] is False
+
+
+def _load_real_contract() -> dict:
+    with FROZEN_SCORING_BUCKET_CONTRACT_PATH.open(
+        "r",
+        encoding="utf-8",
+    ) as handle:
+        return json.load(handle)
+
+
+def test_real_contract_is_not_represented_as_canonically_frozen_yet():
+    """
+    The checked-in contract's authoritative full-source hash is still
+    pending (only a sample-file hash is recorded), so it must not
+    declare a canonically frozen/production-ready status, and this
+    module must report it as not production-ready.
+    """
+
+    contract = _load_real_contract()
+
+    assert contract["status"] != "frozen"
+    assert (
+        contract["source_dataset"]["authoritative_full_source_sha256"]
+        is None
+    )
+    assert (
+        contract["source_dataset"]["authoritative_full_source_hash_status"]
+        == "pending"
+    )
+    assert SCORING_BUCKET_CONTRACT_PRODUCTION_READY is False
+
+
+def test_frozen_status_without_authoritative_hash_raises_on_load():
+    """
+    A frozen/production-ready contract must not load when its
+    authoritative full-source hash is absent or explicitly pending.
+    """
+
+    contract = copy.deepcopy(_load_real_contract())
+    contract["status"] = "frozen"
+    # authoritative_full_source_sha256 stays None / "pending".
+
+    with pytest.raises(ValueError):
+        totals_target_builder._validate_contract_provenance(contract)
+
+
+def test_frozen_status_with_resolved_authoritative_hash_loads_as_production_ready():
+    contract = copy.deepcopy(_load_real_contract())
+    contract["status"] = "frozen"
+    contract["source_dataset"]["authoritative_full_source_sha256"] = (
+        "a" * 64
+    )
+    contract["source_dataset"]["authoritative_full_source_hash_status"] = (
+        "resolved"
+    )
+
+    assert (
+        totals_target_builder._validate_contract_provenance(contract)
+        is True
+    )
+
+
+def test_provisional_status_loads_but_is_not_production_ready():
+    contract = copy.deepcopy(_load_real_contract())
+    contract["status"] = "provisional_source_unverified"
+
+    assert (
+        totals_target_builder._validate_contract_provenance(contract)
+        is False
+    )
+
+
+def test_unverified_contract_prohibits_post_discovery_season():
+    """
+    While the real, checked-in contract remains source-unverified, it
+    must not be used to label a post-2024 (blind validation /
+    production) season.
+    """
+
+    completed = pd.DataFrame(
+        {
+            "game_pk": [1],
+            "game_date": pd.to_datetime(["2025-04-01"]),
+            "atlas_season": [2025],
+            "home_team": ["NYY"],
+            "away_team": ["BOS"],
+            "home_score": [4],
+            "away_score": [3],
+        }
+    )
+
+    game_targets = build_game_targets(completed)
+    team_game_targets = build_team_game_targets(game_targets)
+
+    with pytest.raises(ValueError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_unverified_contract_still_allows_discovery_season():
+    # 2024 (the discovery season itself) must still work even while
+    # the contract is source-unverified.
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    build_total_runs_targets(game_targets, team_game_targets)
 
 
 def test_scoring_bucket_contract_version_column_is_stamped():
