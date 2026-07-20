@@ -38,6 +38,7 @@ from atlas.validation.concept_validation_2025_certification import (
     PRODUCTION_EXPECTED_FROZEN_DEFINITION_COUNT,
     certify_production_run,
 )
+from atlas.validation.target_resolution import TargetResolutionIntegrityError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -287,6 +288,26 @@ def _render_certification_report(manifest: dict[str, Any]) -> str:
     for status, count in manifest["validation_status_counts"].items():
         lines.append(f"- {status}: {count}")
 
+    target_resolution = manifest.get("target_resolution")
+
+    if target_resolution:
+        lines += [
+            "",
+            "## Target Resolution",
+            "",
+            f"- Rule matches manifest: "
+            f"{target_resolution.get('rule_matches_manifest')}",
+        ]
+        for target_name, stats in target_resolution.get(
+            "resolved_targets", {}
+        ).items():
+            lines.append(
+                f"- {target_name}: rule=`{stats.get('rule')}` "
+                f"non_null={stats.get('non_null_resolved_rows')} "
+                f"positive_2025={stats.get('positive_2025')} "
+                f"negative_2025={stats.get('negative_2025')}"
+            )
+
     lines += [
         "",
         "## Certification Checks",
@@ -370,6 +391,8 @@ def run_production_validation(
             engine_result = validation_module.run_concept_validation_2025()
         except validation_module.LineageAuditCertificationError as exc:
             execution_error = f"Lineage certification failure: {exc}"
+        except TargetResolutionIntegrityError as exc:
+            execution_error = f"Target resolution integrity failure: {exc}"
         except (AssertionError, KeyError, FileNotFoundError) as exc:
             execution_error = (
                 f"Frozen registry immutability / input validation failure: {exc}"
@@ -429,6 +452,9 @@ def run_production_validation(
         ),
         "validation_status_counts": certification.get("counts", {}).get(
             "validation_status_counts", {}
+        ),
+        "target_resolution": (
+            engine_result.get("target_resolution") if engine_result else None
         ),
         "execution_error": execution_error,
         "certification": certification,
