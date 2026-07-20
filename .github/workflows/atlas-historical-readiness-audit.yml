@@ -31,7 +31,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "pandas>=2.0,<3.0" "pyarrow>=14.0,<19.0"
+          pip install "pandas>=2.0,<3.0" "pyarrow>=14.0,<19.0" "jsonschema[format]>=4.0"
 
       # Uses the repository's existing Workload Identity Federation setup
       # (same pattern as .github/workflows/atlas-cloud-data-test.yml and

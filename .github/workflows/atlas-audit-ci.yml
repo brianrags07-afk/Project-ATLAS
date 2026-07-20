@@ -1,0 +1,83 @@
+name: ATLAS Audit Tests (CI)
+
+# This is a PR/push CI workflow that ONLY runs the audit and schema test
+# suite plus static safety guards. It never authenticates to Google Cloud
+# and never accesses the real bucket. The real-bucket historical
+# readiness audit (.github/workflows/atlas-historical-readiness-audit.yml)
+# remains workflow_dispatch-only and is not run here.
+on:
+  pull_request:
+    paths:
+      - "atlas/audit/**"
+      - "scripts/run_historical_readiness_audit.py"
+      - "schemas/**"
+      - "tests/test_atlas_audit_*.py"
+      - ".github/workflows/atlas-audit-ci.yml"
+      - ".github/workflows/atlas-historical-readiness-audit.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "atlas/audit/**"
+      - "scripts/run_historical_readiness_audit.py"
+      - "schemas/**"
+      - "tests/test_atlas_audit_*.py"
+      - ".github/workflows/atlas-audit-ci.yml"
+      - ".github/workflows/atlas-historical-readiness-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "pandas>=2.0,<3.0" "numpy>=1.24,<3.0" "pyarrow>=14.0,<19.0" \
+            "jsonschema[format]>=4.0" pyyaml pytest
+
+      - name: Syntax / import validation of audit modules
+        run: |
+          set -euo pipefail
+          python -m py_compile atlas/audit/*.py scripts/run_historical_readiness_audit.py
+          python -c "
+          import atlas.audit.evidence
+          import atlas.audit.temporal_proof
+          import atlas.audit.schedule_source_assessment
+          import atlas.audit.coverage_matrix
+          import atlas.audit.dataset_profile
+          import atlas.audit.provenance
+          import atlas.audit.readiness
+          import atlas.audit.report_schema
+          import atlas.audit.job_summary
+          import atlas.audit.cloud_inventory
+          import atlas.audit.repository_inventory
+          print('All atlas.audit modules imported successfully')
+          "
+
+      - name: Run audit and schema test suite
+        run: |
+          set -euo pipefail
+          python -m pytest tests/test_atlas_audit_*.py -v
+
+      - name: Static read-only guard tests (no Cloud Storage mutation, no GCP auth here)
+        run: |
+          set -euo pipefail
+          python -m pytest tests/test_atlas_audit_workflow_no_cloud_writes.py -v
+          # This CI workflow itself must never authenticate to GCP or touch
+          # the real bucket.
+          if grep -Eq "google-github-actions/auth|gcloud storage (cp|ls|objects)" \
+              .github/workflows/atlas-audit-ci.yml; then
+            echo "::error::atlas-audit-ci.yml must not authenticate to GCP or access the bucket" >&2
+            exit 1
+          fi
