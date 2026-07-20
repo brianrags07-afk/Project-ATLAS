@@ -618,6 +618,7 @@ def _build_lineage_audit(
     source_definition_registry_sha256: str,
     source_member_registry_sha256: str,
     detected_2026_rows_in_source: int,
+    validation_frame_2026_row_count: int,
 ) -> dict[str, Any]:
     frozen_ids = (
         definitions["frozen_definition_id"]
@@ -748,6 +749,10 @@ def _build_lineage_audit(
         ].astype(str)
     )
 
+    used_2026_data = bool(
+        validation_frame_2026_row_count > 0
+    )
+
     return {
         "total_frozen_definitions_evaluated":
             int(len(definitions)),
@@ -783,8 +788,16 @@ def _build_lineage_audit(
             definitions_without_two_members,
         "effect_direction_inconsistent_frozen_definitions":
             effect_direction_inconsistent_ids,
+        # `used_2026_data` and `validation_frame_2026_row_count` reflect the
+        # final, already-filtered validation frame that concept evaluation
+        # actually consumed. `detected_2026_rows_in_source` is purely
+        # informational: shared upstream source files may legitimately
+        # contain 2026 rows (e.g. for other consumers) as long as this
+        # engine never reads them into the validation frame.
         "used_2026_data":
-            False,
+            used_2026_data,
+        "validation_frame_2026_row_count":
+            int(validation_frame_2026_row_count),
         "detected_2026_rows_in_source":
             int(detected_2026_rows_in_source),
         "reproducibility": {
@@ -815,7 +828,8 @@ def _build_lineage_audit(
                 and member_registry_hash_consistent
                 and not duplicate_frozen_definition_ids_in_registry
                 and not definitions_without_two_members
-                and detected_2026_rows_in_source == 0
+                and not used_2026_data
+                and validation_frame_2026_row_count == 0
             ),
     }
 
@@ -915,6 +929,8 @@ def _prepare_validation_frame() -> tuple[
 def _evaluate_definition(
     definition: dict[str, Any],
     validation_frame: pd.DataFrame,
+    source_definition_registry_sha256: str,
+    source_member_registry_sha256: str,
 ) -> dict[str, Any]:
     target_name = str(
         definition["target_name"]
@@ -955,6 +971,10 @@ def _evaluate_definition(
             str(definition["definition_sha256"]),
         "member_registry_sha256":
             str(definition["member_registry_sha256"]),
+        "source_definition_registry_sha256":
+            str(source_definition_registry_sha256),
+        "source_member_registry_sha256":
+            str(source_member_registry_sha256),
         "discovery_season":
             DISCOVERY_SEASON,
         "validation_season":
@@ -1182,11 +1202,15 @@ def _evaluate_definition(
 def _build_validation_registry(
     definitions: pd.DataFrame,
     validation_frame: pd.DataFrame,
+    source_definition_registry_sha256: str,
+    source_member_registry_sha256: str,
 ) -> pd.DataFrame:
     records = [
         _evaluate_definition(
             definition=row._asdict(),
             validation_frame=validation_frame,
+            source_definition_registry_sha256=source_definition_registry_sha256,
+            source_member_registry_sha256=source_member_registry_sha256,
         )
         for row in definitions.itertuples(index=False)
     ]
@@ -1311,12 +1335,26 @@ def _build_validation_summary(
 # ---------------------------------------------------------------------------
 
 
+class LineageAuditCertificationError(RuntimeError):
+    """
+    Raised when the lineage audit fails to certify full reproducibility.
+
+    Canonical validation outputs must never be published when this is
+    raised; the caller is expected to leave any existing canonical files
+    untouched.
+    """
+
+
 def run_concept_validation_2025() -> dict[str, Any]:
     started = time.time()
 
     definitions, members = _load_frozen_registries()
 
     validation_frame, forbidden_rows = _prepare_validation_frame()
+
+    validation_frame_2026_row_count = int(
+        validation_frame["atlas_season"].eq(FORBIDDEN_SEASON).sum()
+    )
 
     source_definition_registry_sha256 = file_sha256(
         str(FROZEN_DEFINITION_REGISTRY_PATH)
@@ -1346,9 +1384,14 @@ def run_concept_validation_2025() -> dict[str, Any]:
     )
     print("=" * 78)
 
+    # Everything below is built entirely in memory. No canonical output
+    # path is touched until the lineage audit has certified the run as
+    # fully reproducible.
     registry = _build_validation_registry(
         definitions=definitions,
         validation_frame=validation_frame,
+        source_definition_registry_sha256=source_definition_registry_sha256,
+        source_member_registry_sha256=source_member_registry_sha256,
     )
 
     summary = _build_validation_summary(registry)
@@ -1358,6 +1401,31 @@ def run_concept_validation_2025() -> dict[str, Any]:
             "Duplicate frozen_definition_id rows in the validation registry."
         )
 
+    lineage_audit = _build_lineage_audit(
+        definitions=definitions,
+        members=members,
+        registry=registry,
+        source_definition_registry_sha256=source_definition_registry_sha256,
+        source_member_registry_sha256=source_member_registry_sha256,
+        detected_2026_rows_in_source=forbidden_rows,
+        validation_frame_2026_row_count=validation_frame_2026_row_count,
+    )
+
+    if not lineage_audit["certified_fully_reproducible"]:
+        raise LineageAuditCertificationError(
+            "Lineage audit failed certification; refusing to publish "
+            "canonical validation outputs. Existing canonical outputs, "
+            "if any, are left untouched. Audit: "
+            + json.dumps(
+                lineage_audit,
+                indent=2,
+                default=str,
+            )
+        )
+
+    # Certification passed: atomically promote the in-memory outputs to
+    # their canonical paths (each write lands on a temp file first, then
+    # is renamed into place).
     _atomic_parquet_write(
         registry,
         VALIDATION_REGISTRY_PATH,
@@ -1366,15 +1434,6 @@ def run_concept_validation_2025() -> dict[str, Any]:
     _atomic_parquet_write(
         summary,
         VALIDATION_SUMMARY_PATH,
-    )
-
-    lineage_audit = _build_lineage_audit(
-        definitions=definitions,
-        members=members,
-        registry=registry,
-        source_definition_registry_sha256=source_definition_registry_sha256,
-        source_member_registry_sha256=source_member_registry_sha256,
-        detected_2026_rows_in_source=forbidden_rows,
     )
 
     _atomic_json_write(
@@ -1424,7 +1483,7 @@ def run_concept_validation_2025() -> dict[str, Any]:
         "prediction_weights_assigned":
             False,
         "2026_used":
-            False,
+            lineage_audit["used_2026_data"],
         "2026_rows_detected_in_source":
             int(forbidden_rows),
         "certified_fully_reproducible":
