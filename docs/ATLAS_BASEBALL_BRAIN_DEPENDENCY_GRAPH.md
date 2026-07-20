@@ -265,24 +265,114 @@ preserved as first-class outcomes; a market over/under line is never
 required to compute any of them (`market_line_used` is always `False`
 on `totals_target_builder.py`'s output).
 
+**Scope note (post-review correction).** The original task for this
+document was documentation-only (repository-alignment auditing). While
+tracing this totals/scoring-shape lineage, actual production code was
+added — `atlas/learning/totals_target_builder.py`,
+`tests/test_totals_target_builder.py`, and the frozen contract file
+below — which is a scope expansion beyond documentation. That
+expansion is called out explicitly here rather than left implicit;
+splitting this code into a separate PR from the repository-alignment
+documentation PR is preferred unless a maintainer explicitly approves
+combining them.
+
+**Frozen scoring-bucket contract (versioned, not recomputed).** The
+`LOW_SCORING_MAX_RUNS` / `HIGH_SCORING_MIN_RUNS` /
+`EXTREME_HIGH_SCORING_MIN_RUNS` boundaries quoted above are not
+hardcoded constants recomputed on every run. They are loaded at import
+time from a versioned, frozen contract file —
+`atlas_reference/manifests/frozen_scoring_bucket_contract_2024_v1.json`
+(`contract_version` `"2024_v1"`) — which records the discovery season
+(2024), the source dataset and its sample-scope SHA-256, the sample
+size (2,428 completed games), the percentile method (linear
+interpolation over `game_total_runs`), the percentile values (p25=5,
+p50=8, p75=11, p90=15), the resulting bucket boundaries, and a creation
+timestamp. `totals_target_builder.py` never derives percentiles from
+its own runtime inputs. The frozen 2024 boundaries are reused unchanged
+for 2025+ blind validation; no 2025 outcome may be used to compute,
+adjust, or re-derive them. Every totals target row is stamped with
+`scoring_bucket_contract_version` so downstream consumers can verify
+which frozen contract produced it.
+
+**Regulation versus extra innings (reserved, not fabricated).**
+`totals_target_builder.py` reserves — but does not populate —
+`regulation_total_runs`, `extra_inning_runs`, `scoring_shape_regulation`,
+and `scoring_shape_final`. A genuine regulation/extra-innings run split
+requires a true per-inning line score, which does not exist as an
+authoritative source anywhere in this repository today: the closest
+available data, `atlas/game_intelligence/outcome_classifier.py`'s
+`game_outcomes` table, only carries innings-bucketed totals for innings
+1-3 / 4-6 / 7+, and its 7+ bucket conflates regulation innings 7-9 with
+any extra innings actually played. Fabricating a split from that data
+would silently misclassify some extra-innings games (a low-scoring
+regulation game inflated by extra innings must remain distinguishable
+from a regulation slugfest, and that distinction cannot be manufactured
+from a bucket that already merges the two). `went_extra_innings` is
+the one field in this group that *is* accurately computable today,
+from the existing `game_outcomes.extra_innings` boolean; it is
+populated only when an optional `game_outcomes` frame is passed into
+`build_total_runs_targets`, and stays reserved (null) otherwise. All
+five fields are flagged here as requiring a future, genuine per-inning
+line-score source before they can be safely computed.
+
+**One-team versus two-team scoring (implemented).**
+`totals_target_builder.py` now classifies high-scoring games by where
+the runs came from, so a 12-1 result and a 7-6 result — both totaling
+13 runs — do not receive identical treatment:
+`one_team_offensive_explosion` (one side alone reached the frozen
+`HIGH_SCORING_MIN_RUNS` threshold), `two_sided_high_scoring_game` (the
+complement, within `high_scoring_game`), `blowout_high_total` (the
+run-total margin between the two teams exceeds the frozen
+`LOW_SCORING_MAX_RUNS` bottom-quartile cut point), `competitive_high_total`
+(the complement), plus the underlying `home_scoring_share`,
+`away_scoring_share`, and `largest_team_run_total` facts these
+classifications are derived from.
+
 **Structured Game Story WHY-classification for scoring (totals side):**
 per Section 1's five-section table, `game_story_record` is **not
 covered — future canonical artifact** for any target family. For
 totals specifically, that future Game Story must classify *why*
 scoring was low or high, covering at minimum:
 
-- starter-driven suppression or damage
-- bullpen-driven suppression or collapse
+- starter-driven suppression or damage — `starter_runs_allowed`
+  (**existing**: `home_starter_runs_allowed`/`away_starter_runs_allowed`
+  on `master_game_database.parquet`, consumed by
+  `atlas/pitchers/pitcher_engine.py`)
+- bullpen-driven suppression or collapse — `bullpen_runs_allowed`
+  (**existing**: `home_bullpen_runs_allowed`/`away_bullpen_runs_allowed`
+  on `master_game_database.parquet`)
 - lineup quality and missing hitters
 - pitch-type and handedness matchup effects
 - walks, strikeouts, and traffic creation
 - contact quality and home-run damage
 - park, weather, and umpire context
 - defense and catcher effects
-- late-inning scoring
-- extra-inning inflation
-- one-team blowout versus two-sided scoring
-- sustained scoring versus one anomalous inning
+- late-inning scoring — `runs_innings_6_to_9` and `late_scoring_inflation`
+  (**not ready — no per-inning source exists**; the nearest data,
+  `game_outcomes.home_runs_innings_7_plus`/`away_runs_innings_7_plus`,
+  conflates innings 7-9 with extra innings, so it cannot cleanly
+  isolate innings 6-9)
+- extra-inning inflation — `extra_inning_runs` (**not ready**, see
+  "Regulation versus extra innings" above)
+- one-team blowout versus two-sided scoring — **implemented**, see
+  above (`one_team_offensive_explosion` / `two_sided_high_scoring_game`
+  / `blowout_high_total` / `competitive_high_total`)
+- sustained scoring versus one anomalous inning —
+  `largest_scoring_inning`, `number_of_scoring_innings`,
+  `sustained_scoring` (**not ready — no per-inning source exists**)
+- `runs_first_3_innings` (**existing, derivable**:
+  `game_outcomes.home_runs_innings_1_3` +
+  `away_runs_innings_1_3`, produced by `outcome_classifier.py`)
+- `runs_first_5_innings` (**not ready** — the existing inning buckets
+  are 1-3 / 4-6 / 7+, which do not align to a 5-inning cut; would
+  require a genuine per-inning line score)
+
+Every one of the ten chronology-dependency fields above belongs
+conceptually to Game Anatomy (the future assembled per-game record
+described in Section 1), not to `totals_target_builder.py` — but their
+lineage to either an existing production column or an explicit "not
+ready, no per-inning source" gap is made explicit here rather than left
+unstated.
 
 Supporting engines partially exist for some of these categories
 (`atlas/game_intelligence/game_flow_fact_table.py`,
@@ -292,6 +382,25 @@ none assemble a structured, causal "why was this game's total
 low/high" narrative today. This is flagged for review, not started
 here, consistent with Section 1's treatment of `game_story_record` for
 every other target family.
+
+**Data-quality and separation-of-responsibilities guarantees
+(`totals_target_builder.py`).** The builder: labels only completed
+("final") games when a `game_state_category` column is supplied, and
+raises rather than silently including postponed/cancelled/suspended-
+incomplete games; raises on duplicate `game_pk` values; raises on
+missing or invalid final scores rather than coercing them to zero;
+asserts `home_runs_scored + away_runs_scored == actual_total_runs`;
+never mutates `game_targets`/`team_game_targets`; never reads or uses a
+market total (`market_line_used` is always `False`); and produces only
+factual, observed targets — no projected runs, probabilities, market
+comparisons, or over/under selections, which belong strictly to later
+modeling and market-comparison layers. Both the synthetic regression
+tests in `tests/test_totals_target_builder.py` and an integration test
+against the real, checked-in
+`atlas_reference/samples/games/.../factual_game_learning_targets...parquet`
+and `.../factual_team_game_learning_targets...parquet` fixtures (the
+actual `factual_target_builder.py` output schema and dtypes) cover
+this contract.
 
 **Six new readiness rows, added to `atlas/audit/coverage_matrix.py`'s
 `COVERAGE_ROWS`/`MODULE_ONLY_ROWS` by this change**, give totals
