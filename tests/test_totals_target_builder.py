@@ -322,6 +322,116 @@ def test_score_sum_mismatch_raises():
         build_total_runs_targets(game_targets, team_game_targets)
 
 
+def test_missing_home_row_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    team_game_targets = team_game_targets[
+        ~(
+            team_game_targets["game_pk"].eq(1)
+            & team_game_targets["home_away"].eq("HOME")
+        )
+    ]
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_missing_away_row_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    team_game_targets = team_game_targets[
+        ~(
+            team_game_targets["game_pk"].eq(1)
+            & team_game_targets["home_away"].eq("AWAY")
+        )
+    ]
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_duplicate_side_row_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    duplicate_home_row = team_game_targets[
+        team_game_targets["game_pk"].eq(1)
+        & team_game_targets["home_away"].eq("HOME")
+    ]
+    team_game_targets = pd.concat(
+        [team_game_targets, duplicate_home_row],
+        ignore_index=True,
+    )
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_mismatched_team_runs_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    team_game_targets = team_game_targets.copy()
+    home_row_mask = team_game_targets["game_pk"].eq(1) & team_game_targets[
+        "home_away"
+    ].eq("HOME")
+    team_game_targets.loc[home_row_mask, "team_runs"] = 999
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_contradictory_scoring_flag_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    team_game_targets = team_game_targets.copy()
+    home_row_mask = team_game_targets["game_pk"].eq(1) & team_game_targets[
+        "home_away"
+    ].eq("HOME")
+
+    # Game 1's HOME team scored 2 runs (<= 3), so this flag should be
+    # True; flip it to False to create a contradiction with team_runs.
+    team_game_targets.loc[
+        home_row_mask, "target_team_scored_3_or_less"
+    ] = False
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_differing_game_pk_sets_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    team_game_targets = team_game_targets[
+        team_game_targets["game_pk"].ne(1)
+    ]
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
+def test_extra_team_game_row_for_unknown_side_raises():
+    game_targets = build_game_targets(_completed_games())
+    team_game_targets = build_team_game_targets(game_targets)
+
+    extra_row = team_game_targets[
+        team_game_targets["game_pk"].eq(1)
+        & team_game_targets["home_away"].eq("HOME")
+    ].copy()
+    extra_row["home_away"] = "NEUTRAL"
+    team_game_targets = pd.concat(
+        [team_game_targets, extra_row],
+        ignore_index=True,
+    )
+
+    with pytest.raises(AssertionError):
+        build_total_runs_targets(game_targets, team_game_targets)
+
+
 def test_non_final_game_state_raises():
     game_targets = build_game_targets(_completed_games())
     team_game_targets = build_team_game_targets(game_targets)
@@ -372,10 +482,31 @@ def test_integration_against_real_factual_target_builder_output_schema():
     checked-in ``atlas_reference`` sample parquet files that mirror
     ``atlas.learning.factual_target_builder``'s actual production
     output schema and dtypes (not synthetic data).
+
+    The ``games`` game-level and team-game-level sample files are each
+    independently subsampled from the full 2024 production tables, so
+    (unlike production, where ``team_game_targets`` is always derived
+    directly from ``game_targets``) their ``game_pk`` coverage does not
+    fully coincide. Restrict to the overlapping ``game_pk``s -- which
+    are still real, unmodified production rows with real production
+    dtypes -- so this fixture continues to validate schema/dtype
+    fidelity without violating the game_pk-coverage consistency check
+    that ``build_total_runs_targets`` now enforces.
     """
 
     real_game_targets = pd.read_parquet(REAL_GAME_TARGETS_SAMPLE)
     real_team_game_targets = pd.read_parquet(REAL_TEAM_GAME_TARGETS_SAMPLE)
+
+    common_game_pks = set(real_game_targets["game_pk"]).intersection(
+        real_team_game_targets["game_pk"]
+    )
+
+    real_game_targets = real_game_targets[
+        real_game_targets["game_pk"].isin(common_game_pks)
+    ].reset_index(drop=True)
+    real_team_game_targets = real_team_game_targets[
+        real_team_game_targets["game_pk"].isin(common_game_pks)
+    ].reset_index(drop=True)
 
     totals = build_total_runs_targets(
         real_game_targets,

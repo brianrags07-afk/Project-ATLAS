@@ -280,6 +280,134 @@ def _assert_data_quality(game_targets: pd.DataFrame) -> None:
         )
 
 
+def _assert_team_game_scoring_consistency(
+    game_targets: pd.DataFrame,
+    team_game_targets: pd.DataFrame,
+) -> None:
+    """
+    Verify, before any side-level classification is merged onto the
+    game-level totals table, that ``team_game_targets`` genuinely
+    agrees with ``game_targets`` on scoring. A left join against a
+    malformed ``team_game_targets`` (a missing HOME/AWAY row, a
+    duplicate side row, or a ``team_runs`` value that disagrees with
+    the frozen ``home_score``/``away_score``) would otherwise silently
+    surface as null or wrong scoring-shape columns downstream. This
+    function fails loudly instead.
+    """
+
+    game_pks = game_targets["game_pk"]
+
+    game_pk_target_pks = set(game_pks)
+    team_game_pks = set(team_game_targets["game_pk"])
+
+    missing_from_team_game_targets = sorted(
+        game_pk_target_pks.difference(team_game_pks)
+    )
+    extra_in_team_game_targets = sorted(
+        team_game_pks.difference(game_pk_target_pks)
+    )
+
+    if missing_from_team_game_targets or extra_in_team_game_targets:
+        raise AssertionError(
+            "team_game_targets['game_pk'] coverage does not match "
+            "game_targets['game_pk'] coverage; "
+            f"missing from team_game_targets: {missing_from_team_game_targets}; "
+            f"extra in team_game_targets: {extra_in_team_game_targets}."
+        )
+
+    for side in ("HOME", "AWAY"):
+        side_rows = team_game_targets[
+            team_game_targets["home_away"].eq(side)
+        ]
+
+        side_pk_counts = side_rows["game_pk"].value_counts()
+
+        missing_side = sorted(
+            game_pk_target_pks.difference(set(side_pk_counts.index))
+        )
+
+        if missing_side:
+            raise AssertionError(
+                f"team_game_targets is missing a {side} row for "
+                f"game_pk(s): {missing_side}."
+            )
+
+        duplicated_side = sorted(
+            side_pk_counts[side_pk_counts.gt(1)].index
+        )
+
+        if duplicated_side:
+            raise AssertionError(
+                f"team_game_targets has more than one {side} row for "
+                f"game_pk(s): {duplicated_side}."
+            )
+
+    total_side_rows = len(
+        team_game_targets[
+            team_game_targets["home_away"].isin(("HOME", "AWAY"))
+        ]
+    )
+    expected_side_rows = 2 * len(game_pk_target_pks)
+
+    if total_side_rows != len(team_game_targets) or (
+        total_side_rows != expected_side_rows
+    ):
+        raise AssertionError(
+            "team_game_targets contains extra team-game rows beyond "
+            "exactly one HOME row and one AWAY row per game_pk; "
+            f"expected {expected_side_rows:,} rows, found "
+            f"{len(team_game_targets):,} row(s)."
+        )
+
+    expected_runs_by_side = {
+        "HOME": game_targets.set_index("game_pk")["home_score"],
+        "AWAY": game_targets.set_index("game_pk")["away_score"],
+    }
+
+    for side, expected_runs in expected_runs_by_side.items():
+        side_rows = team_game_targets[
+            team_game_targets["home_away"].eq(side)
+        ].set_index("game_pk")
+
+        actual_runs = side_rows["team_runs"].reindex(expected_runs.index)
+
+        mismatched_runs = expected_runs.ne(actual_runs)
+
+        if mismatched_runs.any():
+            raise AssertionError(
+                f"team_game_targets['team_runs'] for {side} rows does "
+                "not match game_targets['"
+                f"{'home_score' if side == 'HOME' else 'away_score'}"
+                "'] for game_pk(s): "
+                f"{sorted(expected_runs.index[mismatched_runs])}."
+            )
+
+        team_runs = side_rows["team_runs"].reindex(expected_runs.index)
+
+        expected_flags = {
+            "target_team_scored_3_or_less": team_runs.le(3),
+            "target_team_scored_exactly_4": team_runs.eq(4),
+            "target_team_scored_5_plus": team_runs.ge(5),
+        }
+
+        for flag_column, expected_flag in expected_flags.items():
+            actual_flag = side_rows[flag_column].reindex(
+                expected_runs.index
+            )
+
+            mismatched_flag = expected_flag.astype("boolean").ne(
+                actual_flag.astype("boolean")
+            )
+
+            if mismatched_flag.any():
+                raise AssertionError(
+                    f"team_game_targets['{flag_column}'] for {side} rows "
+                    "does not match team_runs-derived expectations for "
+                    f"game_pk(s): "
+                    f"{sorted(expected_runs.index[mismatched_flag])}."
+                )
+
+
 def _one_vs_two_team_scoring(totals: pd.DataFrame) -> pd.DataFrame:
     """
     Classify high-scoring games by *where* the runs came from: one
@@ -446,6 +574,7 @@ def build_total_runs_targets(
         )
 
     _assert_data_quality(game_targets)
+    _assert_team_game_scoring_consistency(game_targets, team_game_targets)
 
     totals = pd.DataFrame(
         {
