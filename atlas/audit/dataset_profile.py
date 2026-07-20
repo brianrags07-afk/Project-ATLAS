@@ -74,6 +74,50 @@ NEEDS_TIMESTAMP_PROOF_PATTERNS = (
 
 HIGH_NULL_THRESHOLD_PERCENT = 50.0
 
+# --------------------------------------------------------------------------
+# Data-layer classification (requirement: distinguish raw source objects,
+# normalized/master datasets, derived feature tables, learned artifacts,
+# prediction artifacts, and reports/manifests). This audit never treats a
+# normalized/master parquet file as proof that the original raw source
+# objects exist or are complete -- that is a separate, unproven claim.
+# --------------------------------------------------------------------------
+
+DATA_LAYER_VALUES = (
+    "raw_source",
+    "normalized_master",
+    "derived_feature",
+    "learned_artifact",
+    "prediction_artifact",
+    "report_or_manifest",
+    "unknown",
+)
+
+# Path/name patterns used only to classify a dataset's layer -- heuristic,
+# never treated as verified evidence of raw-source completeness.
+DATA_LAYER_PATH_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("raw_source", ("raw/", "raw_", "/statsapi/", "/savant/", "source_raw")),
+    ("normalized_master", ("master_game_database", "master_pitch_database", "team_game_state", "/master/")),
+    ("derived_feature", ("/features/", "feature_", "univariate", "controlled_discovery")),
+    ("learned_artifact", ("concept_", "/concepts/", "model_artifact", "frozen_concept")),
+    ("prediction_artifact", ("prediction", "/predictions/", "pregame_game_card", "forecast")),
+    ("report_or_manifest", ("manifest", "/audits/", "audit.", "_audit", "report")),
+)
+
+
+def classify_data_layer(cloud_path: str | None, dataset_name: str | None = None) -> tuple[str, str]:
+    """Classify a dataset's data layer from its path/name only. Returns
+    ``(layer, confidence)``. This is always a heuristic (path/name pattern
+    match), never "observed" evidence, and a normalized/master
+    classification here must NEVER be read as proof that upstream raw
+    source objects exist or are complete."""
+    haystack = " ".join(filter(None, [cloud_path, dataset_name])).lower()
+    if not haystack.strip():
+        return "unknown", "unknown"
+    for layer, patterns in DATA_LAYER_PATH_PATTERNS:
+        if any(p in haystack for p in patterns):
+            return layer, "heuristic"
+    return "unknown", "unknown"
+
 SEASON_COLUMN_CANDIDATES = ("season", "game_year", "year")
 GAME_DATE_COLUMN_CANDIDATES = ("game_date", "date", "game_datetime")
 GAME_PK_COLUMN_CANDIDATES = ("game_pk", "game_id")
@@ -201,6 +245,17 @@ def detect_likely_primary_key(df: pd.DataFrame, candidate_keys: list[list[str]])
     return None, -1
 
 
+def schema_fingerprint(df: pd.DataFrame) -> str:
+    """Deterministic fingerprint of column names + dtypes, used to detect
+    schema drift between seasons/runs (e.g. for the D. 2025-identical-
+    transformations compatibility check). Not a cryptographic hash of the
+    data itself -- only of the schema shape."""
+    import hashlib
+
+    schema_repr = "|".join(f"{col}:{dtype}" for col, dtype in sorted(df.dtypes.astype(str).items()))
+    return hashlib.sha256(schema_repr.encode("utf-8")).hexdigest()
+
+
 def duplicate_columns(df: pd.DataFrame) -> list[str]:
     seen: dict[str, int] = {}
     duplicates = []
@@ -243,6 +298,7 @@ def profile_dataframe(
 
     likely_key, dup_count = detect_likely_primary_key(df, candidate_keys)
     season_counts = rows_by_season(df)
+    data_layer, data_layer_confidence = classify_data_layer(cloud_path)
 
     return {
         "cloud_path": cloud_path,
@@ -263,6 +319,14 @@ def profile_dataframe(
         "null_percentages": null_percentages(df),
         "duplicate_columns": duplicate_columns(df),
         "feature_presence": _feature_presence(columns),
+        "schema_fingerprint": schema_fingerprint(df),
+        "data_layer": data_layer,
+        "data_layer_confidence": data_layer_confidence,
+        "data_layer_note": (
+            "This dataset's presence/completeness is NOT proof that its upstream raw "
+            "source objects exist or are complete; raw-source readiness must be assessed "
+            "against the raw layer directly." if data_layer == "normalized_master" else None
+        ),
         "column_classification": {col: classify_column(col) for col in columns},
     }
 
@@ -299,6 +363,41 @@ def profile_master_pitch_database(df: pd.DataFrame, cloud_path: str, local_size_
     profile["pitches_by_season"] = profile["rows_by_season"]
     profile["unique_games_by_season"] = unique_games_by_season(df)
     return profile
+
+
+def compare_schema_compatibility(
+    reference_profile: dict[str, Any],
+    candidate_profile: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare two dataset profiles (e.g. 2024 vs 2025 of the same master
+    table) for schema compatibility. Used by readiness decision D to
+    block silent renaming/coercion: any column present in one profile but
+    not the other, or any dtype mismatch for a shared column, is reported
+    explicitly -- never silently ignored or auto-renamed."""
+    ref_dtypes = reference_profile.get("dtypes", {})
+    cand_dtypes = candidate_profile.get("dtypes", {})
+    ref_cols = set(ref_dtypes)
+    cand_cols = set(cand_dtypes)
+
+    added_columns = sorted(cand_cols - ref_cols)
+    removed_columns = sorted(ref_cols - cand_cols)
+    dtype_mismatches = sorted(
+        col for col in ref_cols & cand_cols if ref_dtypes.get(col) != cand_dtypes.get(col)
+    )
+    fingerprint_match = (
+        reference_profile.get("schema_fingerprint") is not None
+        and reference_profile.get("schema_fingerprint") == candidate_profile.get("schema_fingerprint")
+    )
+    compatible = not added_columns and not removed_columns and not dtype_mismatches
+    return {
+        "reference_schema_fingerprint": reference_profile.get("schema_fingerprint"),
+        "candidate_schema_fingerprint": candidate_profile.get("schema_fingerprint"),
+        "schema_fingerprint_match": fingerprint_match,
+        "added_columns": added_columns,
+        "removed_columns": removed_columns,
+        "dtype_mismatches": dtype_mismatches,
+        "compatible": compatible,
+    }
 
 
 def profile_metadata_json(metadata: dict[str, Any], actual_profiles: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -349,6 +448,12 @@ def write_dataset_profile_reports(
     for name, profile in profiles.items():
         md_lines.append(f"## {name}")
         md_lines.append(f"- cloud_path: `{profile.get('cloud_path')}`")
+        md_lines.append(
+            f"- data_layer: {profile.get('data_layer')} (confidence: {profile.get('data_layer_confidence')})"
+        )
+        if profile.get("data_layer_note"):
+            md_lines.append(f"  - note: {profile.get('data_layer_note')}")
+        md_lines.append(f"- schema_fingerprint: {profile.get('schema_fingerprint')}")
         md_lines.append(f"- rows: {profile.get('row_count')}, columns: {profile.get('column_count')}")
         md_lines.append(f"- likely_primary_key: {profile.get('likely_primary_key')}")
         md_lines.append(f"- duplicate_key_count: {profile.get('duplicate_key_count')}")

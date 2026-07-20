@@ -11,6 +11,8 @@ import pandas as pd
 
 from atlas.audit.dataset_profile import (
     classify_column,
+    classify_data_layer,
+    compare_schema_compatibility,
     detect_likely_primary_key,
     duplicate_columns,
     null_percentages,
@@ -19,6 +21,7 @@ from atlas.audit.dataset_profile import (
     profile_metadata_json,
     profile_team_game_state,
     rows_by_season,
+    schema_fingerprint,
     unique_games_by_season,
 )
 
@@ -162,3 +165,60 @@ def test_profile_metadata_json_flags_mismatch():
     metadata = {"master_game_database": {"row_count": 5}}
     comparison = profile_metadata_json(metadata, profiles)
     assert comparison["comparisons"][0]["row_count_match"] is False
+
+
+def test_classify_data_layer_normalized_master_for_known_master_files():
+    layer, confidence = classify_data_layer("data/master/master_game_database.parquet")
+    assert layer == "normalized_master"
+    assert confidence == "heuristic"
+
+
+def test_classify_data_layer_never_returns_raw_source_for_master_tables():
+    layer, _confidence = classify_data_layer("data/master/master_pitch_database.parquet")
+    assert layer != "raw_source"
+
+
+def test_classify_data_layer_raw_source_for_raw_path():
+    layer, _confidence = classify_data_layer("data/raw/statsapi/2024_pitch_feed.parquet")
+    assert layer == "raw_source"
+
+
+def test_classify_data_layer_unknown_when_no_path():
+    layer, confidence = classify_data_layer(None)
+    assert layer == "unknown"
+    assert confidence == "unknown"
+
+
+def test_profile_master_game_database_includes_data_layer_and_never_claims_raw_source():
+    df = _game_db_fixture()
+    profile = profile_master_game_database(df, "data/master/master_game_database.parquet", 1000)
+    assert profile["data_layer"] == "normalized_master"
+    assert profile["data_layer_note"] is not None
+    assert "NOT proof" in profile["data_layer_note"]
+
+
+def test_schema_fingerprint_is_deterministic_and_changes_with_schema():
+    df1 = _game_db_fixture()
+    df2 = _game_db_fixture()
+    assert schema_fingerprint(df1) == schema_fingerprint(df2)
+    df3 = _game_db_fixture()
+    df3["new_column"] = 1
+    assert schema_fingerprint(df1) != schema_fingerprint(df3)
+
+
+def test_compare_schema_compatibility_detects_added_removed_and_dtype_changes():
+    reference = {"dtypes": {"a": "int64", "b": "object"}, "schema_fingerprint": "ref"}
+    candidate = {"dtypes": {"a": "float64", "c": "object"}, "schema_fingerprint": "cand"}
+    report = compare_schema_compatibility(reference, candidate)
+    assert report["added_columns"] == ["c"]
+    assert report["removed_columns"] == ["b"]
+    assert report["dtype_mismatches"] == ["a"]
+    assert report["compatible"] is False
+    assert report["schema_fingerprint_match"] is False
+
+
+def test_compare_schema_compatibility_true_for_identical_schemas():
+    profile = {"dtypes": {"a": "int64", "b": "object"}, "schema_fingerprint": "same"}
+    report = compare_schema_compatibility(profile, dict(profile))
+    assert report["compatible"] is True
+    assert report["schema_fingerprint_match"] is True

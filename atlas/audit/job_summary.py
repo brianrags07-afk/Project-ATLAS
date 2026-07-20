@@ -25,35 +25,44 @@ def render_job_summary(
         lines.append(f"- **known master files missing:** {missing}")
     lines.append("")
 
-    lines.append("## Seasons detected / games & pitches by season")
+    lines.append("## Data layers observed")
     for name, profile in dataset_profiles.items():
-        seasons = profile.get("seasons_present", [])
-        rows_by_season = profile.get("rows_by_season", {})
-        unique_games = profile.get("unique_games_by_season", {})
-        lines.append(f"- **{name}**: seasons={seasons}")
-        lines.append(f"  - rows_by_season={rows_by_season}")
-        if unique_games:
-            lines.append(f"  - unique_games_by_season={unique_games}")
+        lines.append(
+            f"- **{name}**: data_layer={profile.get('data_layer')} "
+            f"(confidence: {profile.get('data_layer_confidence')}), "
+            f"seasons={profile.get('seasons_present', [])}, rows_by_season={profile.get('rows_by_season', {})}"
+        )
+        if profile.get("data_layer_note"):
+            lines.append(f"  - {profile['data_layer_note']}")
     lines.append("")
 
-    lines.append("## Major missing data")
-    missing_rows = [r for r in coverage_matrix if r["status"] == "missing"]
-    if not missing_rows:
-        lines.append("- none detected among audited rows")
-    else:
-        for r in missing_rows[:30]:
-            lines.append(f"- season {r['season']}: `{r['row']}` -- {r['evidence']}")
-        if len(missing_rows) > 30:
-            lines.append(f"- ... and {len(missing_rows) - 30} more (see historical_coverage_matrix.csv)")
+    lines.append("## Coverage matrix: five independent dimensions per row/season")
+    lines.append(
+        "Each row below carries data_presence, source_completeness, provenance_status, "
+        "temporal_availability, and pregame_safety independently. See "
+        "`historical_coverage_matrix.json`/`.csv` for full detail."
+    )
+    missing_rows = [r for r in coverage_matrix if r["data_presence"] == "missing"]
+    lines.append(f"- rows with data_presence=missing: {len(missing_rows)}")
+    for r in missing_rows[:20]:
+        lines.append(f"  - season {r['season']}: `{r['row']}`")
+    if len(missing_rows) > 20:
+        lines.append(f"  - ... and {len(missing_rows) - 20} more")
     lines.append("")
 
-    lines.append("## Major leakage risks")
-    leakage_rows = [r for r in coverage_matrix if r["status"] == "present_but_not_pregame_safe"]
+    lines.append("## Major leakage risks (pregame_safety=unsafe or unknown for dynamic pregame fields)")
+    leakage_rows = [
+        r for r in coverage_matrix
+        if r["pregame_safety"] in ("unsafe", "unknown", "conditional") and r["data_presence"] == "present"
+    ]
     if not leakage_rows:
         lines.append("- none detected among audited rows")
     else:
         for r in leakage_rows[:30]:
-            lines.append(f"- season {r['season']}: `{r['row']}` -- {r['evidence']}")
+            lines.append(
+                f"- season {r['season']}: `{r['row']}` -- pregame_safety={r['pregame_safety']}, "
+                f"temporal_availability={r['temporal_availability']}"
+            )
         if len(leakage_rows) > 30:
             lines.append(f"- ... and {len(leakage_rows) - 30} more (see historical_coverage_matrix.csv)")
     lines.append("")
@@ -62,11 +71,12 @@ def render_job_summary(
 
     def _fmt_decision(key: str, label: str) -> str:
         d = decisions.get(key, {})
-        return f"- **{label}**: {d.get('decision', 'unknown')} -- next action: {d.get('next_action', 'n/a')}"
+        return f"- **{label}**: {d.get('verdict', 'unknown')} -- next action: {d.get('next_action', 'n/a')}"
 
     lines.append("## 2024 rebuild readiness")
     lines.append(_fmt_decision("B_rebuild_2024_from_raw", "Rebuild 2024 from raw"))
     lines.append(_fmt_decision("A_exact_2024_reproduction", "Exact 2024 reproduction"))
+    lines.append(_fmt_decision("C_freeze_2024_learned_artifacts", "Freeze 2024 learned artifacts"))
     lines.append("")
 
     lines.append("## 2025 walk-forward readiness")
@@ -83,10 +93,12 @@ def render_job_summary(
     lines.append("")
 
     lines.append("## Exact recommended next step")
-    not_ready = [k for k, d in decisions.items() if d.get("decision") == "not_ready"]
+    not_ready = [k for k, d in decisions.items() if d.get("verdict") == "not_ready"]
     if not_ready:
         first = not_ready[0]
         lines.append(f"- Resolve blockers for `{first}` first: {decisions[first].get('next_action')}")
+        for blocker in decisions[first].get("blockers", [])[:5]:
+            lines.append(f"  - blocker: {blocker}")
     else:
         lines.append(
             "- Proceed to build/verify pipeline manifests and Pregame Game Card timestamp proofs "
@@ -95,7 +107,8 @@ def render_job_summary(
     lines.append("")
     lines.append(
         "_This audit is read-only. No Cloud Storage object was deleted, overwritten, renamed, "
-        "moved, or uploaded. No rebuild or backtest was executed._"
+        "moved, or uploaded. No rebuild, backtest, model training, or prediction generation was "
+        "executed. No verdict above authorizes any of those actions on its own._"
     )
 
     return "\n".join(lines)
