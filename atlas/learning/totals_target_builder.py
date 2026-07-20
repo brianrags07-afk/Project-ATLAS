@@ -48,7 +48,7 @@ column ``game_total_runs``):
 ``LOW_SCORING_MAX_RUNS`` (5) is the bottom quartile cut point.
 ``HIGH_SCORING_MIN_RUNS`` (12) is one run above the 75th-percentile cut
 point (11), i.e. the top quartile -- matching this family's explicit
-requirement to separate "approximately 4-run games" (bottom-decile
+requirement to separate "approximately 4-run games" (bottom-quartile
 territory) from "12+-run games" (top-quartile territory).
 ``EXTREME_HIGH_SCORING_MIN_RUNS`` (15) is the 90th-percentile cut
 point, isolating the deep high-scoring tail.
