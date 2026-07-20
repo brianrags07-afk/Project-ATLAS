@@ -316,6 +316,40 @@ def _module_row(row: str, season: int, repository_inventory: dict[str, Any]) -> 
     }
 
 
+def _expected_games_for_season(dataset_profiles: dict[str, dict[str, Any]], season: int) -> int | None:
+    """Return an independently-sourced expected-game-count for ``season``,
+    or ``None`` when no such reference is available.
+
+    This must come from a source distinct from ``master_game_database``'s
+    own observed ``unique_games_by_season`` -- using that same value as
+    both the observed and the expected count would be circular (it would
+    prove only that the games present are internally self-consistent, not
+    that the season's full game universe is represented). A genuine
+    expected-count reference (e.g. a published season schedule / league
+    game-count registry) is expected under the ``season_schedule`` key."""
+    schedule_profile = dataset_profiles.get("season_schedule")
+    if not schedule_profile:
+        return None
+    counts = schedule_profile.get("expected_games_by_season") or {}
+    if str(season) not in counts:
+        return None
+    return int(counts[str(season)])
+
+
+def _null_completeness_from_percentage(null_pct: float | None) -> str:
+    """Evaluate final-outcome column null-percentage in isolation from
+    game-count coverage. This proves only that the score field is
+    populated for whichever rows are present -- it says nothing about
+    whether every game in the season is represented."""
+    if null_pct is None:
+        return "unknown"
+    if null_pct >= 100:
+        return "not_applicable"
+    if null_pct == 0:
+        return "complete"
+    return "partial"
+
+
 def _final_scores_row(season: int, dataset_profiles: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Evidence for the ``final_scores`` row comes exclusively from
     ``master_game_database``'s game-level final-outcome columns
@@ -335,6 +369,7 @@ def _final_scores_row(season: int, dataset_profiles: dict[str, dict[str, Any]]) 
         row_count = game_profile.get("rows_by_season", {}).get(str(season), 0)
         null_pct = game_profile.get("null_percentages", {}).get(score_column)
         observed_games = _unique_games_for_season(game_profile, season)
+        expected_games = _expected_games_for_season(dataset_profiles, season)
         evidence = [
             make_evidence(
                 "column_presence",
@@ -345,27 +380,35 @@ def _final_scores_row(season: int, dataset_profiles: dict[str, dict[str, Any]]) 
                     "row_count": row_count,
                     "null_percentage": null_pct,
                     "unique_games_observed": observed_games,
+                    "unique_games_expected": expected_games,
                 },
                 confidence="observed",
                 limitation="Postgame final-outcome fact; never a same-game pregame input.",
             )
         ]
         dims["data_presence"] = "present"
-        # "complete" requires the final-outcome column to be fully
-        # populated (0% null) across every observed game for the season --
-        # a null-percentage figure this audit can compare against the
-        # unambiguous "0% missing" expectation. Any other observed
-        # null-percentage is only "partial" evidence, and no null-
-        # percentage evidence at all stays "unknown" rather than assumed
+        # Null completeness (is the populated data fully non-null?) and
+        # game coverage (do the observed games match an independent
+        # expected-game-count reference?) are evaluated as two separate
+        # checks. A "0% null" reading proves only that the score field is
+        # populated for the games that happen to be present in
+        # master_game_database -- it is never, by itself, evidence that
+        # every game in the season is represented. "complete" requires
+        # both checks to pass; a null-percentage of 0 with no independent
+        # expected-count reference stays "unknown" rather than assumed
         # complete.
-        if null_pct is None or observed_games is None:
+        if observed_games is None:
             dims["source_completeness"] = "unknown"
-        elif null_pct >= 100:
-            dims["source_completeness"] = "not_applicable"
-        elif null_pct == 0:
-            dims["source_completeness"] = "complete"
         else:
-            dims["source_completeness"] = "partial"
+            null_completeness = _null_completeness_from_percentage(null_pct)
+            if null_completeness in ("unknown", "not_applicable"):
+                dims["source_completeness"] = null_completeness
+            elif null_completeness == "partial":
+                dims["source_completeness"] = "partial"
+            else:
+                dims["source_completeness"] = _source_completeness_from_game_counts(
+                    observed_games, expected_games
+                )
         dims["provenance_status"] = "partial"
         risks = [
             f"'final_scores' for season {season} is complete/present but is a postgame fact. "

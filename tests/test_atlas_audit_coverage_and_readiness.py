@@ -61,6 +61,14 @@ def _dataset_profiles_fixture():
             "schema_fingerprint": "pitch-fp-1",
             "data_layer": "normalized_master",
         },
+        # An independent expected-game-count reference (e.g. a published
+        # season schedule / league game-count registry), deliberately
+        # distinct from master_game_database's own observed
+        # unique_games_by_season. final_scores completeness must never
+        # compare master_game_database against itself.
+        "season_schedule": {
+            "expected_games_by_season": {"2024": 100, "2025": 50},
+        },
     }
 
 
@@ -86,7 +94,13 @@ def test_coverage_matrix_rows_use_only_allowed_dimension_values():
 def test_independent_dimensions_do_not_overwrite_each_other():
     """A row where data_presence=present and source_completeness=complete
     must still be able to have pregame_safety=unsafe -- the dimensions are
-    independent, not derived from one collapsed status."""
+    independent, not derived from one collapsed status.
+
+    "complete" here is proven by null_percentages == 0% (populated data)
+    *and* the fixture's independent "season_schedule" expected-game-count
+    reference matching observed unique games -- not by 0% nulls alone,
+    which would only prove the score field is populated for whichever
+    games happen to be present."""
     matrix = build_coverage_matrix(_dataset_profiles_fixture(), REPO_INVENTORY_FIXTURE)
     row = _matrix_row(matrix, "final_scores", 2024)
     assert row["data_presence"] == "present"
@@ -108,7 +122,12 @@ def test_complete_and_postgame_only_valid_for_reconstruction_but_unsafe_pregame(
 def test_final_scores_evidenced_by_game_database_not_pitch_database():
     """final_scores must be evidenced by master_game_database's
     final-outcome columns only. Removing master_pitch_database entirely
-    must not change the final_scores row at all."""
+    must not change the final_scores row at all.
+
+    "complete" is proven by both null_percentages == 0% and the fixture's
+    independent "season_schedule" expected-game-count reference matching
+    observed unique games -- 0% nulls alone is not sufficient evidence of
+    full-season coverage."""
     profiles = _dataset_profiles_fixture()
     matrix_with_pitch = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
     row_with_pitch = _matrix_row(matrix_with_pitch, "final_scores", 2024)
@@ -159,6 +178,76 @@ def test_pitch_level_completeness_unknown_without_expected_game_reference():
     row = _matrix_row(matrix, "pitch_by_pitch", 2024)
     assert row["data_presence"] == "present"
     assert row["source_completeness"] == "unknown"
+
+
+def _single_game_final_score_profile(expected_games=None):
+    """A dataset profile with exactly one fully-populated final-score game
+    in master_game_database, optionally paired with an independent
+    "season_schedule" expected-game-count reference."""
+    profiles = {
+        "master_game_database": {
+            "cloud_path": "data/master/master_game_database.parquet",
+            "rows_by_season": {"2024": 1},
+            "unique_games_by_season": {"2024": 1},
+            "feature_presence": {"final_outcomes": "home_score"},
+            "column_classification": {"home_score": "postgame_fact"},
+            "null_percentages": {"home_score": 0.0},
+            "schema_fingerprint": "game-fp-1",
+            "data_layer": "normalized_master",
+        }
+    }
+    if expected_games is not None:
+        profiles["season_schedule"] = {"expected_games_by_season": {"2024": expected_games}}
+    return profiles
+
+
+def test_one_fully_populated_game_with_no_expected_season_reference_is_unknown():
+    """One fully-populated (0% null) final-score game, with no independent
+    expected-season-game-count reference available, must be 'unknown' --
+    never 'complete'. 0% nulls only proves the score field is populated
+    for the one game present; it says nothing about full-season
+    coverage."""
+    profiles = _single_game_final_score_profile(expected_games=None)
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "final_scores", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "unknown"
+
+
+def test_one_fully_populated_game_against_expected_count_of_100_is_partial():
+    """One fully-populated final-score game, compared against an
+    independent expected-game-count reference of 100 for the season, must
+    be 'partial' -- a single observed game can never satisfy an expected
+    count of 100."""
+    profiles = _single_game_final_score_profile(expected_games=100)
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "final_scores", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "partial"
+
+
+def test_final_scores_complete_when_observed_games_meet_explicit_expected_count():
+    """Fully-populated final scores with observed unique games equal to an
+    explicit, independent expected-game-count reference must be
+    'complete'."""
+    profiles = _single_game_final_score_profile(expected_games=1)
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "final_scores", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "complete"
+
+
+def test_null_final_scores_stay_partial_even_when_game_coverage_is_complete():
+    """Missing/null final-score values must remain 'partial' even when
+    observed unique games meet the independent expected-game-count
+    reference -- game coverage being complete does not excuse missing
+    values."""
+    profiles = _single_game_final_score_profile(expected_games=1)
+    profiles["master_game_database"]["null_percentages"]["home_score"] = 50.0
+    matrix = build_coverage_matrix(profiles, REPO_INVENTORY_FIXTURE)
+    row = _matrix_row(matrix, "final_scores", 2024)
+    assert row["data_presence"] == "present"
+    assert row["source_completeness"] == "partial"
 
 
 def test_single_final_score_row_with_partial_nulls_is_not_complete():
