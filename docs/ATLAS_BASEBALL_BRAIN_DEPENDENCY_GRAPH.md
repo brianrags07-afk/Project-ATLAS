@@ -56,6 +56,126 @@ Game Card's append-only/versioning rules) that assembles sections 2–5.
 This is new-artifact design work, not a rebuild of anything that
 exists — flagged for review, not started here.
 
+## 1a. Explicit run-margin / run-line learning-objective lineage
+
+ATLAS's stated learning objective includes an explicit run-margin/
+run-line objective, not only a win/loss objective. This section traces
+that lineage end to end, node by node, using only column/module names
+that already exist in the repository.
+
+```
+master_game_database.parquet (canonical final scores: home_score, away_score)
+  └─> atlas/game_intelligence/outcome_classifier.py
+        (per-game factual outcome classifier: computes
+         absolute_run_margin, one_run_game, plus the
+         won_by_{2,4,6}_plus / lost_by_{2,4,6}_plus family
+         via team_outcome_classifier.py below)
+        │
+        └─> atlas/game_intelligence/team_outcome_classifier.py
+              (team-game grain: run_differential, absolute_run_margin,
+               one_run_game, won_by_2_plus, won_by_4_plus, won_by_6_plus,
+               lost_by_2_plus, lost_by_4_plus, lost_by_6_plus,
+               covered_minus_1_5_result, covered_minus_3_5_result,
+               covered_minus_5_5_result — team-game outcome facts)
+              │
+              └─> atlas/learning/backtest_target_builder.py,
+                  atlas/learning/factual_target_builder.py
+                  (team-game targets: build_game_targets /
+                   build_team_game_targets read `won` and
+                   `run_differential` into the canonical
+                   `team_game_targets.parquet` artifact)
+                    │
+                    └─> atlas/validation/target_resolution.py
+                        (materializes the frozen target name
+                         `target_team_win_by_2_plus` — see
+                         `TARGET_TEAM_WIN_BY_2_PLUS` — from the
+                         canonical `won` / `run_differential` columns,
+                         under `FROZEN_TARGET_RESOLUTION_RULES`)
+                          │
+                          ├─> 2024 learning: `target_team_win_by_2_plus`
+                          │   is a named target in
+                          │   `atlas/learning/candidate_integrity_adjudication.py`
+                          │   and in the univariate evidence-discovery
+                          │   schemas
+                          │   (`.../univariate_evidence_discovery/2024/
+                          │   targets/target_team_win_by_2_plus/...`)
+                          │     │
+                          │     └─> frozen concept definitions (2024)
+                          │         — `docs/ATLAS_BRAIN_PHASE_2E_4G_IMMUTABLE_CONCEPT_FREEZE.md`
+                          │           (2,138 concepts / 4,276 members,
+                          │           hash-fingerprinted; any concept
+                          │           built on `target_team_win_by_2_plus`
+                          │           is frozen alongside every other
+                          │           2024 concept)
+                          │             │
+                          │             └─> 2025 blind validation —
+                          │                 `atlas/validation/
+                          │                 concept_validation_2025.py`
+                          │                 calls
+                          │                 `resolve_frozen_targets`
+                          │                 (from `target_resolution.py`)
+                          │                 and certifies rule
+                          │                 consistency via
+                          │                 `certify_target_resolution_matches_rules`
+                          │                 before scoring any frozen
+                          │                 concept, including ones keyed
+                          │                 on `target_team_win_by_2_plus`
+                          │                   │
+                          │                   └─> [FUTURE: dedicated
+                          │                       run-line prediction
+                          │                       model] — no module
+                          │                       under `atlas/` currently
+                          │                       trains/serves a
+                          │                       standalone run-line
+                          │                       (spread) prediction
+                          │                       model; only the
+                          │                       factual target and its
+                          │                       2024/2025 concept
+                          │                       lineage exist today
+                          │                         │
+                          │                         └─> Pregame Game Card
+                          │                             `predictions.
+                          │                             home_minus_1_5_probability`,
+                          │                             `predictions.
+                          │                             away_minus_1_5_probability`
+                          │                             (`schemas/
+                          │                             pregame_game_card.schema.json`)
+                          │                             — currently
+                          │                             unpopulated
+                          │                             placeholders with
+                          │                             no producing
+                          │                             engine
+                          │
+                          └─> `projected_run_differential` — a
+                              **future, not-yet-existing** derived
+                              field (analogous to the schema's existing
+                              `projected_home_runs` /
+                              `projected_away_runs` /
+                              `projected_total`) that a future run-line
+                              model would need to produce before
+                              `home_minus_1_5_probability` /
+                              `away_minus_1_5_probability` can be
+                              computed from it. It is named here as a
+                              target lineage node, not claimed as an
+                              existing column.
+```
+
+**Explicit distinction — do not conflate these two concepts:**
+"A game was decided by 2+ runs" (the factual outcome captured by
+`won_by_2_plus` / `lost_by_2_plus` / `target_team_win_by_2_plus`, all
+computed purely from `run_differential`) is **not the same statement**
+as "the sportsbook favorite covered a -1.5 run line." The repository's
+own `covered_minus_1_5_result` field on `team_outcome_classifier.py`
+happens to share the same `run_differential >= 2` threshold as
+`won_by_2_plus` for the favorite side, but a run *line* is a market
+construct (favorite must win by 2+, underdog covers by losing by 1 or
+winning outright) tied to a specific book/price, whereas
+`target_team_win_by_2_plus` is a market-independent, symmetric factual
+target computed identically for both teams from the final score alone.
+A future run-line prediction model must not assume these are
+interchangeable just because they overlap arithmetically for the
+favorite.
+
 ## 2. Software dependency chain for the 2024 Pregame Game Card (what exists today)
 
 ```
@@ -95,6 +215,55 @@ registry is the best current lead on the Drive side). The chain is
 directionally correct per the code that exists, but every node inherits
 that upstream uncertainty until resolved.
 
+### 2a. Authoritative published-schedule layer (first-class dependency)
+
+`atlas/schedule/mlb_schedule_reference.py` is anchored here as a
+first-class, independent software dependency — not a derived/internal
+table like `master_game_database.parquet`. It builds a canonical,
+one-row-per-`gamePk` reference dataset **only** from the published MLB
+Stats API `/schedule` endpoint, and is (per its own module docstring and
+`atlas/audit/schedule_source_assessment.py`) the only source of
+pregame-safe schedule/series-context facts recognized by the ATLAS
+historical readiness audit. Its published `CANONICAL_FIELDS` cover:
+
+- official `game_pk` (the only durable game identifier used; team/player
+  *names* are carried as labels only and never used as a durable key)
+- `game_type_code` / `season_segment` (regular season vs. postseason vs.
+  all-star/spring/exhibition, via `GAME_TYPE_SEASON_SEGMENT`)
+- game date (`game_date_utc`, `official_date`)
+- scheduled start time (carried in the raw payload's game-datetime
+  field feeding `game_date_utc`)
+- home and away teams (`home_team_id`/`home_team_name`,
+  `away_team_id`/`away_team_name`)
+- venue (`venue_id`, `venue_name`)
+- published series length and series game number (`games_in_series`,
+  `series_game_number`, `series_description`)
+- doubleheaders (`double_header_code`, `game_number`)
+- postponements, suspensions (`status_code`, `coded_game_state`,
+  `detailed_state`, `game_state_category`, via
+  `DETAILED_STATE_CATEGORY`, including `postponed` / `suspended` /
+  `cancelled` states)
+- makeup games — a postponed game that is later replayed keeps the same
+  `gamePk` under MLB's own scheduling model, so de-duplicating by
+  `gamePk` (via `_STATE_CATEGORY_PRIORITY`) is sufficient to avoid
+  double-counting a makeup game as a second real-world game
+- rest and derived travel/time-zone context — **not** published fields
+  themselves; these are explicitly *derived* downstream from this
+  layer's `game_pk` + `game_date_utc` + venue sequence per team (see the
+  `rest` / `travel` rows in Section 3), not invented as new schedule
+  columns on this module
+
+**Preserved rule (unchanged, load-bearing):** published series length
+(`games_in_series` / `series_game_number`) comes only from the
+published MLB Stats API schedule response and is **never** inferred
+from completed-game counts, `status` completion, or
+`master_game_database.parquet` history. This module enforces that rule
+by construction (it never reads score/result data), and
+`atlas/audit/schedule_source_assessment.py` enforces it for the rest of
+the audit pipeline. Any future rest/travel builder must derive its
+inputs from this schedule layer's `game_pk`/date/venue sequence, not
+from result data, to preserve the same rule.
+
 ## 3. Baseball-knowledge dependency map
 
 For each baseball-learning objective named in the task, the table below
@@ -116,7 +285,8 @@ canonical dataset actually exists.
 | Umpire tendencies | `umpire` | none found under `atlas/`; row exists in `coverage_matrix.COVERAGE_ROWS` | Zero matches for "umpire" in `table_catalog.json` | **Tracked by the audit tool, but no data or builder exists.** Confirmed gap — and per the audit's own published-schedule rule design (Section on leakage in `ATLAS_HISTORICAL_READINESS_AUDIT.md`), umpire assignment must be evaluated for `pregame_safety` carefully: umpire-per-game is often not published/confirmed until close to game time. |
 | Rest | `rest` | row exists in `coverage_matrix.COVERAGE_ROWS`, `DYNAMIC_PREGAME_ROWS` | Not found as a standalone dataset; likely derivable from `master_game_database` schedule gaps | **Existing in principle, not materialized** — needs a builder, not new raw data. |
 | Travel | `travel` | row exists in `coverage_matrix.COVERAGE_ROWS`, `DYNAMIC_PREGAME_ROWS` | Not found; requires venue-to-venue distance/timezone reference data not present anywhere in `atlas_reference/` | **Future canonical dataset required**: `travel_context` (venue geocoordinates/timezone reference + derived travel distance/direction per game). |
-| Series context | `series_game`, `published_series_context` | `atlas/audit/schedule_source_assessment.py` already implements the no-leakage rule for this | Governed by the same leakage rule as `published_schedule`; data presence unverified | **Existing rule, data unverified.** |
+| Series context | `series_game`, `published_series_context` | `atlas/schedule/mlb_schedule_reference.py` (first-class published-schedule builder — see Section 2a) plus `atlas/audit/schedule_source_assessment.py`, which implements the no-leakage rule over it | Governed by the same leakage rule as `published_schedule`; data presence unverified | **Existing rule and existing builder module, live-fetch data presence unverified.** |
+| Run margin / run-line factual target | `team_margin` (existing tag) | `atlas/game_intelligence/outcome_classifier.py`, `team_outcome_classifier.py`, `atlas/learning/factual_target_builder.py`, `atlas/validation/target_resolution.py` — see Section 1a for the full lineage | `target_team_win_by_2_plus` present in 2024 univariate-evidence-discovery and candidate-integrity schemas; consumed by `concept_validation_2025.py` | **Existing target + validation lineage.** No dedicated run-line (spread) *prediction model* exists — see Section 1a and Section 5 item 5. |
 | Pitch-type interactions | `pitch_type_profile` | `atlas/pitchers/v2/pitch_table.py` | `master_pitch_database.parquet` (pitch-level) exists per contract; pitch **arsenal/interaction** features not confirmed as materialized | **Existing raw data, missing derived feature dataset.** |
 | Handedness interactions | (implicit in matchup features; not an explicit tag) | `starters.*.handedness`, `lineups.*.batting_order[].handedness` fields exist in the Pregame Game Card schema | No standalone handedness-splits dataset found in `table_catalog.json` | **Future canonical dataset recommended**: `handedness_splits` (batter-vs-hand and pitcher-vs-hand rate tables), even though the raw at-bat data to derive it likely already exists in `master_pitch_database.parquet`. |
 | Game flow | `game_flow` (focus-area, not yet a question-library tag) | `atlas/game_intelligence/game_flow_fact_table.py`, `scoring_state_timeline.py`, `lead_protection.py`, `response_recovery.py` | Present as engines; no single "game flow" output dataset confirmed | **Existing engines, output dataset unconfirmed.** |
@@ -178,6 +348,30 @@ fully populated.
    the raw data likely already exists (`master_game_database` schedule
    gaps for rest; `master_pitch_database` for pitch-type), and only a
    builder is missing — no new upload is required for these two.
+5. **Run-margin/run-line status is more advanced than "not found"**: the
+   factual `target_team_win_by_2_plus` target, its 2024 concept
+   lineage, and its 2025 blind-validation resolution path all already
+   exist (Section 1a). What is genuinely missing is a *dedicated
+   run-line prediction-model module* that consumes that lineage and
+   populates `home_minus_1_5_probability` / `away_minus_1_5_probability`
+   on the Pregame Game Card — that is a future-model gap, not a
+   missing-target gap.
+
+## 5a. Explicit readiness coverage added by this document
+
+The following readiness dimensions are named here explicitly, each
+mapped to the section that defines its current status, so none of them
+can be silently dropped from future readiness audits:
+
+| Readiness dimension | Current status | Where defined |
+|---|---|---|
+| Historical schedule completeness | Existing builder (`mlb_schedule_reference.py`) and existing no-leakage rule (`schedule_source_assessment.py`); live per-season completeness against the published API is unverified in this offline session | Section 2a |
+| Run-margin factual-target readiness | **Existing** — `target_team_win_by_2_plus` materializes cleanly from canonical `won`/`run_differential` via `atlas/validation/target_resolution.py`; upstream `master_game_database` provenance still `unknown` per `ATLAS_DATA_ALIGNMENT_AUDIT.md` Section 2 | Section 1a |
+| Run-line prediction-model readiness | **Not ready — no module exists.** Only the factual target and its validation lineage exist; no model trains or serves `home_minus_1_5_probability`/`away_minus_1_5_probability` today | Section 1a, Section 5 item 5 |
+| `game_anatomy` | **Not covered — future canonical artifact**, per Section 1's five-section table | Section 1 |
+| `game_story_record` (structured, WHY) | **Not covered — future canonical artifact** | Section 1 |
+| `learning_observations` (per game) | **Partially covered** — season/concept-grain evidence exists; no per-game record | Section 3 |
+| `identity_update_log` (per game) | **Partially covered** — pregame-direction identity timeline exists; no postgame per-game delta record | Section 3 |
 
 ## 6. What this graph does not do
 

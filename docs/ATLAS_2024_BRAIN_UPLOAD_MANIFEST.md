@@ -28,7 +28,7 @@ existing canonical object.
 | `master_game_database.parquet` | Root dependency for nearly every node in the dependency graph | `provenance_status: unknown` — not confirmed present/canonical in this session | 2024, 2025 | Verify via live audit run first; do not re-upload speculatively. |
 | `master_pitch_database.parquet` | Root dependency for pitch-type interaction, handedness, and game-flow nodes | `provenance_status: unknown` | 2024, 2025 | Same as above. |
 | `team_game_state.parquet` | Feeds team-level identity/evidence engines | `provenance_status: unknown` | 2024, 2025 | Same as above. |
-| Frozen 2024 concept definitions (2,138 concepts) | Already governed as a frozen contract | Documented as frozen/hash-fingerprinted | 2024 | Do not touch; do not re-upload; this is a governance-frozen artifact. |
+| Frozen 2024 concept definitions (2,138 concepts) | Already governed as a frozen contract | Documented as frozen/hash-fingerprinted | 2024 | Never regenerate or mutate the frozen definition/member registries. **If** the exact checksum-verified frozen artifacts are confirmed absent from `gs://atlas-mlb-data-brian-4817` and a downstream consumer (e.g. 2025 blind validation) genuinely needs them, the verified files may be **copied as-is** (byte-identical, checksum-matched against the frozen fingerprint already recorded in `docs/ATLAS_BRAIN_PHASE_2E_4G_IMMUTABLE_CONCEPT_FREEZE.md`) to a staging path (e.g. `staging/uploads/frozen_2024_concepts/`) with full lineage metadata (source path, checksum, copy timestamp, requesting consumer). This is a **verified copy**, not a re-derivation, and is not itself a promotion to canonical — later promotion out of staging requires separate, explicit approval. Do not upload if the canonical GCS copy is already confirmed present. |
 
 ## 2. New canonical datasets recommended for upload (genuinely absent, per the dependency graph)
 
@@ -57,9 +57,20 @@ pre-computed factor) before uploading.
 
 | Dataset | Why | Source it should be built from | Action |
 |---|---|---|---|
-| `rest` (days of rest per team/pitcher per game) | Tracked as a `COVERAGE_ROWS`/`DYNAMIC_PREGAME_ROWS` row; derivable from schedule gaps | `master_game_database.parquet` schedule history | Build, do not upload — once `master_game_database` provenance is confirmed (Section 1). |
+| `rest` (days of rest per team/pitcher per game) | Tracked as a `COVERAGE_ROWS`/`DYNAMIC_PREGAME_ROWS` row; derivable from schedule gaps | `atlas/schedule/mlb_schedule_reference.py` (published `game_pk`/`game_date_utc`/venue sequence per team) — not from completed-game results, to preserve the published-series-length rule in `ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md` Section 2a | Build, do not upload — once schedule-layer live-fetch coverage is confirmed (Section 5a below). |
+| Travel / time-zone context (derived) | Same schedule-derived rule as `rest` | `atlas/schedule/mlb_schedule_reference.py` venue sequence + the new `travel_context` venue-geo reference (Section 2) | Build once both inputs exist — not an upload task for the derived field itself. |
 | Pitch-type interaction features | Raw pitch-level data likely exists | `master_pitch_database.parquet` via `atlas/pitchers/v2/pitch_table.py` | Build, do not upload. |
 | `game_anatomy` / `game_story_record` / `learning_observations` / `identity_update_log` | New contract/schema design work, not a data-upload problem (see `ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md` Section 1 and 3) | Assembled from existing engines (`game_flow_fact_table.py`, `outcome_classifier.py`, `evidence_consolidation_engine.py`, `pregame_team_identity_timeline.py`) plus the new datasets above | Schema/contract design first, then a builder — not an upload task at all. |
+| Run-line prediction model | Named future model in `ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md` Section 1a; the factual `target_team_win_by_2_plus` lineage it would train against already exists — this row is model/engine design work, not a data gap | Consumes `atlas/validation/target_resolution.py` output (2024 learning + 2025 blind validation) | Model design/implementation task, not an upload — explicitly out of scope for this documentation-only manifest. |
+
+## 3a. Explicit readiness coverage (this manifest's contribution)
+
+| Readiness dimension | Upload-relevant status |
+|---|---|
+| Historical schedule completeness | No upload needed — `atlas/schedule/mlb_schedule_reference.py` already fetches this live from the published API; only live-fetch verification (not a staged upload) is outstanding. |
+| Run-margin factual-target readiness | No upload needed — `target_team_win_by_2_plus` is derived in-memory from already-present `won`/`run_differential` columns. |
+| Run-line prediction-model readiness | Not an upload item — see the new row above; this is a future model-engineering task. |
+| `game_anatomy`, `game_story_record`, `learning_observations`, `identity_update_log` | Not upload items — schema/contract design first, per the row above. |
 
 ## 4. Explicit non-requests
 

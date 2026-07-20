@@ -112,11 +112,28 @@ without re-verifying.
     tool is re-run (not committed here, per the "Reports" `.gitignore`
     convention already used for `atlas-historical-readiness-audit.yml`
     output).
-- **Zero** modules under `atlas/` matched the focus-area keywords for
+- **Zero** modules under `atlas/` matched the literal focus-area keyword
+  `run_line` (or `moneyline`, `totals`, `player_props`) in a filename
+  scan. **Correction to an earlier draft of this audit:** this only
+  means no module is *named* `run_line`-something — it does **not**
+  mean run-margin/run-line learning is absent from the repository.
+  `atlas/game_intelligence/team_outcome_classifier.py`,
+  `atlas/learning/factual_target_builder.py` /
+  `backtest_target_builder.py`, and `atlas/validation/
+  target_resolution.py` already implement the full factual 2+ run-margin
+  target (`target_team_win_by_2_plus`, resolved from canonical `won` /
+  `run_differential`) plus its 2024 concept lineage and its 2025
+  blind-validation resolution path — see
+  `docs/ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md` Section 1a for the
+  complete, code-verified lineage. What is genuinely absent is a
+  **dedicated run-line *prediction-model* module** — nothing under
+  `atlas/` trains or serves `home_minus_1_5_probability` /
+  `away_minus_1_5_probability` on the Pregame Game Card today. Those are
+  two different claims and must not be conflated.
+- Similarly, **zero** modules matched
   `master_game_builder`, `master_pitch_builder`, `team_game_state`,
-  `offense`, `contact`, `discipline`, `team_pitching`,
-  `feature_lineage`, `moneyline`, `totals`, `run_line`, or
-  `player_props`. Either these builders live exclusively in the
+  `offense`, `contact`, `discipline`, `team_pitching`, or
+  `feature_lineage`. Either these builders live exclusively in the
   Colab/Drive codebase not mirrored into this repo, or they genuinely do
   not exist yet as permanent modules. This must be confirmed, not
   assumed either way.
@@ -166,6 +183,23 @@ them.
 | Frozen 2024 concept definitions (2,138 concepts / 4,276 members per `docs/ATLAS_BRAIN_PHASE_2E_4G_IMMUTABLE_CONCEPT_FREEZE.md`) | Documented as frozen and hash-fingerprinted in a prior session | **Trusted as a frozen contract per its own governance rules** (not to be re-verified by re-deriving it — that would violate its own freeze rule) but **its upstream inputs** (2024 identity/bullpen/lineup artifacts) are themselves `unknown — requires live audit run`. |
 | Phase 2E.5A 2025 blind-validation evidence matrix | `docs/ATLAS_BRAIN_PHASE_2E_5A_2025_VALIDATION_INPUT_READINESS.md` records `Global readiness gate passed: no` | **Incomplete by the project's own record**, not stale or corrupted — simply not yet built. |
 | Google Drive production artifacts (`/content/drive/MyDrive/Project_Atlas/...`) | Referenced by 13 modules and the ledger; not reachable from this session or from GitHub Actions | **Unknown / unreachable from CI.** If this is still the authoritative 2024 store, no GitHub Actions-based audit (including the new WIF-based one) can currently see it. This must be resolved per Section 2 before claiming any GCS-based audit result "proves" 2024 readiness. |
+
+## 5a. Explicit readiness coverage (this document's contribution)
+
+The dependency-graph document (`ATLAS_BASEBALL_BRAIN_DEPENDENCY_GRAPH.md`
+Section 1a, 2a, 5a) traces the full lineage and rules for these
+dimensions; this audit records their present-day readiness status so it
+is not lost between documents:
+
+| Readiness dimension | Status recorded here |
+|---|---|
+| Historical schedule completeness | `published_schedule` is already a tracked `COVERAGE_ROWS` row, and `atlas/schedule/mlb_schedule_reference.py` is the code-verified authoritative builder for it (Section 4 above, dependency-graph Section 2a). Live per-season completeness against the published MLB Stats API is `unknown — requires live audit run`, same as every other row in Section 5. |
+| Run-margin factual-target readiness | **Existing**, per the corrected Section 3 finding above — `target_team_win_by_2_plus` resolves cleanly from canonical `won`/`run_differential`; blocked only by the same upstream `master_game_database` provenance question as everything else in Section 2. |
+| Run-line prediction-model readiness | **Not ready.** No module trains or serves a standalone run-line prediction; only the factual target and its validation lineage exist (dependency-graph Section 1a). |
+| `game_anatomy` | **Not covered — future canonical artifact.** See dependency-graph Section 1. |
+| `game_story_record` | **Not covered — future canonical artifact.** See dependency-graph Section 1. |
+| `learning_observations` (per game) | **Partially covered** — season/concept-grain evidence exists (`atlas/learning/evidence_consolidation_engine.py`); no per-game record exists. |
+| `identity_update_log` (per game) | **Partially covered** — pregame-direction identity timeline exists (`pregame_team_identity_timeline.py`); no postgame per-game delta record exists. |
 
 ## 6. Immediate next actions (no rebuild, staging-only)
 
