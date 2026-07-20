@@ -72,6 +72,12 @@ COVERAGE_ROWS = (
     "model_artifacts",
     "frozen_predictions",
     "frozen_pregame_cards",
+    "total_runs_targets",
+    "scoring_shape_classification",
+    "projected_team_runs",
+    "projected_game_total",
+    "over_under_model_readiness",
+    "team_total_model_readiness",
 )
 
 # Rows whose provenance/pregame-safety must go through the explicit
@@ -118,6 +124,12 @@ MODULE_ONLY_ROWS = (
     "model_artifacts",
     "frozen_predictions",
     "frozen_pregame_cards",
+    "total_runs_targets",
+    "scoring_shape_classification",
+    "projected_team_runs",
+    "projected_game_total",
+    "over_under_model_readiness",
+    "team_total_model_readiness",
 )
 
 ROW_TO_FEATURE_PRESENCE_KEY = {
@@ -144,6 +156,16 @@ ROW_TO_FOCUS_AREA = {
     "model_artifacts": "prediction",
     "frozen_predictions": "prediction",
     "frozen_pregame_cards": "pregame_snapshots",
+    # Totals/scoring-shape is a first-class target family, independent of
+    # moneyline/run-margin (see atlas/learning/totals_target_builder.py).
+    # All six totals-readiness rows map to the "totals" focus area so this
+    # audit reports evidence separately from generic "prediction" rows.
+    "total_runs_targets": "totals",
+    "scoring_shape_classification": "totals",
+    "projected_team_runs": "totals",
+    "projected_game_total": "totals",
+    "over_under_model_readiness": "totals",
+    "team_total_model_readiness": "totals",
 }
 
 DIMENSION_KEYS = (

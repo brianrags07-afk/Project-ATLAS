@@ -176,6 +176,142 @@ A future run-line prediction model must not assume these are
 interchangeable just because they overlap arithmetically for the
 favorite.
 
+## 1b. Totals / scoring-shape learning-objective lineage (first-class, independent target family)
+
+Totals (and the scoring-shape distribution underneath a total) are a
+**first-class Baseball Brain target family**, traced end to end here in
+the same way as Section 1a traces moneyline/run-margin. Totals must
+remain **structurally independent** of moneyline and run-margin — no
+totals column is derived from, or merged into, `target_team_win*`,
+`run_margin`, `home_margin`/`away_margin`, or `margin_*_plus` — while
+still sharing the same upstream pregame identities and matchup facts
+(the same `pregame_team_identities` / `pregame_identity_matchups` /
+`clean_bullpen_pregame_facts` / `batter_pregame_snapshots` nodes from
+Section 2 feed both families; only the postgame target layer diverges).
+
+```
+pregame baseball state (Section 2 chain: pregame_team_identities,
+pregame_identity_matchups, clean_bullpen_pregame_facts,
+batter_pregame_snapshots)
+  │
+  ├─> [FUTURE model output] projected_home_runs
+  ├─> [FUTURE model output] projected_away_runs
+  │     (both already named as placeholder fields on
+  │      `predictions.projected_home_runs` / `predictions.
+  │      projected_away_runs`, `schemas/pregame_game_card.schema.json`
+  │      — currently unpopulated, no producing engine)
+  │         │
+  │         └─> [FUTURE model output] projected_total_runs
+  │             (`predictions.projected_total` on the same schema —
+  │             unpopulated placeholder)
+  │                 │
+  │                 ├─> [FUTURE model output] scoring-shape probabilities
+  │                 │   — no schema field or engine exists yet for a
+  │                 │   distribution over `total_run_bucket` categories
+  │                 │   (see below); named here as a required future
+  │                 │   node, not claimed as existing
+  │                 │
+  │                 └─> [FUTURE model output] over/under probabilities
+  │                     (`predictions.over_probability` / `predictions.
+  │                     under_probability` on the same schema —
+  │                     unpopulated placeholders, no producing engine)
+  │
+  └─────────────────────────────────────────────────────────────────┐
+                                                                      │
+master_game_database.parquet (canonical final scores)                │
+  └─> atlas/learning/factual_target_builder.py                       │
+        build_game_targets (home_score, away_score, game_total_runs) │
+        build_team_game_targets (team_runs, opponent_runs,           │
+          target_team_scored_3_or_less, target_team_scored_exactly_4,│
+          target_team_scored_5_plus — per-team-game grain, already   │
+          frozen production columns)                                │
+        │                                                            │
+        └─> atlas/learning/totals_target_builder.py (NEW, this       │
+            change) — build_total_runs_targets:                     ◄┘
+              reads only the frozen columns above, never mutates
+              them, and never touches target_team_win*/run_margin.
+              Produces a brand-new, independent game-level table:
+                - home_runs_scored, away_runs_scored, actual_total_runs
+                - home_team_scored_3_or_less / _exactly_4 / _5_plus
+                - away_team_scored_3_or_less / _exactly_4 / _5_plus
+                - low_scoring_game, high_scoring_game,
+                  extreme_high_scoring_game
+                - total_run_bucket (low / average / high / extreme_high)
+              │
+              └─> actual_total_runs (factual, postgame)
+                    │
+                    └─> postgame Game Story explanation and learning
+                        (see below — future canonical artifact)
+```
+
+**Total-run bucket boundaries are data-derived, not arbitrary.** They
+come from the canonical 2024 completed-game `game_total_runs`
+distribution (2,428 games; `atlas_reference/samples/games/
+data__game_intelligence__factual_learning_targets__2024__factual_game_learning_targets.parquet.games.parquet`):
+25th percentile = 5, median = 8, 75th percentile = 11, 90th percentile
+= 15. `total_run_bucket` therefore separates `low` (≤5, "approximately
+4-run games" territory), `average` (6-11), `high` (≥12, matching this
+family's explicit "12+-run games" requirement — one run above the
+75th-percentile cut point), and `extreme_high` (≥15, the 90th-percentile
+cut point). This is exactly the boundary the dependency graph must
+support analysis across: what separates ~4-run games from 12+-run
+games.
+
+**Do not reduce totals learning to a single over/under 8.5 label.**
+`actual_total_runs` (continuous), `total_run_bucket` (categorical
+scoring shape), and the per-side `*_team_scored_*` facts above are all
+preserved as first-class outcomes; a market over/under line is never
+required to compute any of them (`market_line_used` is always `False`
+on `totals_target_builder.py`'s output).
+
+**Structured Game Story WHY-classification for scoring (totals side):**
+per Section 1's five-section table, `game_story_record` is **not
+covered — future canonical artifact** for any target family. For
+totals specifically, that future Game Story must classify *why*
+scoring was low or high, covering at minimum:
+
+- starter-driven suppression or damage
+- bullpen-driven suppression or collapse
+- lineup quality and missing hitters
+- pitch-type and handedness matchup effects
+- walks, strikeouts, and traffic creation
+- contact quality and home-run damage
+- park, weather, and umpire context
+- defense and catcher effects
+- late-inning scoring
+- extra-inning inflation
+- one-team blowout versus two-sided scoring
+- sustained scoring versus one anomalous inning
+
+Supporting engines partially exist for some of these categories
+(`atlas/game_intelligence/game_flow_fact_table.py`,
+`scoring_state_timeline.py`, `scoring_event_roles.py`,
+`team_game_flow.py`, `response_recovery.py`, `lead_protection.py`), but
+none assemble a structured, causal "why was this game's total
+low/high" narrative today. This is flagged for review, not started
+here, consistent with Section 1's treatment of `game_story_record` for
+every other target family.
+
+**Six new readiness rows, added to `atlas/audit/coverage_matrix.py`'s
+`COVERAGE_ROWS`/`MODULE_ONLY_ROWS` by this change**, give totals
+learning readiness coverage separate from generic
+`model_artifacts`/`frozen_predictions`:
+
+| Row | What it evidences | Current status |
+|---|---|---|
+| `total_runs_targets` | Factual total-runs targets (`actual_total_runs`, `total_run_bucket`, etc.) | **Existing** — `atlas/learning/totals_target_builder.py` |
+| `scoring_shape_classification` | `total_run_bucket` / per-side scoring-shape facts | **Existing** — same module |
+| `projected_team_runs` | `projected_home_runs`/`projected_away_runs` model | **Not ready — no module exists**; schema placeholders only |
+| `projected_game_total` | `projected_total_runs` model | **Not ready — no module exists**; schema placeholder only |
+| `over_under_model_readiness` | `over_probability`/`under_probability` model | **Not ready — no module exists**; schema placeholders only |
+| `team_total_model_readiness` | Per-team total (team-run) prediction model | **Not ready — no module exists** |
+
+All six map to the pre-existing `"totals"` focus-area keyword in
+`atlas/audit/repository_inventory.py`'s `FOCUS_AREA_KEYWORDS` (already
+present before this change, previously unused by any coverage row),
+so the readiness audit now discovers
+`atlas/learning/totals_target_builder.py` automatically.
+
 ## 2. Software dependency chain for the 2024 Pregame Game Card (what exists today)
 
 ```
@@ -372,15 +508,24 @@ can be silently dropped from future readiness audits:
 | `game_story_record` (structured, WHY) | **Not covered — future canonical artifact** | Section 1 |
 | `learning_observations` (per game) | **Partially covered** — season/concept-grain evidence exists; no per-game record | Section 3 |
 | `identity_update_log` (per game) | **Partially covered** — pregame-direction identity timeline exists; no postgame per-game delta record | Section 3 |
+| Factual total-runs targets | **Existing** — `atlas/learning/totals_target_builder.py`, structurally independent of moneyline/run-margin | Section 1b |
+| Scoring-shape classification | **Existing** — `total_run_bucket` and per-side scoring facts, same module | Section 1b |
+| Projected team runs (`projected_home_runs`/`projected_away_runs`) | **Not ready — no module exists**; schema placeholders only | Section 1b |
+| Projected game total (`projected_total_runs`) | **Not ready — no module exists**; schema placeholder only | Section 1b |
+| Over/under prediction-model readiness | **Not ready — no module exists**; schema placeholders only | Section 1b |
+| Team-total prediction readiness | **Not ready — no module exists** | Section 1b |
 
 ## 6. What this graph does not do
 
 - It does not authorize uploading anything. See
   `docs/ATLAS_2024_BRAIN_UPLOAD_MANIFEST.md` for scoped upload
   recommendations derived from this graph.
-- It does not modify `atlas/audit/coverage_matrix.py`'s `COVERAGE_ROWS`.
-  Adding `park_factors`, `handedness_splits`, `manager_tendencies`,
-  `roster_transactions`, `game_story`, `game_anatomy`,
-  `learning_observations`, and `identity_updates` as new tracked rows is
-  a recommended follow-up code change, not performed in this
-  documentation-only session.
+- This session *does* add six totals-specific rows to
+  `atlas/audit/coverage_matrix.py`'s `COVERAGE_ROWS`/`MODULE_ONLY_ROWS`
+  (Section 1b) and the accompanying `totals_target_builder.py` module,
+  because those were concrete, scoped, non-frozen additions requested
+  directly. It does **not** add `park_factors`, `handedness_splits`,
+  `manager_tendencies`, `roster_transactions`, `game_story`,
+  `game_anatomy`, `learning_observations`, or `identity_updates` as new
+  tracked rows — those remain a recommended follow-up, not performed in
+  this session.
