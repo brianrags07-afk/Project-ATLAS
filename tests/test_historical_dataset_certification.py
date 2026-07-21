@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from atlas.audit.historical_dataset_certification import (
+    attach_certification_provenance,
     certify_historical_datasets,
 )
 from atlas.audit.terminal_score_propagation import (
@@ -105,3 +106,35 @@ def test_certification_excludes_cancelled_schedule_game():
     assert report["verdict"] == "certified_with_documented_exceptions"
     assert report["schedule"]["cancelled_game_pks"] == [2]
     assert report["errors"] == []
+
+
+def test_certification_provenance_is_self_contained():
+    identity = {
+        "gcs_uri": "gs://bucket/object",
+        "generation": "123",
+        "sha256": "a" * 64,
+    }
+    provenance = {
+        "schema_version": "1",
+        "certified_at_utc": "2026-07-21T14:00:00+00:00",
+        "github": {
+            "repository": "owner/repo",
+            "commit_sha": "abc",
+            "run_id": "1",
+            "workflow": "certify",
+            "ref": "refs/heads/main",
+        },
+        "transfer_manifest": dict(identity),
+        "inputs": {
+            "schedule": dict(identity),
+            "master": dict(identity),
+            "pitch": dict(identity),
+            "team_state": dict(identity),
+        },
+    }
+    report = attach_certification_provenance(
+        {"verdict": "certified", "errors": []},
+        provenance,
+    )
+    assert report["provenance"]["inputs"]["pitch"]["generation"] == "123"
+    assert report["provenance"]["github"]["commit_sha"] == "abc"

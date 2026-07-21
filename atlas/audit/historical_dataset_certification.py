@@ -136,3 +136,47 @@ def certify_historical_datasets(
         "team_errors": team_errors,
         "errors": errors,
     }
+
+
+def attach_certification_provenance(
+    report: Mapping[str, Any],
+    provenance: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return a self-contained report after validating durable source identity."""
+    required_top_level = {
+        "schema_version",
+        "certified_at_utc",
+        "github",
+        "transfer_manifest",
+        "inputs",
+    }
+    missing = sorted(required_top_level - set(provenance))
+    if missing:
+        raise ValueError(f"missing provenance sections: {missing}")
+
+    required_github = {"repository", "commit_sha", "run_id", "workflow", "ref"}
+    missing_github = sorted(required_github - set(provenance["github"]))
+    if missing_github:
+        raise ValueError(f"missing GitHub provenance fields: {missing_github}")
+
+    required_identity = {"gcs_uri", "generation", "sha256"}
+    identities = {
+        "transfer_manifest": provenance["transfer_manifest"],
+        **dict(provenance["inputs"]),
+    }
+    if not identities:
+        raise ValueError("no provenance identities supplied")
+    for name, identity in identities.items():
+        missing_identity = sorted(required_identity - set(identity))
+        if missing_identity:
+            raise ValueError(
+                f"missing provenance identity fields for {name}: {missing_identity}"
+            )
+        if not str(identity["gcs_uri"]).startswith("gs://"):
+            raise ValueError(f"invalid GCS URI for {name}")
+        if len(str(identity["sha256"])) != 64:
+            raise ValueError(f"invalid SHA-256 for {name}")
+
+    enriched = dict(report)
+    enriched["provenance"] = dict(provenance)
+    return enriched

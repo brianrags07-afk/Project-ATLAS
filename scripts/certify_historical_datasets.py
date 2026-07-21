@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 import pandas as pd
 
 from atlas.audit.historical_dataset_certification import (
+    attach_certification_provenance,
     certify_historical_datasets,
 )
 
@@ -27,6 +28,7 @@ def main() -> int:
     parser.add_argument("--team-state", required=True)
     parser.add_argument("--season", type=int, required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--provenance", required=True)
     args = parser.parse_args()
 
     with Path(args.schedule).open("r", encoding="utf-8") as handle:
@@ -38,6 +40,9 @@ def main() -> int:
         pd.read_parquet(args.team_state),
         season=args.season,
     )
+    with Path(args.provenance).open("r", encoding="utf-8") as handle:
+        provenance = json.load(handle)
+    report = attach_certification_provenance(report, provenance)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
