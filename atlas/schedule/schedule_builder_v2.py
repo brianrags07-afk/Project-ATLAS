@@ -39,7 +39,6 @@ def _season_dates(season: int) -> tuple[str, str]:
     return f"{season}-03-01", f"{season}-11-30"
 
 
-
 def _write_history_parquet(
     rows: list[dict[str, Any]],
     path: Path,
@@ -53,6 +52,7 @@ def _write_history_parquet(
             "Writing schedule artifacts requires pandas and a parquet engine"
         ) from exc
     pd.DataFrame(rows, columns=columns).to_parquet(path, index=False)
+
 
 def _write_audit(rows: list[dict[str, Any]], path: Path) -> None:
     fields = list(rows[0]) if rows else [
@@ -71,16 +71,23 @@ def _write_audit(rows: list[dict[str, Any]], path: Path) -> None:
         writer.writerows(rows)
 
 
-def _validate_regular_only(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _validate_regular_only(
+    rows: list[dict[str, Any]],
+    *,
+    observed_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     result = validate_schedule(rows)
+    observed = observed_rows if observed_rows is not None else rows
     counts: dict[str, int] = {}
-    for row in rows:
+    for row in observed:
         code = str(row.get("game_type_code"))
         counts[code] = counts.get(code, 0) + 1
     unexpected = sorted(
-        row["game_pk"]
-        for row in rows
-        if row.get("game_type_code") != "R" and row.get("game_pk") is not None
+        {
+            row["game_pk"]
+            for row in observed
+            if row.get("game_type_code") != "R" and row.get("game_pk") is not None
+        }
     )
     result["required_game_type"] = "R"
     result["game_type_counts"] = dict(sorted(counts.items()))
@@ -116,7 +123,7 @@ def build_historical_schedule_v2(
     history = normalize_schedule_history(payloads, retrieved_at_utc=retrieved_at)
     audit = build_schedule_change_audit(history)
     canonical = normalize_schedule(payloads, retrieved_at_utc=retrieved_at)
-    validation = _validate_regular_only(canonical)
+    validation = _validate_regular_only(canonical, observed_rows=history)
     validation.update(schedule_history_metrics(history, audit))
     validation["validated_at_utc"] = retrieved_at
 
