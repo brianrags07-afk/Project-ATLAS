@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from atlas.schedule.schedule_builder import build_historical_schedule
+from atlas.schedule.schedule_builder_v2 import build_historical_schedule_v2
 
 
 def main() -> int:
@@ -20,7 +20,7 @@ def main() -> int:
     )
     parser.add_argument("--output", required=True, help="Artifact output directory.")
     args = parser.parse_args()
-    summary = build_historical_schedule(args.season, args.output)
+    summary = build_historical_schedule_v2(args.season, args.output)
     print(json.dumps(summary.__dict__, indent=2, sort_keys=True))
     return 0
 
