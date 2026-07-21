@@ -107,6 +107,15 @@ def test_source_may_be_known_before_event_becomes_effective():
     assert report["verdict"] == "certified"
 
 
+@pytest.mark.parametrize("column", ["effective_at", "source_retrieved_at"])
+def test_timezone_naive_event_timestamp_requires_quarantine(column):
+    events = _events().iloc[[0]].copy()
+    events.loc[:, column] = "2024-03-27T12:00:00"
+    report = certify_roster_events(events)
+    assert report["verdict"] == "quarantine_required"
+    assert any("timezone-naive" in error for error in report["errors"])
+
+
 def test_first_player_event_must_establish_organization_membership():
     events = _events().iloc[[0]].drop(columns=["organization_member"])
     report = certify_roster_events(events)
@@ -184,4 +193,10 @@ def test_null_or_invalid_schedule_identity_is_rejected(column):
     games = _games().iloc[[0]].copy()
     games.loc[:, column] = None
     with pytest.raises(ValueError, match=column):
+        build_pregame_roster_snapshots(_events(), games)
+
+
+def test_duplicate_team_game_keys_are_rejected_before_snapshotting():
+    games = pd.concat([_games().iloc[[0]], _games().iloc[[0]]], ignore_index=True)
+    with pytest.raises(ValueError, match="duplicate team-game keys"):
         build_pregame_roster_snapshots(_events(), games)
