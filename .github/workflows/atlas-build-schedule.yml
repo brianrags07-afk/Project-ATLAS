@@ -1,0 +1,54 @@
+name: ATLAS Historical Schedule Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Comma-separated MLB seasons"
+        required: true
+        default: "2024"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pandas pyarrow pytest
+
+      - name: Build historical schedules
+        env:
+          SEASONS: ${{ inputs.seasons }}
+        run: |
+          mkdir -p build
+          args=()
+          IFS=',' read -ra season_list <<< "$SEASONS"
+          for season in "${season_list[@]}"; do args+=(--season "$season"); done
+          python scripts/build_historical_schedule.py "${args[@]}" --output build/
+
+      - name: Run schedule tests
+        run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py -q
+
+      - name: Upload schedule artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-historical-schedule
+          path: build/
