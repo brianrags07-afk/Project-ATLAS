@@ -1,6 +1,14 @@
 name: ATLAS Historical Schedule Build
 
 on:
+  pull_request:
+    paths:
+      - "atlas/schedule/**"
+      - "scripts/build_historical_schedule.py"
+      - "tests/test_mlb_schedule_reference.py"
+      - "tests/test_schedule_builder.py"
+      - "tests/test_schedule_history.py"
+      - ".github/workflows/atlas-build-schedule.yml"
   workflow_dispatch:
     inputs:
       seasons:
@@ -10,15 +18,49 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  build-schedule:
+  schedule-tests:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pandas pyarrow==23.0.1 pytest requests
+
+      - name: Run schedule tests
+        run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py tests/test_schedule_history.py -q
+
+  publish-schedule:
+    if: github.event_name == 'workflow_dispatch'
+    needs: schedule-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pandas pyarrow==23.0.1 requests
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -29,16 +71,6 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install project dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pandas pyarrow==23.0.1 pytest requests
-
       - name: Build historical schedules
         env:
           SEASONS: ${{ inputs.seasons }}
@@ -48,9 +80,6 @@ jobs:
           IFS=',' read -ra season_list <<< "$SEASONS"
           for season in "${season_list[@]}"; do args+=(--season "$season"); done
           python scripts/build_historical_schedule.py "${args[@]}" --output build/
-
-      - name: Run schedule tests
-        run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py tests/test_schedule_history.py -q
 
       - name: Publish validated schedule artifacts to GCS
         env:
