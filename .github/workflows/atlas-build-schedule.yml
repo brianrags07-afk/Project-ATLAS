@@ -50,7 +50,7 @@ jobs:
           python scripts/build_historical_schedule.py "${args[@]}" --output build/
 
       - name: Run schedule tests
-        run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py -q
+        run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py tests/test_schedule_history.py -q
 
       - name: Publish validated schedule artifacts to GCS
         env:
