@@ -1,0 +1,196 @@
+name: ATLAS Certify Isolated 2025 Data
+
+on:
+  pull_request:
+    paths:
+      - "atlas/audit/historical_dataset_certification.py"
+      - "scripts/certify_historical_datasets.py"
+      - "tests/test_historical_dataset_certification.py"
+      - ".github/workflows/atlas-certify-2025.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  BUCKET: gs://atlas-mlb-data-brian-4817
+  SCHEDULE_PREFIX: gs://atlas-mlb-data-brian-4817/data/builds/schedules/mlb/2025/448d8164c74a41661b4c622869f334e5e3bd5ca6/29857194743/1
+  MASTER_GAME: gs://atlas-mlb-data-brian-4817/data/master/master_game_database.parquet
+  MASTER_PITCH: gs://atlas-mlb-data-brian-4817/data/master/master_pitch_database.parquet
+  MASTER_TEAM: gs://atlas-mlb-data-brian-4817/data/master/team_game_state.parquet
+  MASTER_GAME_GENERATION: "1784651206804005"
+  MASTER_PITCH_GENERATION: "1784499053013203"
+  MASTER_TEAM_GENERATION: "1784651207944899"
+  MASTER_GAME_SHA256: 6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3
+  MASTER_PITCH_SHA256: 5d258c6c63dc9bc7c8a149d6fb8e1bfa56b06c1ffe73948254705888610ebc08
+  MASTER_TEAM_SHA256: cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f
+
+jobs:
+  certification-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest requests
+      - run: python -m pytest tests/test_historical_dataset_certification.py -q
+
+  certify-2025:
+    if: github.event_name == 'workflow_dispatch'
+    needs: certification-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Pin and verify isolated 2025 schedule
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs reports published-readback
+          manifest_uri="$SCHEDULE_PREFIX/schedule_manifest.json"
+          schedule_uri="$SCHEDULE_PREFIX/canonical_schedule.parquet"
+          manifest_generation="$(gcloud storage objects describe "$manifest_uri" --format='value(generation)')"
+          schedule_generation="$(gcloud storage objects describe "$schedule_uri" --format='value(generation)')"
+          gcloud storage cp "${manifest_uri}#${manifest_generation}" inputs/schedule_manifest.json
+          gcloud storage cp "${schedule_uri}#${schedule_generation}" inputs/canonical_schedule.parquet
+
+          manifest_sha256="$(sha256sum inputs/schedule_manifest.json | cut -d' ' -f1)"
+          expected_schedule_sha256="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path('inputs/schedule_manifest.json').read_text())
+          assert manifest['seasons'] == [2025], manifest['seasons']
+          assert manifest['required_game_type'] == 'R'
+          print(manifest['artifact_hashes']['canonical_schedule.parquet'])
+          PY
+          )"
+          actual_schedule_sha256="$(sha256sum inputs/canonical_schedule.parquet | cut -d' ' -f1)"
+          test "$actual_schedule_sha256" = "$expected_schedule_sha256"
+
+          {
+            echo "SCHEDULE_MANIFEST_GENERATION=$manifest_generation"
+            echo "SCHEDULE_MANIFEST_SHA256=$manifest_sha256"
+            echo "SCHEDULE_GENERATION=$schedule_generation"
+            echo "SCHEDULE_SHA256=$actual_schedule_sha256"
+          } >> "$GITHUB_ENV"
+
+      - name: Download generation-pinned master inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_generation() {
+            uri="$1"
+            expected="$2"
+            actual="$(gcloud storage objects describe "$uri" --format='value(generation)')"
+            test "$actual" = "$expected" || {
+              echo "Generation mismatch for $uri: expected $expected, observed $actual"
+              exit 1
+            }
+          }
+          check_generation "$MASTER_GAME" "$MASTER_GAME_GENERATION"
+          check_generation "$MASTER_PITCH" "$MASTER_PITCH_GENERATION"
+          check_generation "$MASTER_TEAM" "$MASTER_TEAM_GENERATION"
+
+          gcloud storage cp "${MASTER_GAME}#${MASTER_GAME_GENERATION}" inputs/master_game_database.parquet
+          gcloud storage cp "${MASTER_PITCH}#${MASTER_PITCH_GENERATION}" inputs/master_pitch_database.parquet
+          gcloud storage cp "${MASTER_TEAM}#${MASTER_TEAM_GENERATION}" inputs/team_game_state.parquet
+
+          printf '%s  %s\n' \
+            "$MASTER_GAME_SHA256" inputs/master_game_database.parquet \
+            "$MASTER_PITCH_SHA256" inputs/master_pitch_database.parquet \
+            "$MASTER_TEAM_SHA256" inputs/team_game_state.parquet | sha256sum --check
+
+      - name: Build self-contained 2025 provenance
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          provenance = {
+              "schema_version": "1",
+              "certified_at_utc": datetime.now(timezone.utc).isoformat(),
+              "github": {
+                  "repository": os.environ["GITHUB_REPOSITORY"],
+                  "commit_sha": os.environ["GITHUB_SHA"],
+                  "run_id": os.environ["GITHUB_RUN_ID"],
+                  "workflow": os.environ["GITHUB_WORKFLOW"],
+                  "ref": os.environ["GITHUB_REF"],
+              },
+              "transfer_manifest": {
+                  "gcs_uri": f'{os.environ["SCHEDULE_PREFIX"]}/schedule_manifest.json',
+                  "generation": os.environ["SCHEDULE_MANIFEST_GENERATION"],
+                  "sha256": os.environ["SCHEDULE_MANIFEST_SHA256"],
+              },
+              "inputs": {
+                  "schedule": {
+                      "gcs_uri": f'{os.environ["SCHEDULE_PREFIX"]}/canonical_schedule.parquet',
+                      "generation": os.environ["SCHEDULE_GENERATION"],
+                      "sha256": os.environ["SCHEDULE_SHA256"],
+                  },
+                  "master": {
+                      "gcs_uri": os.environ["MASTER_GAME"],
+                      "generation": os.environ["MASTER_GAME_GENERATION"],
+                      "sha256": os.environ["MASTER_GAME_SHA256"],
+                  },
+                  "pitch": {
+                      "gcs_uri": os.environ["MASTER_PITCH"],
+                      "generation": os.environ["MASTER_PITCH_GENERATION"],
+                      "sha256": os.environ["MASTER_PITCH_SHA256"],
+                  },
+                  "team_state": {
+                      "gcs_uri": os.environ["MASTER_TEAM"],
+                      "generation": os.environ["MASTER_TEAM_GENERATION"],
+                      "sha256": os.environ["MASTER_TEAM_SHA256"],
+                  },
+              },
+          }
+          Path("inputs/certification_provenance.json").write_text(
+              json.dumps(provenance, indent=2, sort_keys=True) + "\n"
+          )
+          PY
+
+      - name: Certify isolated 2025 universe
+        run: |
+          python scripts/certify_historical_datasets.py \
+            --schedule inputs/canonical_schedule.parquet \
+            --master inputs/master_game_database.parquet \
+            --pitch inputs/master_pitch_database.parquet \
+            --team-state inputs/team_game_state.parquet \
+            --season 2025 \
+            --provenance inputs/certification_provenance.json \
+            --output reports/2025_dataset_certification.json
+
+      - name: Publish immutable certification evidence
+        env:
+          DESTINATION: gs://atlas-mlb-data-brian-4817/data/builds/certification/2025/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        run: |
+          set -euo pipefail
+          gcloud storage cp --no-clobber reports/2025_dataset_certification.json "$DESTINATION"
+          gcloud storage cp "${DESTINATION}2025_dataset_certification.json" published-readback/2025_dataset_certification.json
+          cmp --silent reports/2025_dataset_certification.json published-readback/2025_dataset_certification.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2025-dataset-certification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          retention-days: 90
