@@ -12,7 +12,6 @@ from typing import Any, Callable, Iterable, Mapping
 
 from atlas.schedule.mlb_schedule_reference import fetch_schedule_raw, normalize_schedule
 from atlas.schedule.schedule_builder import (
-    ARTIFACT_NAMES as LEGACY_ARTIFACT_NAMES,
     BuildSummary,
     ScheduleBuildError,
     _git_revision,
@@ -39,6 +38,21 @@ ARTIFACT_NAMES = (
 def _season_dates(season: int) -> tuple[str, str]:
     return f"{season}-03-01", f"{season}-11-30"
 
+
+
+def _write_history_parquet(
+    rows: list[dict[str, Any]],
+    path: Path,
+    *,
+    columns: list[str] | None,
+) -> None:
+    try:
+        import pandas as pd
+    except ImportError as exc:
+        raise ScheduleBuildError(
+            "Writing schedule artifacts requires pandas and a parquet engine"
+        ) from exc
+    pd.DataFrame(rows, columns=columns).to_parquet(path, index=False)
 
 def _write_audit(rows: list[dict[str, Any]], path: Path) -> None:
     fields = list(rows[0]) if rows else [
@@ -122,13 +136,7 @@ def build_historical_schedule_v2(
     _write_parquet(canonical, canonical_path)
 
     history_columns = list(canonical[0]) + list(HISTORY_EXTRA_FIELDS) if canonical else None
-    try:
-        import pandas as pd
-    except ImportError as exc:
-        raise ScheduleBuildError(
-            "Writing schedule artifacts requires pandas and a parquet engine"
-        ) from exc
-    pd.DataFrame(history, columns=history_columns).to_parquet(history_path, index=False)
+    _write_history_parquet(history, history_path, columns=history_columns)
     _write_audit(audit, audit_path)
 
     locations = {name: str(output / name) for name in ARTIFACT_NAMES}
