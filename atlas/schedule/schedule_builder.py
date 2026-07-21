@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -27,11 +27,9 @@ REQUIRED_COLUMNS = tuple(CANONICAL_FIELDS) + (
 )
 ARTIFACT_NAMES = (
     "canonical_schedule.parquet",
-    "schedule_history.parquet",
     "schedule_validation.json",
     "schedule_manifest.json",
 )
-DETERMINISTIC_RETRIEVED_AT = "1970-01-01T00:00:00+00:00"
 
 
 class ScheduleBuildError(RuntimeError):
@@ -144,6 +142,8 @@ def build_historical_schedule(
 ) -> BuildSummary:
     """Fetch, normalize, validate, and write historical schedule artifacts."""
     started = time.monotonic()
+    build_timestamp = (timestamp or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    retrieved_at_utc = build_timestamp.isoformat()
     season_list = tuple(sorted({int(season) for season in seasons}))
     if not season_list:
         raise ScheduleBuildError("At least one season is required")
@@ -159,12 +159,15 @@ def build_historical_schedule(
     raw_duplicate_count = len(raw_ids) - len(set(raw_ids))
     rows = normalize_schedule(
         payloads,
-        retrieved_at_utc=DETERMINISTIC_RETRIEVED_AT,
+        retrieved_at_utc=retrieved_at_utc,
     )
+    rows.sort(key=lambda row: (
+        row.get("game_date_utc") or "",
+        row.get("official_date") or "",
+        row.get("game_pk") if row.get("game_pk") is not None else -1,
+    ))
     validation = validate_schedule(rows, duplicate_count=raw_duplicate_count)
-    timestamp = timestamp or datetime.now(timezone.utc)
-    timestamp_text = timestamp.astimezone(timezone.utc).isoformat()
-    validation["validated_at_utc"] = timestamp_text
+    validation["validated_at_utc"] = retrieved_at_utc
     validation_path = output_path / "schedule_validation.json"
     validation_path.write_text(
         json.dumps(validation, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -173,9 +176,7 @@ def build_historical_schedule(
         raise ScheduleBuildError("; ".join(validation["errors"]))
 
     canonical_path = output_path / "canonical_schedule.parquet"
-    history_path = output_path / "schedule_history.parquet"
     _write_parquet(rows, canonical_path)
-    _write_parquet(rows, history_path)
     artifact_locations = {
         name: str(output_path / name) for name in ARTIFACT_NAMES
     }
@@ -187,9 +188,11 @@ def build_historical_schedule(
         "canonical_fields": list(REQUIRED_COLUMNS),
         "artifacts": artifact_locations,
         "artifact_hashes": {
-            name: hashlib.sha256((output_path / name).read_bytes()).hexdigest()
-            for name in ("canonical_schedule.parquet", "schedule_history.parquet")
+            "canonical_schedule.parquet": hashlib.sha256(
+                canonical_path.read_bytes()
+            ).hexdigest()
         },
+        "schedule_history_implemented": False,
         "source": "mlb_stats_api_schedule",
         "git_revision": _git_revision(),
         "manifest_content_hash": None,
@@ -207,5 +210,5 @@ def build_historical_schedule(
         validation_status=validation["status"],
         artifact_locations=artifact_locations,
         elapsed_build_time_seconds=time.monotonic() - started,
-        timestamp=timestamp_text,
+        timestamp=retrieved_at_utc,
     )

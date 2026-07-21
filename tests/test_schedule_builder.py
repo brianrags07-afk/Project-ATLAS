@@ -79,7 +79,44 @@ def test_build_is_deterministic_and_generates_manifest(tmp_path, monkeypatch):
         second / "canonical_schedule.parquet"
     ).read_bytes()
     assert json.loads((first / "schedule_manifest.json").read_text())["seasons"] == [2024]
+    manifest = json.loads((first / "schedule_manifest.json").read_text())
+    assert manifest["schedule_history_implemented"] is False
+    assert set(path.name for path in first.iterdir()) == {
+        "canonical_schedule.parquet",
+        "schedule_validation.json",
+        "schedule_manifest.json",
+    }
     assert (first / "schedule_validation.json").exists()
+
+
+def test_real_retrieval_timestamps_preserve_canonical_identity_and_order(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "atlas.schedule.schedule_builder._write_parquet",
+        lambda rows, path: path.write_text(
+            json.dumps(list(rows), sort_keys=True, default=str), encoding="utf-8"
+        ),
+    )
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    build_historical_schedule(
+        [2024], first, fetcher=_fetcher,
+        timestamp=datetime(2024, 12, 1, tzinfo=timezone.utc),
+    )
+    build_historical_schedule(
+        [2024], second, fetcher=_fetcher,
+        timestamp=datetime(2024, 12, 2, tzinfo=timezone.utc),
+    )
+    first_rows = json.loads((first / "canonical_schedule.parquet").read_text())
+    second_rows = json.loads((second / "canonical_schedule.parquet").read_text())
+    assert [row["game_pk"] for row in first_rows] == [row["game_pk"] for row in second_rows]
+    assert [row["retrieved_at_utc"] for row in first_rows] != [
+        row["retrieved_at_utc"] for row in second_rows
+    ]
+    assert [row["content_hash"] for row in first_rows] == [
+        row["content_hash"] for row in second_rows
+    ]
 
 
 def test_duplicate_raw_game_pk_aborts_before_artifacts(tmp_path, monkeypatch):

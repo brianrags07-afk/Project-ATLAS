@@ -55,7 +55,7 @@ jobs:
           GCS_DESTINATION: gs://atlas-mlb-data-brian-4817/builds/schedule/${{ github.sha }}/
         run: |
           gcloud storage cp --recursive build/ "$GCS_DESTINATION"
-          for artifact in canonical_schedule.parquet schedule_history.parquet schedule_validation.json schedule_manifest.json; do
+          for artifact in canonical_schedule.parquet schedule_validation.json schedule_manifest.json; do
             gcloud storage ls "${GCS_DESTINATION}${artifact}"
           done
 
