@@ -138,3 +138,64 @@ def test_certification_provenance_is_self_contained():
     )
     assert report["provenance"]["inputs"]["pitch"]["generation"] == "123"
     assert report["provenance"]["github"]["commit_sha"] == "abc"
+
+
+def test_certification_accepts_canonical_schedule_rows():
+    schedule = [
+        {
+            "game_pk": 1,
+            "game_type_code": "R",
+            "detailed_state": "Final",
+            "game_state_category": "final",
+            "counted_in_expected_games": True,
+        },
+        {
+            "game_pk": 2,
+            "game_type_code": "R",
+            "detailed_state": "Cancelled",
+            "game_state_category": "cancelled",
+            "counted_in_expected_games": False,
+        },
+    ]
+    master = pd.DataFrame(
+        {
+            "game_pk": [1],
+            "atlas_season": [2025],
+            "game_type": ["R"],
+            "home_score": [5],
+            "away_score": [3],
+            "total_runs": [8],
+            "run_differential": [2],
+            "home_win": [True],
+            "away_win": [False],
+        }
+    )
+    pitch = pd.DataFrame(
+        {
+            "game_pk": [1],
+            "atlas_season": [2025],
+            "game_type": ["R"],
+            "at_bat_number": [1],
+            "pitch_number": [1],
+        }
+    )
+    team = pd.DataFrame(
+        {
+            "game_pk": [1, 1],
+            "atlas_season": [2025, 2025],
+            "runs_scored": [5, 3],
+            "runs_allowed": [3, 5],
+            "run_differential": [2, -2],
+            "won": [True, False],
+        }
+    )
+
+    report = certify_historical_datasets(
+        schedule, master, pitch, team, season=2025
+    )
+
+    assert report["verdict"] == "certified_with_documented_exceptions"
+    assert report["schedule"]["published_regular_games"] == 2
+    assert report["schedule"]["completed_games"] == 1
+    assert report["schedule"]["cancelled_game_pks"] == [2]
+    assert report["errors"] == []

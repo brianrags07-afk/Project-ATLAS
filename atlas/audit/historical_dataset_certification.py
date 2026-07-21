@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any, Mapping
 
 import pandas as pd
@@ -9,25 +10,56 @@ import pandas as pd
 from atlas.schedule.mlb_schedule_reference import extract_raw_games
 
 
+def _schedule_index(
+    schedule_payload: Mapping[str, Any] | Iterable[Mapping[str, Any]],
+) -> tuple[dict[int, Mapping[str, Any]], set[int]]:
+    """Index either a raw MLB schedule payload or canonical schedule rows."""
+    if isinstance(schedule_payload, Mapping) and "dates" in schedule_payload:
+        rows = extract_raw_games(schedule_payload)
+        regular = [row for row in rows if row.get("gameType") == "R"]
+        by_pk = {int(row["gamePk"]): row for row in regular}
+        cancelled = {
+            game_pk
+            for game_pk, row in by_pk.items()
+            if (row.get("status") or {}).get("detailedState") == "Cancelled"
+        }
+        return by_pk, cancelled
+
+    canonical_rows = (
+        [schedule_payload]
+        if isinstance(schedule_payload, Mapping)
+        else list(schedule_payload)
+    )
+    by_pk: dict[int, Mapping[str, Any]] = {}
+    cancelled: set[int] = set()
+    for row in canonical_rows:
+        game_type = row.get("game_type_code", row.get("gameType"))
+        game_pk = row.get("game_pk", row.get("gamePk"))
+        if game_type != "R" or game_pk is None:
+            continue
+        key = int(game_pk)
+        by_pk[key] = row
+        detailed_state = row.get("detailed_state")
+        state_category = row.get("game_state_category")
+        counted = row.get("counted_in_expected_games")
+        if (
+            detailed_state == "Cancelled"
+            or state_category == "cancelled"
+            or counted is False
+        ):
+            cancelled.add(key)
+    return by_pk, cancelled
+
+
 def certify_historical_datasets(
-    schedule_payload: Mapping[str, Any],
+    schedule_payload: Mapping[str, Any] | Iterable[Mapping[str, Any]],
     master: pd.DataFrame,
     pitch: pd.DataFrame,
     team_state: pd.DataFrame,
     *,
     season: int,
 ) -> dict[str, Any]:
-    schedule_games = [
-        game
-        for game in extract_raw_games(schedule_payload)
-        if game.get("gameType") == "R"
-    ]
-    schedule_by_pk = {int(game["gamePk"]): game for game in schedule_games}
-    cancelled = {
-        game_pk
-        for game_pk, game in schedule_by_pk.items()
-        if (game.get("status") or {}).get("detailedState") == "Cancelled"
-    }
+    schedule_by_pk, cancelled = _schedule_index(schedule_payload)
     expected = set(schedule_by_pk) - cancelled
 
     game = master.loc[master["atlas_season"] == season].copy()

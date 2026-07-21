@@ -31,8 +31,12 @@ def main() -> int:
     parser.add_argument("--provenance", required=True)
     args = parser.parse_args()
 
-    with Path(args.schedule).open("r", encoding="utf-8") as handle:
-        schedule = json.load(handle)
+    schedule_path = Path(args.schedule)
+    if schedule_path.suffix.lower() == ".parquet":
+        schedule = pd.read_parquet(schedule_path).to_dict(orient="records")
+    else:
+        with schedule_path.open("r", encoding="utf-8") as handle:
+            schedule = json.load(handle)
     report = certify_historical_datasets(
         schedule,
         pd.read_parquet(args.master),
