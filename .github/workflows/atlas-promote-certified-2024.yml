@@ -188,6 +188,11 @@ jobs:
                   "source_certification": os.environ["CERTIFICATION_REPORT"],
                   "backup_prefix": os.environ["BACKUP_PREFIX"],
               },
+              "transfer_manifest": {
+                  "gcs_uri": f'{os.environ["STAGED_PREFIX"]}/atlas_gcs_transfer_manifest.json',
+                  "generation": "1784634699120307",
+                  "sha256": "6847e8efe0737bf60850d2a6f6cda21c2a704a90dc660f27300daa12ba38c993",
+              },
               "inputs": {
                   "master": {
                       "gcs_uri": os.environ["MASTER_GAME"],
@@ -198,6 +203,16 @@ jobs:
                       "gcs_uri": os.environ["MASTER_TEAM"],
                       "generation": os.environ["NEW_TEAM_GENERATION"],
                       "sha256": "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f",
+                  },
+                  "schedule": {
+                      "gcs_uri": f'{os.environ["STAGED_PREFIX"]}/mlb_schedule_2024_regular.json',
+                      "generation": "1784634698314459",
+                      "sha256": "04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7",
+                  },
+                  "pitch": {
+                      "gcs_uri": f'{os.environ["BUCKET"]}/data/master/master_pitch_database.parquet',
+                      "generation": "1784499053013203",
+                      "sha256": "5d258c6c63dc9bc7c8a149d6fb8e1bfa56b06c1ffe73948254705888610ebc08",
                   },
               },
           }
