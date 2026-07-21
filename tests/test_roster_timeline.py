@@ -93,6 +93,21 @@ def test_duplicate_events_require_quarantine():
     assert any("duplicate event_id" in error for error in report["errors"])
 
 
+def test_first_player_event_must_establish_organization_membership():
+    events = _events().iloc[[0]].drop(columns=["organization_member"])
+    report = certify_roster_events(events)
+    assert report["verdict"] == "quarantine_required"
+    assert any("organization_member is required" in error for error in report["errors"])
+
+
+def test_later_status_event_cannot_substitute_for_missing_opening_membership():
+    events = _events().copy()
+    events.loc[events["event_id"] == "opening-1", "organization_member"] = None
+    report = certify_roster_events(events)
+    assert report["verdict"] == "quarantine_required"
+    assert any("first event" in error for error in report["errors"])
+
+
 def test_missing_team_history_is_not_inferred_from_game_appearances():
     games = _games()
     games.loc[:, "team"] = "PIT"
@@ -128,3 +143,18 @@ def test_event_retrieved_after_first_pitch_is_deferred_until_later_game():
     assert bool(after_source["active_roster"]) is False
     assert after_source["last_event_id"] == "delayed-il"
     assert snapshots["pregame_safe"].all()
+
+
+def test_game_before_known_opening_roster_fails_with_explicit_history_error():
+    games = pd.DataFrame(
+        [{"game_pk": 30, "game_start_at": "2024-03-26T20:00:00Z", "season": 2024, "team": "CIN"}]
+    )
+    with pytest.raises(ValueError, match="no known organization members"):
+        build_pregame_roster_snapshots(_events(), games)
+
+
+def test_empty_game_request_returns_stable_empty_schema():
+    games = pd.DataFrame(columns=["game_pk", "game_start_at", "season", "team"])
+    snapshots = build_pregame_roster_snapshots(_events(), games)
+    assert snapshots.empty
+    assert {"game_pk", "player_id", "pregame_safe"}.issubset(snapshots.columns)
