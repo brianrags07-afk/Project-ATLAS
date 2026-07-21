@@ -24,6 +24,9 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
 
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -46,6 +49,15 @@ jobs:
 
       - name: Run schedule tests
         run: python -m pytest tests/test_mlb_schedule_reference.py tests/test_schedule_builder.py -q
+
+      - name: Publish validated schedule artifacts to GCS
+        env:
+          GCS_DESTINATION: gs://atlas-mlb-data-brian-4817/builds/schedule/${{ github.sha }}/
+        run: |
+          gcloud storage cp --recursive build/ "$GCS_DESTINATION"
+          for artifact in canonical_schedule.parquet schedule_history.parquet schedule_validation.json schedule_manifest.json; do
+            gcloud storage ls "${GCS_DESTINATION}${artifact}"
+          done
 
       - name: Upload schedule artifacts
         uses: actions/upload-artifact@v4
