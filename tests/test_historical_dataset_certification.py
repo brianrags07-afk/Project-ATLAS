@@ -144,6 +144,7 @@ def test_certification_accepts_canonical_schedule_rows():
     schedule = [
         {
             "game_pk": 1,
+            "season": 2025,
             "game_type_code": "R",
             "detailed_state": "Final",
             "game_state_category": "final",
@@ -151,10 +152,19 @@ def test_certification_accepts_canonical_schedule_rows():
         },
         {
             "game_pk": 2,
+            "season": 2025,
             "game_type_code": "R",
             "detailed_state": "Cancelled",
             "game_state_category": "cancelled",
             "counted_in_expected_games": False,
+        },
+        {
+            "game_pk": 3,
+            "season": 2024,
+            "game_type_code": "R",
+            "detailed_state": "Final",
+            "game_state_category": "final",
+            "counted_in_expected_games": True,
         },
     ]
     master = pd.DataFrame(
