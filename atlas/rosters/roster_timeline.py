@@ -121,12 +121,6 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
                 "organization_member"
             )
 
-    future_sourced = normalized["source_retrieved_at"] < normalized["effective_at"]
-    if future_sourced.any():
-        errors.append(
-            "source_retrieved_at precedes effective_at; source chronology is invalid"
-        )
-
     return {
         "verdict": "certified" if not errors else "quarantine_required",
         "rows": int(len(normalized)),
@@ -165,9 +159,14 @@ def build_pregame_roster_snapshots(
         event_rows["source_retrieved_at"], utc=True
     )
     games = team_games.copy()
-    games["game_start_at"] = pd.to_datetime(games["game_start_at"], utc=True)
+    games["game_start_at"] = pd.to_datetime(
+        games["game_start_at"], utc=True, errors="coerce"
+    )
     if games.empty:
         return pd.DataFrame(columns=OUTPUT_COLUMNS)
+    for column in ("game_pk", "game_start_at", "season", "team"):
+        if games[column].isna().any():
+            raise ValueError(f"team_games {column} contains null or invalid values")
 
     event_rows = event_rows.sort_values(
         ["season", "team", "effective_at", "source_retrieved_at", "event_id"],
