@@ -75,7 +75,7 @@ def test_certifies_complete_normalized_events():
 
 
 def test_builds_chronological_pregame_snapshots_without_future_backfill():
-    snapshots = build_pregame_roster_snapshots(_events(), _games())
+    snapshots = build_pregame_roster_snapshots(_events(), _games().iloc[:2])
     assert snapshots["game_pk"].tolist() == [10, 11]
     opening = snapshots.loc[snapshots["game_pk"] == 10].iloc[0]
     injured = snapshots.loc[snapshots["game_pk"] == 11].iloc[0]
@@ -91,6 +91,13 @@ def test_duplicate_events_require_quarantine():
     report = certify_roster_events(events)
     assert report["verdict"] == "quarantine_required"
     assert any("duplicate event_id" in error for error in report["errors"])
+
+
+def test_empty_schema_correct_event_ledger_is_not_ready():
+    events = _events().iloc[:0]
+    report = certify_roster_events(events)
+    assert report["verdict"] == "quarantine_required"
+    assert any("ledger is empty" in error for error in report["errors"])
 
 
 def test_first_player_event_must_establish_organization_membership():
@@ -151,6 +158,11 @@ def test_game_before_known_opening_roster_fails_with_explicit_history_error():
     )
     with pytest.raises(ValueError, match="no known organization members"):
         build_pregame_roster_snapshots(_events(), games)
+
+
+def test_game_after_only_known_player_leaves_fails_explicitly():
+    with pytest.raises(ValueError, match="no known organization members"):
+        build_pregame_roster_snapshots(_events(), _games().iloc[[2]])
 
 
 def test_empty_game_request_returns_stable_empty_schema():
