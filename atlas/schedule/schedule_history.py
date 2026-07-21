@@ -77,18 +77,6 @@ def normalize_schedule_history(
     return rows
 
 
-def _joined_dates(rows: Sequence[Mapping[str, Any]], fields: Sequence[str]) -> str:
-    values = sorted(
-        {
-            str(row[field])
-            for row in rows
-            for field in fields
-            if row.get(field) not in (None, "")
-        }
-    )
-    return "|".join(values)
-
-
 def build_schedule_change_audit(
     history_rows: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
