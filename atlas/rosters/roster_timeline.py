@@ -39,6 +39,21 @@ REQUIRED_GAME_COLUMNS = {
     "team",
 }
 
+OUTPUT_COLUMNS = (
+    "game_pk",
+    "game_start_at",
+    "season",
+    "team",
+    "player_id",
+    *STATE_COLUMNS,
+    "last_event_id",
+    "last_event_type",
+    "last_event_at",
+    "last_source",
+    "last_source_retrieved_at",
+    "pregame_safe",
+)
+
 
 def _missing(columns: Iterable[str], required: set[str]) -> list[str]:
     return sorted(required.difference(columns))
@@ -86,6 +101,23 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
     elif normalized[state_columns_present].isna().all(axis=1).any():
         errors.append("one or more events change no roster state")
 
+    if "organization_member" not in normalized.columns:
+        errors.append("organization_member is required to establish roster membership")
+    else:
+        ordered = normalized.sort_values(
+            ["season", "team", "player_id", "effective_at", "source_retrieved_at", "event_id"],
+            kind="stable",
+        )
+        first_events = ordered.groupby(
+            ["season", "team", "player_id"], sort=False, dropna=False
+        ).head(1)
+        missing_opening_membership = first_events["organization_member"].isna()
+        if missing_opening_membership.any():
+            errors.append(
+                "the first event for every season/team/player must establish "
+                "organization_member"
+            )
+
     future_sourced = normalized["source_retrieved_at"] < normalized["effective_at"]
     if future_sourced.any():
         errors.append(
@@ -131,6 +163,8 @@ def build_pregame_roster_snapshots(
     )
     games = team_games.copy()
     games["game_start_at"] = pd.to_datetime(games["game_start_at"], utc=True)
+    if games.empty:
+        return pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     event_rows = event_rows.sort_values(
         ["season", "team", "effective_at", "source_retrieved_at", "event_id"],
@@ -178,6 +212,7 @@ def build_pregame_roster_snapshots(
                         "last_source_retrieved_at": event["source_retrieved_at"],
                     }
                 )
+            emitted_for_game = 0
             for player_id, player_state in state.items():
                 if player_state.get("organization_member") is not True:
                     continue
@@ -195,8 +230,14 @@ def build_pregame_roster_snapshots(
                         ),
                     }
                 )
+                emitted_for_game += 1
+            if emitted_for_game == 0:
+                raise ValueError(
+                    "no known organization members at first pitch for "
+                    f"game_pk={game['game_pk']}, season={season}, team={team}"
+                )
 
-    output = pd.DataFrame.from_records(records)
+    output = pd.DataFrame.from_records(records, columns=OUTPUT_COLUMNS)
     if not output.empty and not output["pregame_safe"].all():
         raise AssertionError("a roster snapshot contains post-first-pitch information")
     return output.sort_values(
