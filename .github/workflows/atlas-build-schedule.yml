@@ -12,13 +12,18 @@ on:
       - ".github/workflows/atlas-build-schedule.yml"
   workflow_dispatch:
     inputs:
-      seasons:
-        description: "Comma-separated MLB seasons"
+      season:
+        description: "One MLB season (kept isolated from every other season)"
         required: true
-        default: "2024"
+        default: "2025"
+        type: string
 
 permissions:
   contents: read
+
+concurrency:
+  group: atlas-schedule-${{ inputs.season || 'tests' }}
+  cancel-in-progress: false
 
 jobs:
   schedule-tests:
@@ -50,6 +55,7 @@ jobs:
       id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
+      SEASON: ${{ inputs.season }}
     steps:
       - uses: actions/checkout@v4
 
@@ -72,27 +78,50 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build historical schedules
-        env:
-          SEASONS: ${{ inputs.seasons }}
+      - name: Validate isolated season input
+        shell: bash
         run: |
-          mkdir -p build
-          args=()
-          IFS=',' read -ra season_list <<< "$SEASONS"
-          for season in "${season_list[@]}"; do args+=(--season "$season"); done
-          python scripts/build_historical_schedule.py "${args[@]}" --output build/
+          set -euo pipefail
+          [[ "$SEASON" =~ ^20[0-9]{2}$ ]] || {
+            echo "Season must be one four-digit MLB season."
+            exit 1
+          }
 
-      - name: Publish validated schedule artifacts to GCS
-        env:
-          GCS_DESTINATION: gs://atlas-mlb-data-brian-4817/builds/schedule/${{ github.sha }}/
+      - name: Build one historical schedule
         run: |
-          gcloud storage cp --recursive build/ "$GCS_DESTINATION"
+          mkdir -p "build/$SEASON"
+          python scripts/build_historical_schedule.py \
+            --season "$SEASON" \
+            --output "build/$SEASON/"
+
+      - name: Verify manifest contains only the requested season
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          season = int(os.environ["SEASON"])
+          manifest = json.loads(
+              Path(f"build/{season}/schedule_manifest.json").read_text()
+          )
+          assert manifest["seasons"] == [season], manifest["seasons"]
+          assert manifest["required_game_type"] == "R"
+          PY
+
+      - name: Publish immutable season-addressed schedule artifacts
+        env:
+          GCS_DESTINATION: gs://atlas-mlb-data-brian-4817/data/builds/schedules/mlb/${{ inputs.season }}/${{ github.sha }}/${{ github.run_id }}/
+        run: |
+          set -euo pipefail
+          gcloud storage cp --recursive --no-clobber "build/$SEASON/" "$GCS_DESTINATION"
           for artifact in canonical_schedule.parquet schedule_history.parquet rescheduled_games_audit.csv schedule_validation.json schedule_manifest.json; do
             gcloud storage ls "${GCS_DESTINATION}${artifact}"
           done
 
-      - name: Upload schedule artifacts
+      - name: Upload isolated schedule artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: atlas-historical-schedule
-          path: build/
+          name: atlas-${{ inputs.season }}-historical-schedule-${{ github.run_id }}
+          path: build/${{ inputs.season }}/
+          retention-days: 90
