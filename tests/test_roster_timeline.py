@@ -98,3 +98,33 @@ def test_missing_team_history_is_not_inferred_from_game_appearances():
     games.loc[:, "team"] = "PIT"
     with pytest.raises(ValueError, match="no roster event history"):
         build_pregame_roster_snapshots(_events(), games)
+
+
+def test_event_retrieved_after_first_pitch_is_deferred_until_later_game():
+    events = _events().iloc[[0]].copy()
+    delayed = events.iloc[0].copy()
+    delayed["event_id"] = "delayed-il"
+    delayed["event_type"] = "injured_list"
+    delayed["effective_at"] = "2024-04-02T14:00:00Z"
+    delayed["source_retrieved_at"] = "2024-04-03T22:00:00Z"
+    delayed["active_roster"] = False
+    delayed["available"] = False
+    delayed["injury_status"] = "10-day IL"
+    delayed["roster_status"] = "injured_list"
+    events = pd.concat([events, delayed.to_frame().T], ignore_index=True)
+    games = pd.DataFrame(
+        [
+            {"game_pk": 20, "game_start_at": "2024-04-03T20:00:00Z", "season": 2024, "team": "CIN"},
+            {"game_pk": 21, "game_start_at": "2024-04-04T20:00:00Z", "season": 2024, "team": "CIN"},
+        ]
+    )
+
+    snapshots = build_pregame_roster_snapshots(events, games)
+
+    before_source = snapshots.loc[snapshots["game_pk"] == 20].iloc[0]
+    after_source = snapshots.loc[snapshots["game_pk"] == 21].iloc[0]
+    assert bool(before_source["active_roster"]) is True
+    assert before_source["last_event_id"] == "opening-1"
+    assert bool(after_source["active_roster"]) is False
+    assert after_source["last_event_id"] == "delayed-il"
+    assert snapshots["pregame_safe"].all()
