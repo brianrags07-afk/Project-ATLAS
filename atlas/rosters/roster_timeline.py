@@ -59,6 +59,15 @@ def _missing(columns: Iterable[str], required: set[str]) -> list[str]:
     return sorted(required.difference(columns))
 
 
+def _has_explicit_timezone(value: Any) -> bool:
+    if pd.isna(value):
+        return True
+    try:
+        return pd.Timestamp(value).tzinfo is not None
+    except (TypeError, ValueError):
+        return True
+
+
 def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
     """Return a deterministic readiness verdict for normalized roster events."""
     errors: list[str] = []
@@ -71,6 +80,10 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
         }
 
     normalized = events.copy()
+    for column in ("effective_at", "source_retrieved_at"):
+        naive = ~normalized[column].map(_has_explicit_timezone)
+        if naive.any():
+            errors.append(f"{column} contains timezone-naive timestamps")
     normalized["effective_at"] = pd.to_datetime(
         normalized["effective_at"], utc=True, errors="coerce"
     )
@@ -167,6 +180,16 @@ def build_pregame_roster_snapshots(
     for column in ("game_pk", "game_start_at", "season", "team"):
         if games[column].isna().any():
             raise ValueError(f"team_games {column} contains null or invalid values")
+    duplicate_team_games = games.duplicated(["game_pk", "team"], keep=False)
+    if duplicate_team_games.any():
+        keys = (
+            games.loc[duplicate_team_games, ["game_pk", "team"]]
+            .drop_duplicates()
+            .astype(str)
+            .agg("/".join, axis=1)
+            .tolist()
+        )
+        raise ValueError("duplicate team-game keys: " + ", ".join(sorted(keys)))
 
     event_rows = event_rows.sort_values(
         ["season", "team", "effective_at", "source_retrieved_at", "event_id"],
