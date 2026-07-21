@@ -100,6 +100,13 @@ def test_empty_schema_correct_event_ledger_is_not_ready():
     assert any("ledger is empty" in error for error in report["errors"])
 
 
+def test_source_may_be_known_before_event_becomes_effective():
+    events = _events().iloc[[0]].copy()
+    events.loc[:, "source_retrieved_at"] = "2024-03-26T12:00:00Z"
+    report = certify_roster_events(events)
+    assert report["verdict"] == "certified"
+
+
 def test_first_player_event_must_establish_organization_membership():
     events = _events().iloc[[0]].drop(columns=["organization_member"])
     report = certify_roster_events(events)
@@ -170,3 +177,11 @@ def test_empty_game_request_returns_stable_empty_schema():
     snapshots = build_pregame_roster_snapshots(_events(), games)
     assert snapshots.empty
     assert {"game_pk", "player_id", "pregame_safe"}.issubset(snapshots.columns)
+
+
+@pytest.mark.parametrize("column", ["game_pk", "game_start_at", "season", "team"])
+def test_null_or_invalid_schedule_identity_is_rejected(column):
+    games = _games().iloc[[0]].copy()
+    games.loc[:, column] = None
+    with pytest.raises(ValueError, match=column):
+        build_pregame_roster_snapshots(_events(), games)
