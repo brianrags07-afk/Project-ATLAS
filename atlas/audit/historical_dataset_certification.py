@@ -12,11 +12,21 @@ from atlas.schedule.mlb_schedule_reference import extract_raw_games
 
 def _schedule_index(
     schedule_payload: Mapping[str, Any] | Iterable[Mapping[str, Any]],
+    *,
+    season: int,
 ) -> tuple[dict[int, Mapping[str, Any]], set[int]]:
     """Index either a raw MLB schedule payload or canonical schedule rows."""
     if isinstance(schedule_payload, Mapping) and "dates" in schedule_payload:
         rows = extract_raw_games(schedule_payload)
-        regular = [row for row in rows if row.get("gameType") == "R"]
+        regular = [
+            row
+            for row in rows
+            if row.get("gameType") == "R"
+            and (
+                row.get("season") is None
+                or int(row["season"]) == season
+            )
+        ]
         by_pk = {int(row["gamePk"]): row for row in regular}
         cancelled = {
             game_pk
@@ -35,7 +45,12 @@ def _schedule_index(
     for row in canonical_rows:
         game_type = row.get("game_type_code", row.get("gameType"))
         game_pk = row.get("game_pk", row.get("gamePk"))
-        if game_type != "R" or game_pk is None:
+        row_season = row.get("season")
+        if (
+            game_type != "R"
+            or game_pk is None
+            or (row_season is not None and int(row_season) != season)
+        ):
             continue
         key = int(game_pk)
         by_pk[key] = row
@@ -59,7 +74,9 @@ def certify_historical_datasets(
     *,
     season: int,
 ) -> dict[str, Any]:
-    schedule_by_pk, cancelled = _schedule_index(schedule_payload)
+    schedule_by_pk, cancelled = _schedule_index(
+        schedule_payload, season=season
+    )
     expected = set(schedule_by_pk) - cancelled
 
     game = master.loc[master["atlas_season"] == season].copy()
