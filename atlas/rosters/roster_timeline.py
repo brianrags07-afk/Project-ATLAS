@@ -150,14 +150,19 @@ def build_pregame_roster_snapshots(
         if relevant is None or relevant.empty:
             raise ValueError(f"no roster event history for season={season}, team={team}")
 
-        state: dict[Any, dict[str, Any]] = {}
-        event_list = list(relevant.to_dict("records"))
-        cursor = 0
-
         for game in game_group.to_dict("records"):
             game_start = game["game_start_at"]
-            while cursor < len(event_list) and event_list[cursor]["effective_at"] <= game_start:
-                event = event_list[cursor]
+            # Reconstruct the as-known state at each first pitch. An event is
+            # unusable until both the real-world change and its source record
+            # were available. Rebuilding from the eligible subset also lets a
+            # delayed source become usable for later games without leaking it
+            # into earlier snapshots.
+            eligible = relevant.loc[
+                (relevant["effective_at"] <= game_start)
+                & (relevant["source_retrieved_at"] <= game_start)
+            ]
+            state: dict[Any, dict[str, Any]] = {}
+            for event in eligible.to_dict("records"):
                 player_state = state.setdefault(
                     event["player_id"], {column: None for column in STATE_COLUMNS}
                 )
@@ -173,8 +178,6 @@ def build_pregame_roster_snapshots(
                         "last_source_retrieved_at": event["source_retrieved_at"],
                     }
                 )
-                cursor += 1
-
             for player_id, player_state in state.items():
                 if player_state.get("organization_member") is not True:
                     continue
