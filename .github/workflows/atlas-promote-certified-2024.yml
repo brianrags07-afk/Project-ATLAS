@@ -1,0 +1,292 @@
+name: ATLAS Promote Certified 2024 Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type PROMOTE_CERTIFIED_2024 exactly"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  BUCKET: gs://atlas-mlb-data-brian-4817
+  STAGED_PREFIX: gs://atlas-mlb-data-brian-4817/data/staging/drive_handoff/terminal_score_propagation_20260721T105646Z
+  MASTER_GAME: gs://atlas-mlb-data-brian-4817/data/master/master_game_database.parquet
+  MASTER_TEAM: gs://atlas-mlb-data-brian-4817/data/master/team_game_state.parquet
+  CERTIFICATION_REPORT: gs://atlas-mlb-data-brian-4817/data/builds/certification/4ca4f4d176bffcb780b46c67dd62dcbec244d07d/29841671107/2024_staged_certification.json
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: atlas-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pandas pyarrow==23.0.1 requests
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Enforce manual confirmation and bucket protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ inputs.confirmation }}" = "PROMOTE_CERTIFIED_2024"
+          enabled="$(gcloud storage buckets describe "$BUCKET" --format='value(versioning_enabled)')"
+          test "${enabled,,}" = "true" || {
+            echo "Object Versioning must be enabled before promotion."
+            exit 1
+          }
+
+      - name: Verify certified sources and report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs reports post_promotion
+
+          check_generation() {
+            uri="$1"
+            expected="$2"
+            actual="$(gcloud storage objects describe "$uri" --format='value(generation)')"
+            test "$actual" = "$expected" || {
+              echo "Generation mismatch for $uri: expected $expected, observed $actual"
+              exit 1
+            }
+          }
+
+          check_generation "$STAGED_PREFIX/master_game_database.parquet" "1784634697605793"
+          check_generation "$STAGED_PREFIX/team_game_state.parquet" "1784634697902756"
+          check_generation "$STAGED_PREFIX/mlb_schedule_2024_regular.json" "1784634698314459"
+          check_generation "$STAGED_PREFIX/atlas_gcs_transfer_manifest.json" "1784634699120307"
+          check_generation "$BUCKET/data/master/master_pitch_database.parquet" "1784499053013203"
+
+          gcloud storage cp "$STAGED_PREFIX/master_game_database.parquet" inputs/master_game_database.parquet
+          gcloud storage cp "$STAGED_PREFIX/team_game_state.parquet" inputs/team_game_state.parquet
+          gcloud storage cp "$STAGED_PREFIX/mlb_schedule_2024_regular.json" inputs/mlb_schedule_2024_regular.json
+          gcloud storage cp "$BUCKET/data/master/master_pitch_database.parquet" inputs/master_pitch_database.parquet
+          gcloud storage cp "$CERTIFICATION_REPORT" inputs/2024_staged_certification.json
+
+          printf '%s  %s\n' \
+            "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3" \
+            "inputs/master_game_database.parquet" \
+            "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f" \
+            "inputs/team_game_state.parquet" \
+            "04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7" \
+            "inputs/mlb_schedule_2024_regular.json" \
+            "5d258c6c63dc9bc7c8a149d6fb8e1bfa56b06c1ffe73948254705888610ebc08" \
+            "inputs/master_pitch_database.parquet" | sha256sum --check
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("inputs/2024_staged_certification.json").read_text())
+          assert report["verdict"] == "certified_with_documented_exceptions"
+          assert report["errors"] == []
+          assert report["provenance"]["github"]["run_id"] == "29841671107"
+          assert report["hashes"]["master"] == "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3"
+          assert report["hashes"]["team"] == "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f"
+          PY
+
+      - name: Snapshot current master generations
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_prefix="$BUCKET/data/backups/promotions/${GITHUB_RUN_ID}"
+          old_master_generation="$(gcloud storage objects describe "$MASTER_GAME" --format='value(generation)')"
+          old_team_generation="$(gcloud storage objects describe "$MASTER_TEAM" --format='value(generation)')"
+
+          gcloud storage cp \
+            "${MASTER_GAME}#${old_master_generation}" \
+            "$backup_prefix/master_game_database.parquet" \
+            --if-generation-match=0
+          gcloud storage cp \
+            "${MASTER_TEAM}#${old_team_generation}" \
+            "$backup_prefix/team_game_state.parquet" \
+            --if-generation-match=0
+
+          {
+            echo "OLD_MASTER_GENERATION=$old_master_generation"
+            echo "OLD_TEAM_GENERATION=$old_team_generation"
+            echo "BACKUP_PREFIX=$backup_prefix"
+          } >> "$GITHUB_ENV"
+
+      - name: Promote with destination generation preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud storage cp \
+            "$STAGED_PREFIX/master_game_database.parquet" \
+            "$MASTER_GAME" \
+            --if-generation-match="$OLD_MASTER_GENERATION"
+          echo "MASTER_PROMOTED=true" >> "$GITHUB_ENV"
+          gcloud storage cp \
+            "$STAGED_PREFIX/team_game_state.parquet" \
+            "$MASTER_TEAM" \
+            --if-generation-match="$OLD_TEAM_GENERATION"
+          echo "TEAM_PROMOTED=true" >> "$GITHUB_ENV"
+
+      - name: Verify promoted objects and certify live 2024 data
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          gcloud storage cp "$MASTER_GAME" post_promotion/master_game_database.parquet
+          gcloud storage cp "$MASTER_TEAM" post_promotion/team_game_state.parquet
+          cp inputs/master_pitch_database.parquet post_promotion/master_pitch_database.parquet
+          cp inputs/mlb_schedule_2024_regular.json post_promotion/mlb_schedule_2024_regular.json
+
+          printf '%s  %s\n' \
+            "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3" \
+            "post_promotion/master_game_database.parquet" \
+            "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f" \
+            "post_promotion/team_game_state.parquet" | sha256sum --check
+
+          new_master_generation="$(gcloud storage objects describe "$MASTER_GAME" --format='value(generation)')"
+          new_team_generation="$(gcloud storage objects describe "$MASTER_TEAM" --format='value(generation)')"
+          export NEW_MASTER_GENERATION="$new_master_generation"
+          export NEW_TEAM_GENERATION="$new_team_generation"
+          {
+            echo "NEW_MASTER_GENERATION=$new_master_generation"
+            echo "NEW_TEAM_GENERATION=$new_team_generation"
+          } >> "$GITHUB_ENV"
+
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          provenance = {
+              "schema_version": "1",
+              "certified_at_utc": datetime.now(timezone.utc).isoformat(),
+              "github": {
+                  "repository": os.environ["GITHUB_REPOSITORY"],
+                  "commit_sha": os.environ["GITHUB_SHA"],
+                  "run_id": os.environ["GITHUB_RUN_ID"],
+                  "workflow": os.environ["GITHUB_WORKFLOW"],
+                  "ref": os.environ["GITHUB_REF"],
+              },
+              "promotion": {
+                  "source_certification": os.environ["CERTIFICATION_REPORT"],
+                  "backup_prefix": os.environ["BACKUP_PREFIX"],
+              },
+              "inputs": {
+                  "master": {
+                      "gcs_uri": os.environ["MASTER_GAME"],
+                      "generation": os.environ["NEW_MASTER_GENERATION"],
+                      "sha256": "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3",
+                  },
+                  "team_state": {
+                      "gcs_uri": os.environ["MASTER_TEAM"],
+                      "generation": os.environ["NEW_TEAM_GENERATION"],
+                      "sha256": "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f",
+                  },
+              },
+          }
+          Path("post_promotion/certification_provenance.json").write_text(
+              json.dumps(provenance, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python scripts/certify_historical_datasets.py \
+            --schedule post_promotion/mlb_schedule_2024_regular.json \
+            --master post_promotion/master_game_database.parquet \
+            --pitch post_promotion/master_pitch_database.parquet \
+            --team-state post_promotion/team_game_state.parquet \
+            --season 2024 \
+            --provenance post_promotion/certification_provenance.json \
+            --output reports/2024_promoted_certification.json
+
+      - name: Build and publish rollback manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          manifest = {
+              "schema_version": "1",
+              "operation": "promote_certified_2024_terminal_score_repair",
+              "promoted_at_utc": datetime.now(timezone.utc).isoformat(),
+              "github": {
+                  "repository": os.environ["GITHUB_REPOSITORY"],
+                  "commit_sha": os.environ["GITHUB_SHA"],
+                  "run_id": os.environ["GITHUB_RUN_ID"],
+              },
+              "source_certification": os.environ["CERTIFICATION_REPORT"],
+              "backup_prefix": os.environ["BACKUP_PREFIX"],
+              "objects": {
+                  "master_game_database.parquet": {
+                      "old_generation": os.environ["OLD_MASTER_GENERATION"],
+                      "new_generation": os.environ["NEW_MASTER_GENERATION"],
+                      "sha256": "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3",
+                  },
+                  "team_game_state.parquet": {
+                      "old_generation": os.environ["OLD_TEAM_GENERATION"],
+                      "new_generation": os.environ["NEW_TEAM_GENERATION"],
+                      "sha256": "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f",
+                  },
+              },
+              "pitch_database_changed": False,
+          }
+          Path("reports/promotion_manifest.json").write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Publish promotion evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          destination="$BUCKET/data/builds/promotions/${GITHUB_SHA}/${GITHUB_RUN_ID}"
+          gcloud storage cp --no-clobber reports/promotion_manifest.json "$destination/promotion_manifest.json"
+          gcloud storage cp --no-clobber reports/2024_promoted_certification.json "$destination/2024_promoted_certification.json"
+
+      - name: Roll back if promotion verification fails
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${MASTER_PROMOTED:-false}" = "true" ]]; then
+            current="$(gcloud storage objects describe "$MASTER_GAME" --format='value(generation)')"
+            gcloud storage cp \
+              "${MASTER_GAME}#${OLD_MASTER_GENERATION}" \
+              "$MASTER_GAME" \
+              --if-generation-match="$current"
+          fi
+          if [[ "${TEAM_PROMOTED:-false}" = "true" ]]; then
+            current="$(gcloud storage objects describe "$MASTER_TEAM" --format='value(generation)')"
+            gcloud storage cp \
+              "${MASTER_TEAM}#${OLD_TEAM_GENERATION}" \
+              "$MASTER_TEAM" \
+              --if-generation-match="$current"
+          fi
+          echo "Promotion failed verification and promoted objects were rolled back."
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: atlas-2024-promotion-evidence
+          path: reports/
+          retention-days: 90
