@@ -1,0 +1,108 @@
+name: ATLAS Certify Staged 2024 Data
+
+on:
+  pull_request:
+    paths:
+      - "atlas/audit/terminal_score_propagation.py"
+      - "atlas/audit/historical_dataset_certification.py"
+      - "scripts/repair_terminal_score_propagation.py"
+      - "scripts/certify_historical_datasets.py"
+      - "tests/test_historical_dataset_certification.py"
+      - ".github/workflows/atlas-certify-staged-2024.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest requests
+      - run: python -m pytest tests/test_historical_dataset_certification.py -q
+
+  certify-staged-2024:
+    if: github.event_name == 'workflow_dispatch'
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify immutable source generations
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_generation() {
+            uri="$1"
+            expected="$2"
+            actual="$(gcloud storage objects describe "$uri" --format='value(generation)')"
+            test "$actual" = "$expected" || {
+              echo "Generation mismatch for $uri: expected $expected, observed $actual"
+              exit 1
+            }
+          }
+          prefix="gs://atlas-mlb-data-brian-4817/data/staging/drive_handoff/terminal_score_propagation_20260721T105646Z"
+          check_generation "$prefix/master_game_database.parquet" "1784634697605793"
+          check_generation "$prefix/team_game_state.parquet" "1784634697902756"
+          check_generation "$prefix/mlb_schedule_2024_regular.json" "1784634698314459"
+          check_generation "gs://atlas-mlb-data-brian-4817/data/master/master_pitch_database.parquet" "1784499053013203"
+
+      - name: Download staged inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs reports
+          prefix="gs://atlas-mlb-data-brian-4817/data/staging/drive_handoff/terminal_score_propagation_20260721T105646Z"
+          gcloud storage cp "$prefix/master_game_database.parquet" inputs/master_game_database.parquet
+          gcloud storage cp "$prefix/team_game_state.parquet" inputs/team_game_state.parquet
+          gcloud storage cp "$prefix/mlb_schedule_2024_regular.json" inputs/mlb_schedule_2024_regular.json
+          gcloud storage cp "gs://atlas-mlb-data-brian-4817/data/master/master_pitch_database.parquet" inputs/master_pitch_database.parquet
+
+      - name: Verify SHA-256 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd inputs
+          printf '%s  %s\n' "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3" "master_game_database.parquet" > SHA256SUMS
+          printf '%s  %s\n' "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f" "team_game_state.parquet" >> SHA256SUMS
+          printf '%s  %s\n' "04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7" "mlb_schedule_2024_regular.json" >> SHA256SUMS
+          printf '%s  %s\n' "5d258c6c63dc9bc7c8a149d6fb8e1bfa56b06c1ffe73948254705888610ebc08" "master_pitch_database.parquet" >> SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Certify staged 2024 universe
+        run: |
+          python scripts/certify_historical_datasets.py             --schedule inputs/mlb_schedule_2024_regular.json             --master inputs/master_game_database.parquet             --pitch inputs/master_pitch_database.parquet             --team-state inputs/team_game_state.parquet             --season 2024             --output reports/2024_staged_certification.json
+
+      - name: Publish commit-addressed certification report
+        env:
+          REPORT_DESTINATION: gs://atlas-mlb-data-brian-4817/data/builds/certification/${{ github.sha }}/${{ github.run_id }}/
+        run: |
+          gcloud storage cp --no-clobber reports/2024_staged_certification.json "$REPORT_DESTINATION"
+          gcloud storage ls "${REPORT_DESTINATION}2024_staged_certification.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-staged-certification
+          path: reports/
