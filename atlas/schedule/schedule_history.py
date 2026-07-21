@@ -123,43 +123,33 @@ def build_schedule_change_audit(
                 "home_team_name": representative.get("home_team_name"),
                 "original_scheduled_dates": "|".join(
                     sorted(
-                        set(
-                            filter(
-                                None,
-                                [
-                                    _joined_dates(
-                                        rows,
-                                        ("rescheduledFromDate", "resumedFromDate"),
-                                    ),
-                                    *[
-                                        str(row.get("official_date"))
-                                        for row in rows
-                                        if row.get("game_state_category")
-                                        in {"postponed", "suspended"}
-                                        and row.get("official_date")
-                                    ],
-                                ],
+                        {
+                            str(value)
+                            for row in rows
+                            for value in (
+                                row.get("rescheduledFromDate"),
+                                row.get("resumedFromDate"),
+                                row.get("official_date")
+                                if row.get("game_state_category")
+                                in {"postponed", "suspended"}
+                                else None,
                             )
-                        )
+                            if value not in (None, "")
+                        }
                     )
                 ),
                 "rescheduled_dates": "|".join(
                     sorted(
-                        set(
-                            filter(
-                                None,
-                                [
-                                    _joined_dates(
-                                        rows, ("rescheduleGameDate", "resumeGameDate")
-                                    ),
-                                    *[
-                                        str(row.get("official_date"))
-                                        for row in final_rows
-                                        if row.get("official_date")
-                                    ],
-                                ],
+                        {
+                            str(value)
+                            for row in rows
+                            for value in (
+                                row.get("rescheduleGameDate"),
+                                row.get("resumeGameDate"),
+                                row.get("official_date") if row.get("is_final") else None,
                             )
-                        )
+                            if value not in (None, "")
+                        }
                     )
                 ),
                 "published_official_date": representative.get("official_date"),
