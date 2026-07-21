@@ -164,7 +164,7 @@ def build_historical_schedule(
     rows.sort(key=lambda row: (
         row.get("game_date_utc") or "",
         row.get("official_date") or "",
-        row.get("game_pk") if row.get("game_pk") is not None else -1,
+        row.get("game_pk") if row.get("game_pk") is not None else float("inf"),
     ))
     validation = validate_schedule(rows, duplicate_count=raw_duplicate_count)
     validation["validated_at_utc"] = retrieved_at_utc

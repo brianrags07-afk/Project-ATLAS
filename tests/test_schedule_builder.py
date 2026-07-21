@@ -42,7 +42,7 @@ def _fetcher(*_args, **_kwargs):
 
 def test_validation_requires_schema_and_rejects_unknown_status():
     row = normalize_game_row(
-        _game(1), retrieved_at_utc="fixed", source_url="source"
+        _game(1), retrieved_at_utc="2024-12-01T00:00:00+00:00", source_url="source"
     )
     assert validate_schedule([row])["status"] == "passed"
     row["detailed_state"] = "Not a published state"
@@ -57,7 +57,9 @@ def test_validation_requires_schema_and_rejects_unknown_status():
 
 
 def test_duplicate_game_pk_detection():
-    row = normalize_game_row(_game(1), retrieved_at_utc="fixed", source_url="source")
+    row = normalize_game_row(
+        _game(1), retrieved_at_utc="2024-12-01T00:00:00+00:00", source_url="source"
+    )
     result = validate_schedule([row, dict(row)], duplicate_count=0)
     assert result["status"] == "failed"
     assert result["duplicate_count"] == 1
