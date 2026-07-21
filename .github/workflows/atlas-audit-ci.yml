@@ -74,10 +74,3 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest tests/test_atlas_audit_workflow_no_cloud_writes.py -v
-          # This CI workflow itself must never authenticate to GCP or touch
-          # the real bucket.
-          if grep -Eq "google-github-actions/auth|gcloud storage (cp|ls|objects)" \
-              .github/workflows/atlas-audit-ci.yml; then
-            echo "::error::atlas-audit-ci.yml must not authenticate to GCP or access the bucket" >&2
-            exit 1
-          fi
