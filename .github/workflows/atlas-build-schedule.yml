@@ -114,9 +114,16 @@ jobs:
           GCS_DESTINATION: gs://atlas-mlb-data-brian-4817/data/builds/schedules/mlb/${{ inputs.season }}/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
         run: |
           set -euo pipefail
-          gcloud storage cp --recursive --no-clobber "build/$SEASON/" "$GCS_DESTINATION"
+          mkdir -p published-readback
           for artifact in canonical_schedule.parquet schedule_history.parquet rescheduled_games_audit.csv schedule_validation.json schedule_manifest.json; do
-            gcloud storage ls "${GCS_DESTINATION}${artifact}"
+            source="build/$SEASON/$artifact"
+            destination="${GCS_DESTINATION}${artifact}"
+            gcloud storage cp --no-clobber "$source" "$destination"
+            gcloud storage cp "$destination" "published-readback/$artifact"
+            cmp --silent "$source" "published-readback/$artifact" || {
+              echo "Published readback mismatch: $artifact"
+              exit 1
+            }
           done
 
       - name: Upload isolated schedule artifacts
