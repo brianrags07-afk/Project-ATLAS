@@ -7,6 +7,14 @@ on:
       - "scripts/certify_historical_datasets.py"
       - "tests/test_historical_dataset_certification.py"
       - ".github/workflows/atlas-certify-2025.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "atlas/audit/historical_dataset_certification.py"
+      - "scripts/certify_historical_datasets.py"
+      - "tests/test_historical_dataset_certification.py"
+      - ".github/workflows/atlas-certify-2025.yml"
   workflow_dispatch:
 
 permissions:
@@ -38,7 +46,7 @@ jobs:
       - run: python -m pytest tests/test_historical_dataset_certification.py -q
 
   certify-2025:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request'
     needs: certification-tests
     runs-on: ubuntu-latest
     permissions:
