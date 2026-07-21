@@ -78,6 +78,9 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
         normalized["source_retrieved_at"], utc=True, errors="coerce"
     )
 
+    if normalized.empty:
+        errors.append("roster event ledger is empty")
+
     if normalized["event_id"].isna().any():
         errors.append("event_id contains null values")
     duplicate_ids = normalized.loc[
