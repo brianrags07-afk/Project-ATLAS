@@ -50,6 +50,10 @@ def test_validation_requires_schema_and_rejects_unknown_status():
     assert result["status"] == "failed"
     assert "invalid schedule statuses detected" in result["errors"]
     assert set(REQUIRED_COLUMNS) == set(row)
+    del row["game_pk"]
+    schema_result = validate_schedule([row])
+    assert schema_result["status"] == "failed"
+    assert "required columns are missing" in schema_result["errors"]
 
 
 def test_duplicate_game_pk_detection():
