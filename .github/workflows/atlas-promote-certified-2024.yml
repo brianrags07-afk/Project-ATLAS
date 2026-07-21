@@ -99,8 +99,9 @@ jobs:
           assert report["verdict"] == "certified_with_documented_exceptions"
           assert report["errors"] == []
           assert report["provenance"]["github"]["run_id"] == "29841671107"
-          assert report["hashes"]["master"] == "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3"
-          assert report["hashes"]["team"] == "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f"
+          inputs = report["provenance"]["inputs"]
+          assert inputs["master"]["sha256"] == "6849edaea95d48f5187a61d1986527d87e5ed8ebc7b0d0d0d953854a005356e3"
+          assert inputs["team_state"]["sha256"] == "cb8d98bb448140769c372ac7ecc71e4b6839067c9d47ec8616f05a0076c6b57f"
           PY
 
       - name: Snapshot current master generations
