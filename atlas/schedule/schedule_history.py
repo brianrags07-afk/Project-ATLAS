@@ -94,8 +94,17 @@ def build_schedule_change_audit(
 ) -> list[dict[str, Any]]:
     """Return one audit row per game with a reschedule or resume field."""
     grouped: dict[Any, list[Mapping[str, Any]]] = defaultdict(list)
+    affected_game_pks = {
+        row.get("game_pk")
+        for row in history_rows
+        if row.get("game_pk") is not None
+        and (
+            any(row.get(field) not in (None, "") for field in SCHEDULE_CHANGE_FIELDS)
+            or row.get("game_state_category") in {"postponed", "suspended"}
+        )
+    }
     for row in history_rows:
-        if any(row.get(field) not in (None, "") for field in SCHEDULE_CHANGE_FIELDS):
+        if row.get("game_pk") in affected_game_pks:
             grouped[row.get("game_pk")].append(row)
 
     audit: list[dict[str, Any]] = []
@@ -112,11 +121,46 @@ def build_schedule_change_audit(
                 "away_team_name": representative.get("away_team_name"),
                 "home_team_id": representative.get("home_team_id"),
                 "home_team_name": representative.get("home_team_name"),
-                "original_scheduled_dates": _joined_dates(
-                    rows, ("rescheduledFromDate", "resumedFromDate")
+                "original_scheduled_dates": "|".join(
+                    sorted(
+                        set(
+                            filter(
+                                None,
+                                [
+                                    _joined_dates(
+                                        rows,
+                                        ("rescheduledFromDate", "resumedFromDate"),
+                                    ),
+                                    *[
+                                        str(row.get("official_date"))
+                                        for row in rows
+                                        if row.get("game_state_category")
+                                        in {"postponed", "suspended"}
+                                        and row.get("official_date")
+                                    ],
+                                ],
+                            )
+                        )
+                    )
                 ),
-                "rescheduled_dates": _joined_dates(
-                    rows, ("rescheduleGameDate", "resumeGameDate")
+                "rescheduled_dates": "|".join(
+                    sorted(
+                        set(
+                            filter(
+                                None,
+                                [
+                                    _joined_dates(
+                                        rows, ("rescheduleGameDate", "resumeGameDate")
+                                    ),
+                                    *[
+                                        str(row.get("official_date"))
+                                        for row in final_rows
+                                        if row.get("official_date")
+                                    ],
+                                ],
+                            )
+                        )
+                    )
                 ),
                 "published_official_date": representative.get("official_date"),
                 "was_postponed": any(
