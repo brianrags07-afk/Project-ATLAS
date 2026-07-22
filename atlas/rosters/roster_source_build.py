@@ -21,7 +21,9 @@ def schedule_team_windows(rows: Iterable[Mapping[str, Any]], season: int) -> pd.
     for row in rows:
         if int(row.get("season") or 0) != int(season) or row.get("game_type_code") != "R":
             continue
-        game_date = pd.Timestamp(row["game_date_utc"]).date().isoformat()
+        game_date = row.get("official_date")
+        if not game_date:
+            raise ValueError("regular-season schedule row is missing official_date")
         for side in ("home", "away"):
             records.append({"team_id": row[f"{side}_team_id"], "game_date": game_date})
     frame = pd.DataFrame(records)
@@ -85,6 +87,9 @@ def write_roster_source_bundle(bundle: Mapping[str, Any], output_dir: str | Path
     artifacts[raw_path.name] = {"sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest()}
     manifest = {"season": int(season), "game_type": "R", "retrieved_at_utc": bundle["retrieved_at_utc"],
                 "team_count": len(bundle["team_windows"]), "artifacts": artifacts,
+                "schedule_source_sha256": bundle["schedule_source_sha256"],
+                "schedule_unique_games": bundle["schedule_unique_games"],
+                "schedule_certification_verdict": bundle["schedule_certification_verdict"],
                 "promotion_status": "build_only_not_canonical"}
     manifest_path = output / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, sort_keys=True, indent=2))
