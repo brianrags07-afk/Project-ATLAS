@@ -8,6 +8,7 @@ on:
       - "scripts/build_historical_roster_events.py"
       - "tests/test_roster_event_conversion.py"
       - "tests/test_build_historical_roster_events.py"
+      - "tests/test_roster_reconciliation.py"
       - ".github/workflows/atlas-build-roster-events.yml"
 
 permissions:
@@ -24,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pandas pyarrow==23.0.1 pytest requests
-      - run: python -m pytest tests/test_roster_event_conversion.py tests/test_build_historical_roster_events.py tests/test_roster_timeline.py -q
+      - run: python -m pytest tests/test_roster_event_conversion.py tests/test_build_historical_roster_events.py tests/test_roster_timeline.py tests/test_roster_reconciliation.py -q
 
   build:
     if: github.event_name == 'workflow_dispatch'
