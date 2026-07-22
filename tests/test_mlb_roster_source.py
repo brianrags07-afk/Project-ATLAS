@@ -21,6 +21,19 @@ def test_roster_preserves_status_position_and_source_lineage():
     frame = normalize_roster({"roster": [{"person": {"id": 7, "fullName": "A Player"}, "position": {"code": "1", "name": "Pitcher"}, "status": {"code": "A", "description": "Active"}}]}, season=2024, team_id=113, as_of_date="2024-03-28", roster_type="active", retrieved_at_utc="2026-07-22T00:00:00Z")
     assert frame.iloc[0]["status_code"] == "A"
     assert frame.iloc[0]["source_record_sha256"]
+    assert bool(frame.iloc[0]["player_identity_known"]) is True
+
+
+def test_repeated_and_identity_incomplete_roster_rows_are_preserved():
+    known = {"person": {"id": 7, "fullName": "A Player"}}
+    unknown = {"person": {}, "status": {"description": "Source identity missing"}}
+    frame = normalize_roster({"roster": [known, known, unknown]}, season=2024,
+        team_id=113, as_of_date="2024-03-28", roster_type="40Man",
+        retrieved_at_utc="2026-07-22T00:00:00Z")
+    assert len(frame) == 3
+    assert frame["roster_key"].is_unique
+    assert sorted(frame.loc[frame["player_id"] == 7, "source_occurrence"].tolist()) == [1, 2]
+    assert frame["player_identity_known"].tolist().count(False) == 1
 
 
 def test_rejects_timezone_naive_retrieval_time():

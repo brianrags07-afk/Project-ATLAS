@@ -66,12 +66,20 @@ def normalize_roster(
 ) -> pd.DataFrame:
     retrieved = _retrieved_at(retrieved_at_utc)
     rows = []
+    occurrences: dict[tuple[Any, str], int] = {}
     for entry in payload.get("roster", []):
         person, position, status = entry.get("person") or {}, entry.get("position") or {}, entry.get("status") or {}
         raw_hash = _hash(entry)
+        occurrence_key = (person.get("id"), raw_hash)
+        occurrence = occurrences.get(occurrence_key, 0) + 1
+        occurrences[occurrence_key] = occurrence
         rows.append({
             "season": int(season), "team_id": int(team_id), "as_of_date": str(as_of_date),
-            "roster_type": roster_type, "player_id": person.get("id"), "player_name": person.get("fullName"),
+            "roster_type": roster_type,
+            "roster_key": f"{team_id}:{as_of_date}:{roster_type}:{person.get('id')}:{raw_hash}:{occurrence}",
+            "source_occurrence": occurrence, "player_id": person.get("id"),
+            "player_identity_known": person.get("id") is not None,
+            "player_name": person.get("fullName"),
             "position_code": position.get("code"), "position_name": position.get("name"),
             "status_code": status.get("code"), "status_description": status.get("description"),
             "jersey_number": entry.get("jerseyNumber"), "source": SOURCE,
@@ -81,9 +89,9 @@ def normalize_roster(
     frame = pd.DataFrame(rows)
     if frame.empty:
         raise ValueError(f"empty {roster_type} roster for team {team_id} on {as_of_date}")
-    if frame["player_id"].isna().any() or frame.duplicated(["team_id", "as_of_date", "roster_type", "player_id"]).any():
-        raise ValueError("roster contains null player IDs or duplicate player keys")
-    return frame.sort_values("player_id").reset_index(drop=True)
+    if frame["roster_key"].duplicated().any():
+        raise AssertionError("roster row keys are not unique")
+    return frame.sort_values(["player_id", "roster_key"], na_position="last").reset_index(drop=True)
 
 
 def normalize_transactions(
