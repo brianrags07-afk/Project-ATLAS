@@ -25,55 +25,54 @@ STATUS_CODE_RULES = {
     "CU": {
         "description": "Recalled", "event_type": "recalled",
         "organization_member": True, "active_roster": True,
-        "available": True, "roster_status": "active", "team_side": "to",
+        "available": True, "roster_status": "active",
     },
     "OPT": {
         "description": "Optioned", "event_type": "optioned",
         "organization_member": True, "active_roster": False,
-        "available": False, "roster_status": "optioned", "team_side": "from",
+        "available": False, "roster_status": "optioned",
     },
     "DES": {
         "description": "Designated for Assignment",
         "event_type": "designated_for_assignment",
         "organization_member": True, "active_roster": False,
         "available": False, "roster_status": "designated_for_assignment",
-        "team_side": "from",
     },
     "DFA": {
         "description": "Declared Free Agency",
         "event_type": "declared_free_agency",
         "organization_member": False, "active_roster": False,
-        "available": False, "roster_status": "free_agent", "team_side": "from",
+        "available": False, "roster_status": "free_agent",
     },
     "OUT": {
         "description": "Outrighted", "event_type": "outrighted",
         "organization_member": True, "active_roster": False,
-        "available": False, "roster_status": "outrighted", "team_side": "from",
+        "available": False, "roster_status": "outrighted",
     },
     "REL": {
         "description": "Released", "event_type": "released",
         "organization_member": False, "active_roster": False,
-        "available": False, "roster_status": "released", "team_side": "from",
+        "available": False, "roster_status": "released",
     },
     "RET": {
         "description": "Retired", "event_type": "retired",
         "organization_member": False, "active_roster": False,
-        "available": False, "roster_status": "retired", "team_side": "from",
+        "available": False, "roster_status": "retired",
     },
     "SFA": {
         "description": "Signed as Free Agent", "event_type": "signed_free_agent",
         "organization_member": True, "active_roster": None,
-        "available": None, "roster_status": "signed", "team_side": "to",
+        "available": None, "roster_status": "signed",
     },
     "SGN": {
         "description": "Signed", "event_type": "signed",
         "organization_member": True, "active_roster": None,
-        "available": None, "roster_status": "signed", "team_side": "to",
+        "available": None, "roster_status": "signed",
     },
     "SU": {
         "description": "Suspension", "event_type": "suspended",
         "organization_member": True, "active_roster": False,
-        "available": False, "roster_status": "suspended", "team_side": "from",
+        "available": False, "roster_status": "suspended",
     },
 }
 
@@ -101,8 +100,9 @@ def _team_lookup(teams: pd.DataFrame) -> dict[int, str]:
     return dict(zip(teams["team_id"].astype(int), teams["abbreviation"]))
 
 
-def _status_team_id(row: dict[str, Any], lookup: dict[int, str], side: str) -> int | None:
-    value = row.get(f"{side}_team_id")
+def _status_team_id(row: dict[str, Any], lookup: dict[int, str]) -> int | None:
+    """Return only the transaction object's explicit MLB club identity."""
+    value = row.get("team_id")
     if pd.isna(value) or int(value) not in lookup:
         return None
     return int(value)
@@ -151,8 +151,9 @@ def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[p
 def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Convert explicit transfers and allowlisted status facts; quarantine the rest."""
     lookup = _team_lookup(teams)
-    required = {"season", "transaction_id", "player_id", "from_team_id", "to_team_id",
-                "effective_date", "transaction_date", "type_code", "type_description",
+    required = {"season", "transaction_id", "player_id", "team_id",
+                "from_team_id", "to_team_id", "effective_date", "transaction_date",
+                "type_code", "type_description",
                 "source_retrieved_at", "source_record_sha256"}
     missing = required-set(transactions.columns)
     if missing:
@@ -204,10 +205,10 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
                 **row, "quarantine_reason": "type description does not match approved status meaning"
             })
             continue
-        team_id = _status_team_id(row, lookup, rule["team_side"])
+        team_id = _status_team_id(row, lookup)
         if team_id is None:
             quarantine_rows.append({
-                **row, "quarantine_reason": "status transaction has missing or ambiguous MLB team"
+                **row, "quarantine_reason": "status transaction missing official MLB club"
             })
             continue
         status_candidates.append({

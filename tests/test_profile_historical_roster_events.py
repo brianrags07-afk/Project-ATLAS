@@ -24,5 +24,5 @@ def test_profiles_events_and_quarantine_without_semantic_inference(tmp_path: Pat
     assert result.returncode == 0, result.stderr
     profile = json.loads((output / "profile.json").read_text())
     assert profile["transaction_type_codes"] == {"IL": 1}
-    assert profile["semantic_mapping_status"] == "allowlisted_status_semantics_v1"
+    assert profile["semantic_mapping_status"] == "official_club_status_semantics_v2"
     assert (output / "quarantine_type_profile.csv").exists()
