@@ -113,8 +113,33 @@ def test_code_description_mismatch_is_quarantined():
     assert quarantine.iloc[0]["quarantine_reason"] == "type description does not match approved status meaning"
 
 
-def test_status_with_two_mlb_teams_is_quarantined_as_ambiguous():
-    row = transaction(type_code="CU", type_description="Recalled", from_team_id=1, to_team_id=2)
+def test_status_does_not_fall_back_to_opposite_team_side():
+    row = transaction(
+        type_code="CU", type_description="Recalled",
+        from_team_id=1, to_team_id=9001,
+    )
     events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
     assert events.empty
     assert quarantine.iloc[0]["quarantine_reason"] == "status transaction has missing or ambiguous MLB team"
+
+
+def test_backdated_effective_date_does_not_backdate_source_knowledge():
+    row = transaction(
+        type_code="CU", type_description="Recalled",
+        from_team_id=9001, to_team_id=1,
+        effective_date="2024-04-08", transaction_date="2024-04-10",
+    )
+    events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
+    assert quarantine.empty and len(events) == 1
+    assert str(events.iloc[0]["effective_at"]) == "2024-04-09 00:00:00+00:00"
+    assert str(events.iloc[0]["knowledge_available_at"]) == "2024-04-11 00:00:00+00:00"
+
+
+def test_missing_transaction_posting_date_is_quarantined():
+    row = transaction(
+        type_code="CU", type_description="Recalled",
+        from_team_id=9001, to_team_id=1, transaction_date=None,
+    )
+    events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
+    assert events.empty
+    assert quarantine.iloc[0]["quarantine_reason"] == "transaction posting date unknown"
