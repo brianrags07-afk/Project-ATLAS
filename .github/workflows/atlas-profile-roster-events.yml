@@ -1,0 +1,78 @@
+name: ATLAS Profile 2024 Roster Events
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-profile-roster-events.yml"
+  pull_request:
+    paths:
+      - "scripts/profile_historical_roster_events.py"
+      - "tests/test_profile_historical_roster_events.py"
+      - ".github/workflows/atlas-profile-roster-events.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest
+      - run: python -m pytest tests/test_profile_historical_roster_events.py -q
+
+  profile:
+    if: github.event_name == 'push'
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/255298bae6f565f8fbc04071997ea33dbc4b7387/*/*/manifest.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Resolve exactly one certified event build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t manifests < <(gcloud storage ls "$SOURCE_GLOB")
+          [[ ${#manifests[@]} -eq 1 ]] || { echo "Expected one event manifest, found ${#manifests[@]}"; exit 1; }
+          echo "SOURCE_PREFIX=${manifests[0]%/manifest.json}" >> "$GITHUB_ENV"
+      - name: Verify and profile event artifacts
+        run: |
+          mkdir -p source profile/2024
+          for artifact in manifest.json roster_events.parquet roster_event_quarantine.parquet; do
+            gcloud storage cp "$SOURCE_PREFIX/$artifact" "source/$artifact"
+          done
+          python scripts/profile_historical_roster_events.py --source source --output profile/2024
+      - name: Publish immutable audit profile
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/audits/roster-events/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in profile/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-roster-event-profile-${{ github.run_id }}-${{ github.run_attempt }}
+          path: profile/2024/
+          retention-days: 90
