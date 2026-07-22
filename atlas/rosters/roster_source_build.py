@@ -29,9 +29,13 @@ def schedule_team_windows(rows: Iterable[Mapping[str, Any]], season: int) -> pd.
     frame = pd.DataFrame(records)
     if frame.empty or frame["team_id"].isna().any():
         raise ValueError("schedule contains no complete regular-season team windows")
-    return (frame.groupby("team_id", as_index=False)["game_date"]
-            .agg(first_game_date="min", last_game_date="max")
-            .sort_values("team_id").reset_index(drop=True))
+    windows = (frame.groupby("team_id", as_index=False)["game_date"]
+               .agg(first_game_date="min", last_game_date="max")
+               .sort_values("team_id").reset_index(drop=True))
+    windows["roster_snapshot_date"] = (
+        pd.to_datetime(windows["first_game_date"]) - pd.Timedelta(days=1)
+    ).dt.date.astype(str)
+    return windows
 
 
 def build_roster_source_bundle(
@@ -55,10 +59,10 @@ def build_roster_source_bundle(
         team_id = int(window["team_id"])
         club_raw = {"rosters": {}, "transactions": None}
         for roster_type in ("active", "40Man"):
-            payload = roster_fetch(team_id, window["first_game_date"], roster_type)
+            payload = roster_fetch(team_id, window["roster_snapshot_date"], roster_type)
             club_raw["rosters"][roster_type] = payload
             roster_frames.append(normalize_roster(payload, season=season, team_id=team_id,
-                as_of_date=window["first_game_date"], roster_type=roster_type,
+                as_of_date=window["roster_snapshot_date"], roster_type=roster_type,
                 retrieved_at_utc=retrieved))
         payload = transaction_fetch(team_id, window["first_game_date"], window["last_game_date"])
         club_raw["transactions"] = payload
