@@ -11,7 +11,8 @@ TEAMS = pd.DataFrame([{"team_id": 1, "abbreviation": "AAA"}, {"team_id": 2, "abb
 
 def transaction(**overrides):
     row = {
-        "season": 2024, "transaction_id": 10, "player_id": 7, "team_id": 1,
+        "season": 2024, "transaction_id": 10, "player_id": 7,
+        "requested_team_id": 1, "team_id": None,
         "from_team_id": 1, "to_team_id": None,
         "effective_date": "2024-04-01", "transaction_date": "2024-04-01",
         "type_code": "SC", "type_description": "Status Change",
@@ -113,14 +114,14 @@ def test_code_description_mismatch_is_quarantined():
     assert quarantine.iloc[0]["quarantine_reason"] == "type description does not match approved status meaning"
 
 
-def test_status_requires_official_transaction_club():
+def test_status_requires_team_scoped_source_club():
     row = transaction(
-        type_code="CU", type_description="Recalled", team_id=9001,
+        type_code="CU", type_description="Recalled", requested_team_id=9001, team_id=None,
         from_team_id=1, to_team_id=2,
     )
     events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
     assert events.empty
-    assert quarantine.iloc[0]["quarantine_reason"] == "status transaction missing official MLB club"
+    assert quarantine.iloc[0]["quarantine_reason"] == "status transaction missing team-scoped source club"
 
 
 def test_backdated_effective_date_does_not_backdate_source_knowledge():
