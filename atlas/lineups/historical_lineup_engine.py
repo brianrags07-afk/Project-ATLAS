@@ -11,7 +11,7 @@ import pandas as pd
 from atlas.config import DATA_DIR, MASTER_DIR
 
 
-LINEUP_ENGINE_VERSION = "1.0.0"
+LINEUP_ENGINE_VERSION = "1.1.0"
 
 MASTER_PITCH_PATH = (
     MASTER_DIR
@@ -318,8 +318,12 @@ def build_historical_starting_lineups(
                 "historical_first_plate_appearance_reconstruction"
             ),
             "pregame_information_class": (
-                "pregame-known_but_historically_reconstructed"
+                "postgame_reconstructed_truth_label_not_pregame_evidence"
             ),
+            "postgame_truth_label": True,
+            "published_lineup_confirmed": False,
+            "same_game_pregame_eligible": False,
+            "eligible_for_future_game_feature": False,
             "uses_outcome_statistics": False,
             "uses_final_score": False,
             "uses_future_games": False,
@@ -475,8 +479,10 @@ def run_historical_lineup_engine() -> dict[str, Any]:
         ),
         "validation": validation,
         "pregame_safety": {
-            "starting_lineup_was_known_before_game": True,
+            "starting_lineup_was_known_before_game": False,
             "historical_source_is_postgame_event_reconstruction": True,
+            "published_source_timestamp_available": False,
+            "same_game_pregame_eligible": False,
             "outcome_statistics_used": False,
             "final_score_used": False,
             "future_games_used": False,
