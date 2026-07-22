@@ -1,6 +1,10 @@
 name: ATLAS Profile 2024 Roster Events
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-profile-roster-events.yml"
   workflow_dispatch:
   pull_request:
     paths:
@@ -23,14 +27,14 @@ jobs:
       - run: python -m pytest tests/test_profile_historical_roster_events.py -q
 
   profile:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     env:
-      SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/255298bae6f565f8fbc04071997ea33dbc4b7387/*/*/manifest.json
+      SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/ae054052f2f0120c3215526c9232dd4f7a94f9c6/*/*/manifest.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
