@@ -52,7 +52,7 @@ def main() -> None:
         "event_types": {str(clean(k)): int(v) for k, v in events["event_type"].value_counts(dropna=False).items()},
         "quarantine_reasons": {str(clean(k)): int(v) for k, v in quarantine["quarantine_reason"].value_counts(dropna=False).items()} if not quarantine.empty else {},
         "transaction_type_codes": {str(clean(k)): int(v) for k, v in quarantine.get("type_code", pd.Series(dtype="object")).value_counts(dropna=False).items()},
-        "semantic_mapping_status": "allowlisted_status_semantics_v1",
+        "semantic_mapping_status": "official_club_status_semantics_v2",
     }
     profile_path = args.output / "profile.json"
     profile_path.write_text(json.dumps(profile, indent=2, sort_keys=True))
