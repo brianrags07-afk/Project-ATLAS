@@ -2,6 +2,16 @@ name: ATLAS Reconcile 2024 Roster Quarantine
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "atlas/rosters/player_observations.py"
+      - "atlas/rosters/roster_reconciliation.py"
+      - "scripts/build_roster_reconciliation.py"
+      - "tests/test_player_observations.py"
+      - "tests/test_roster_reconciliation.py"
+      - ".github/workflows/atlas-reconcile-roster-quarantine.yml"
   pull_request:
     paths:
       - "atlas/rosters/player_observations.py"
@@ -31,7 +41,7 @@ jobs:
           tests/test_roster_reconciliation.py -q
 
   reconcile:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request'
     needs: tests
     runs-on: ubuntu-latest
     permissions:
