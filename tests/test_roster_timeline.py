@@ -107,13 +107,33 @@ def test_source_may_be_known_before_event_becomes_effective():
     assert report["verdict"] == "certified"
 
 
-@pytest.mark.parametrize("column", ["effective_at", "source_retrieved_at"])
+@pytest.mark.parametrize("column", ["effective_at", "source_retrieved_at", "knowledge_available_at"])
 def test_timezone_naive_event_timestamp_requires_quarantine(column):
     events = _events().iloc[[0]].copy()
+    if column == "knowledge_available_at":
+        events[column] = events["source_retrieved_at"]
     events.loc[:, column] = "2024-03-27T12:00:00"
     report = certify_roster_events(events)
     assert report["verdict"] == "quarantine_required"
     assert any("timezone-naive" in error for error in report["errors"])
+
+
+def test_retrospective_retrieval_uses_conservative_historical_availability():
+    events = _events().iloc[[0]].copy()
+    events.loc[:, "source_retrieved_at"] = "2026-07-22T00:00:00Z"
+    events.loc[:, "knowledge_available_at"] = "2024-03-28T00:00:00Z"
+    snapshots = build_pregame_roster_snapshots(events, _games().iloc[[0]])
+    assert snapshots.iloc[0]["last_source_retrieved_at"].year == 2026
+    assert snapshots.iloc[0]["last_knowledge_available_at"].year == 2024
+    assert bool(snapshots.iloc[0]["pregame_safe"]) is True
+
+
+def test_knowledge_availability_cannot_postdate_retrieval():
+    events = _events().iloc[[0]].copy()
+    events.loc[:, "knowledge_available_at"] = "2024-03-28T00:00:00Z"
+    report = certify_roster_events(events)
+    assert report["verdict"] == "quarantine_required"
+    assert any("cannot be later" in error for error in report["errors"])
 
 
 def test_first_player_event_must_establish_organization_membership():
