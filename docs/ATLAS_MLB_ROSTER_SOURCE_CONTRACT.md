@@ -5,6 +5,10 @@ dated active/40-man roster snapshots, and team transaction records. Every normal
 row retains retrieval time, source precision, and a hash of the raw source record.
 Transactions retain generic, sending, and receiving team fields separately so
 departures and arrivals remain distinguishable without parsing narrative text.
+MLB may reuse one transaction ID across several source rows. ATLAS preserves all
+of them and assigns a stable ID/hash/occurrence `transaction_key`; semantic event
+conversion must reason over those rows and must not assume transaction ID alone
+is a row-level primary key.
 
 This layer is deliberately lossless and does **not** translate transaction prose into
 membership or availability state. Historical transaction fields are often day-precise,
