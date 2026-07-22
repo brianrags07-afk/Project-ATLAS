@@ -28,7 +28,7 @@ def test_unknown_opening_identity_is_quarantined():
 
 
 def test_trade_creates_both_directions_next_day_and_deduplicates_semantically():
-    row = {"season": 2024, "transaction_id": 9, "player_id": 7, "from_team_id": 1, "to_team_id": 2, "effective_date": "2024-07-30", "transaction_date": "2024-07-30", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "a"}
+    row = {"season": 2024, "transaction_id": 9, "player_id": 7, "from_team_id": 1, "to_team_id": 2, "effective_date": "2024-07-30", "transaction_date": "2024-07-30", "type_code": "TR", "type_description": "Trade", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "a"}
     events, quarantine = directional_transaction_events(pd.DataFrame([row, row]), TEAMS)
     assert quarantine.empty and len(events) == 2
     assert set(events["event_type"]) == {"structured_transfer_in", "structured_transfer_out"}
@@ -37,7 +37,14 @@ def test_trade_creates_both_directions_next_day_and_deduplicates_semantically():
 
 
 def test_nondirectional_status_is_quarantined_not_parsed_from_prose():
-    row = {"season": 2024, "transaction_id": 10, "player_id": 7, "from_team_id": None, "to_team_id": None, "effective_date": "2024-04-01", "transaction_date": "2024-04-01", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "x", "description": "Placed on injured list"}
+    row = {"season": 2024, "transaction_id": 10, "player_id": 7, "from_team_id": None, "to_team_id": None, "effective_date": "2024-04-01", "transaction_date": "2024-04-01", "type_code": "SC", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "x", "description": "Placed on injured list"}
     events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
     assert events.empty and len(quarantine) == 1
-    assert quarantine.iloc[0]["quarantine_reason"] == "no explicit inter-team direction"
+    assert quarantine.iloc[0]["quarantine_reason"] == "type code not approved for organization transfer"
+
+
+def test_assignment_direction_does_not_imply_organization_change():
+    row = {"season": 2024, "transaction_id": 11, "player_id": 7, "from_team_id": 1, "to_team_id": 2, "effective_date": "2024-04-01", "transaction_date": "2024-04-01", "type_code": "ASG", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "y"}
+    events, quarantine = directional_transaction_events(pd.DataFrame([row]), TEAMS)
+    assert events.empty and len(quarantine) == 1
+    assert quarantine.iloc[0]["quarantine_reason"] == "type code not approved for organization transfer"
