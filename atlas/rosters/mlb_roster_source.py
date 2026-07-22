@@ -93,11 +93,17 @@ def normalize_transactions(
     retrieved = _retrieved_at(retrieved_at_utc)
     rows = []
     for item in payload.get("transactions", []):
-        person, team = item.get("person") or {}, item.get("toTeam") or item.get("team") or {}
+        person = item.get("person") or {}
+        from_team = item.get("fromTeam") or {}
+        to_team = item.get("toTeam") or {}
+        team = item.get("team") or {}
         rows.append({
             "season": int(season), "requested_team_id": int(requested_team_id),
             "transaction_id": item.get("id"), "player_id": person.get("id"),
-            "player_name": person.get("fullName"), "team_id": team.get("id"), "team_name": team.get("name"),
+            "player_name": person.get("fullName"),
+            "team_id": team.get("id"), "team_name": team.get("name"),
+            "from_team_id": from_team.get("id"), "from_team_name": from_team.get("name"),
+            "to_team_id": to_team.get("id"), "to_team_name": to_team.get("name"),
             "transaction_date": item.get("date"), "effective_date": item.get("effectiveDate"),
             "resolution_date": item.get("resolutionDate"), "type_code": item.get("typeCode"),
             "type_description": item.get("typeDesc"), "description": item.get("description"),
@@ -106,9 +112,12 @@ def normalize_transactions(
             "pregame_time_known": False, "source_record_sha256": _hash(item),
         })
     columns = ["season", "requested_team_id", "transaction_id", "player_id", "player_name", "team_id", "team_name",
+               "from_team_id", "from_team_name", "to_team_id", "to_team_name",
                "transaction_date", "effective_date", "resolution_date", "type_code", "type_description", "description",
                "source", "source_retrieved_at", "source_time_precision", "pregame_time_known", "source_record_sha256"]
     frame = pd.DataFrame(rows, columns=columns)
-    if not frame.empty and frame["transaction_id"].isna().any():
-        raise ValueError("transactions contain null transaction IDs")
+    if not frame.empty and (
+        frame["transaction_id"].isna().any() or frame["transaction_id"].duplicated().any()
+    ):
+        raise ValueError("transactions contain null or duplicate transaction IDs")
     return frame.sort_values(["transaction_date", "transaction_id"], na_position="last").reset_index(drop=True)
