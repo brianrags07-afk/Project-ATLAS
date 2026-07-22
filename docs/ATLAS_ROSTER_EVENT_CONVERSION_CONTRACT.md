@@ -6,7 +6,10 @@ source hashes and row counts. Their historical availability begins at midnight
 UTC after the prior-day snapshot.
 
 Transactions create membership events only from explicit structured `fromTeam`
-and `toTeam` direction. Repeated API rows collapse to one semantic event with
+and `toTeam` direction **and** an approved organization-changing code: `TR`
+(trade) or `CLW` (claimed off waivers). Direction on assignments and status
+changes may reference affiliates and does not prove an organization change.
+Repeated API rows collapse to one semantic event with
 complete lineage. Because historical transaction dates are day-precise, events
 become eligible at midnight UTC on the following day.
 

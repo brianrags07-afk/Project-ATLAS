@@ -15,7 +15,7 @@ def test_builds_certified_event_and_quarantine_artifacts(tmp_path: Path):
     rosters = pd.DataFrame([
         {"season": 2024, "team_id": 1, "as_of_date": "2024-03-27", "roster_type": "active", "player_id": 7, "player_identity_known": True, "source": "MLB", "source_retrieved_at": "2026-07-22T00:00:00Z", "source_record_sha256": "a"}
     ])
-    transactions = pd.DataFrame(columns=["season", "transaction_id", "player_id", "from_team_id", "to_team_id", "effective_date", "transaction_date", "source_retrieved_at", "source_record_sha256"])
+    transactions = pd.DataFrame(columns=["season", "transaction_id", "player_id", "from_team_id", "to_team_id", "effective_date", "transaction_date", "type_code", "type_description", "source_retrieved_at", "source_record_sha256"])
     frames = {"teams.parquet": teams, "rosters.parquet": rosters, "transactions.parquet": transactions}
     artifacts = {}
     import hashlib
