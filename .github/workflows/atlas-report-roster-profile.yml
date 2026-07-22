@@ -1,0 +1,78 @@
+name: ATLAS Report 2024 Roster Profile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-report-roster-profile.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-report-roster-profile.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+  report:
+    if: github.event_name == 'push'
+    needs: validate-workflow
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    env:
+      PROFILE_GLOB: gs://atlas-mlb-data-brian-4817/data/audits/roster-events/mlb/2024/e96e0cbe49908cf8087f395c7520b85cd8705b1a/*/*/manifest.json
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Resolve and download exactly one immutable profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t manifests < <(gcloud storage ls "$PROFILE_GLOB")
+          [[ ${#manifests[@]} -eq 1 ]] || { echo "Expected one profile manifest, found ${#manifests[@]}"; exit 1; }
+          prefix="${manifests[0]%/manifest.json}"
+          mkdir profile
+          for artifact in manifest.json profile.json event_counts.csv quarantine_type_profile.csv; do
+            gcloud storage cp "$prefix/$artifact" "profile/$artifact"
+          done
+      - name: Verify hashes and render evidence issue
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("profile")
+          manifest = json.loads((root / "manifest.json").read_text())
+          for name, facts in manifest["artifacts"].items():
+              observed = hashlib.sha256((root / name).read_bytes()).hexdigest()
+              assert observed == facts["sha256"], (name, observed, facts["sha256"])
+          profile = json.loads((root / "profile.json").read_text())
+          body = [
+              "# Certified 2024 roster event profile",
+              "",
+              f"Source manifest SHA-256: `{profile['source_manifest_sha256']}`",
+              f"Source certification: `{profile['source_certification']}`",
+              f"Event rows: **{profile['event_rows']}**",
+              f"Quarantine rows: **{profile['quarantine_rows']}**",
+              "",
+              "## Profile JSON",
+              "```json", json.dumps(profile, indent=2, sort_keys=True), "```",
+              "", "## Quarantine type profile", "```csv",
+              (root / "quarantine_type_profile.csv").read_text(), "```",
+              "", "This issue is evidence only. No type-code meaning is approved by its creation.",
+          ]
+          Path("issue.md").write_text("\n".join(body))
+          PY
+      - name: Publish evidence issue
+        run: gh issue create --title "Certified 2024 roster event type-code profile" --body-file issue.md
