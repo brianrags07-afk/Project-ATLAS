@@ -27,7 +27,7 @@ jobs:
       issues: write
       id-token: write
     env:
-      PROFILE_GLOB: gs://atlas-mlb-data-brian-4817/data/audits/roster-events/mlb/2024/e96e0cbe49908cf8087f395c7520b85cd8705b1a/*/*/manifest.json
+      PROFILE_GLOB: gs://atlas-mlb-data-brian-4817/data/audits/roster-events/mlb/2024/131e9e2bfc1d5d8c62b6d611ceb38d3cf6e87108/*/*/manifest.json
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -75,4 +75,4 @@ jobs:
           Path("issue.md").write_text("\n".join(body))
           PY
       - name: Publish evidence issue
-        run: gh issue create --title "Certified 2024 roster event type-code profile" --body-file issue.md
+        run: gh issue create --title "Corrected certified 2024 roster event type-code profile" --body-file issue.md
