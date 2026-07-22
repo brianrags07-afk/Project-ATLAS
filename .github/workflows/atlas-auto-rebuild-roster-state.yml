@@ -1,0 +1,155 @@
+name: ATLAS One-Shot Certified 2024 Roster State Rebuild
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-auto-rebuild-roster-state.yml"
+  pull_request:
+    paths:
+      - "atlas/rosters/**"
+      - "scripts/build_historical_roster_events.py"
+      - "scripts/profile_historical_roster_events.py"
+      - "tests/test_roster_event_conversion.py"
+      - "tests/test_build_historical_roster_events.py"
+      - "tests/test_profile_historical_roster_events.py"
+      - ".github/workflows/atlas-auto-rebuild-roster-state.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest requests
+      - run: >-
+          python -m pytest
+          tests/test_roster_event_conversion.py
+          tests/test_build_historical_roster_events.py
+          tests/test_profile_historical_roster_events.py
+          tests/test_roster_timeline.py -q
+
+  rebuild-profile-report:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/2024/41668a24e55ccbb8e7a3be6dccc9e3a53ffae47c/*/*/manifest.json
+      BUILD_DEST: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+      PROFILE_DEST: gs://atlas-mlb-data-brian-4817/data/audits/roster-events/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Resolve exactly one certified roster source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t manifests < <(gcloud storage ls "$SOURCE_GLOB")
+          [[ ${#manifests[@]} -eq 1 ]] || {
+            echo "Expected one source manifest, found ${#manifests[@]}"
+            exit 1
+          }
+          echo "SOURCE_PREFIX=${manifests[0]%/manifest.json}" >> "$GITHUB_ENV"
+
+      - name: Download certified source and rebuild event ledger
+        run: |
+          mkdir -p source build/2024
+          for artifact in manifest.json teams.parquet rosters.parquet transactions.parquet; do
+            gcloud storage cp "$SOURCE_PREFIX/$artifact" "source/$artifact"
+          done
+          python scripts/build_historical_roster_events.py             --source source --output build/2024 --season 2024
+
+      - name: Profile rebuilt certified ledger
+        run: |
+          mkdir -p profile/2024
+          python scripts/profile_historical_roster_events.py             --source build/2024 --output profile/2024
+
+      - name: Publish immutable build and profile with readback verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p readback/build readback/profile
+          for source in build/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${BUILD_DEST}${artifact}"
+            gcloud storage cp "${BUILD_DEST}${artifact}" "readback/build/${artifact}"
+            cmp --silent "$source" "readback/build/${artifact}"
+          done
+          for source in profile/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${PROFILE_DEST}${artifact}"
+            gcloud storage cp "${PROFILE_DEST}${artifact}" "readback/profile/${artifact}"
+            cmp --silent "$source" "readback/profile/${artifact}"
+          done
+
+      - name: Render certified evidence issue
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("profile/2024")
+          profile = json.loads((root / "profile.json").read_text())
+          build = json.loads(Path("build/2024/manifest.json").read_text())
+          body = [
+              "# Certified 2024 roster-state rebuild",
+              "",
+              f"Workflow commit: `{os.environ['GITHUB_SHA']}`",
+              f"Source manifest SHA-256: `{profile['source_manifest_sha256']}`",
+              f"Certification: `{profile['source_certification']}`",
+              f"Semantic mapping: `{profile['semantic_mapping_status']}`",
+              f"Event rows: **{profile['event_rows']}**",
+              f"Quarantine rows: **{profile['quarantine_rows']}**",
+              "",
+              "## Immutable cloud artifacts",
+              f"- Build: `{os.environ['BUILD_DEST']}`",
+              f"- Profile: `{os.environ['PROFILE_DEST']}`",
+              "",
+              "## Profile",
+              "```json",
+              json.dumps(profile, indent=2, sort_keys=True),
+              "```",
+              "",
+              "## Quarantine detail",
+              "```csv",
+              (root / "quarantine_type_profile.csv").read_text(),
+              "```",
+              "",
+              "This is an immutable evidence report. No canonical promotion occurred.",
+              f"Build promotion status: `{build['promotion_status']}`.",
+          ]
+          Path("issue.md").write_text("\n".join(body))
+          PY
+          gh issue create             --title "Certified 2024 roster-state rebuild with typed transactions"             --body-file issue.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-roster-state-rebuild-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/2024/
+            profile/2024/
+            issue.md
+          retention-days: 90
