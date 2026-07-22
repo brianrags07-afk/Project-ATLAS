@@ -21,3 +21,7 @@ tested conversion layer must defer ambiguous same-day moves until a subsequent g
 
 Raw payloads and normalized outputs belong in immutable build/staging paths. They do
 not overwrite certified schedules, master datasets, or canonical roster artifacts.
+
+Opening active and 40-man baselines are requested for the calendar day before
+each club's first published regular-season `official_date`. This prevents a
+same-day move from being backfilled into that club's first pregame state.
