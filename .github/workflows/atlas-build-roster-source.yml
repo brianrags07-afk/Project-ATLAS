@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       season:
-        description: "One isolated MLB season"
+        description: "Certified isolated MLB season (currently 2024)"
         required: true
         default: "2024"
         type: string
@@ -66,8 +66,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$SEASON" =~ ^20[0-9]{2}$ ]]
+          [[ "$SEASON" == "2024" ]]
           [[ "$SCHEDULE_URI" == gs://atlas-mlb-data-brian-4817/data/canonical/schedules/mlb/$SEASON/raw/* || "$SCHEDULE_URI" == gs://atlas-mlb-data-brian-4817/data/builds/schedules/mlb/$SEASON/* ]]
+          [[ "$SCHEDULE_URI" =~ \#[0-9]+$ ]] || {
+            echo "schedule_uri must end with an immutable GCS #generation pin"
+            exit 1
+          }
       - name: Download certified schedule and build source bundle
         run: |
           mkdir -p input "build/$SEASON"
@@ -84,6 +88,9 @@ jobs:
           assert manifest["game_type"] == "R"
           assert manifest["promotion_status"] == "build_only_not_canonical"
           assert manifest["team_count"] == 30
+          assert manifest["schedule_certification_verdict"] == "certified"
+          assert manifest["schedule_unique_games"] == 2430
+          assert manifest["schedule_source_sha256"] == "04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7"
           PY
       - name: Publish immutable roster source artifacts
         env:
