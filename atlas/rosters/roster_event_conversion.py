@@ -101,8 +101,8 @@ def _team_lookup(teams: pd.DataFrame) -> dict[int, str]:
 
 
 def _status_team_id(row: dict[str, Any], lookup: dict[int, str]) -> int | None:
-    """Return only the transaction object's explicit MLB club identity."""
-    value = row.get("team_id")
+    """Return only the MLB club whose official team-scoped feed supplied the row."""
+    value = row.get("requested_team_id")
     if pd.isna(value) or int(value) not in lookup:
         return None
     return int(value)
