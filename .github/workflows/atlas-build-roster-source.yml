@@ -1,0 +1,111 @@
+name: ATLAS Historical Roster Source Build
+
+on:
+  pull_request:
+    paths:
+      - "atlas/rosters/**"
+      - "scripts/build_historical_roster_source.py"
+      - "tests/test_mlb_roster_source.py"
+      - "tests/test_roster_source_build.py"
+      - ".github/workflows/atlas-build-roster-source.yml"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Certified isolated MLB season (currently 2024)"
+        required: true
+        default: "2024"
+        type: string
+      schedule_uri:
+        description: "Generation-pinned or immutable certified raw schedule JSON URI"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-roster-source-${{ inputs.season || 'tests' }}
+  cancel-in-progress: false
+
+jobs:
+  roster-source-tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest requests
+      - run: python -m pytest tests/test_mlb_roster_source.py tests/test_roster_source_build.py -q
+
+  build-roster-source:
+    if: github.event_name == 'workflow_dispatch'
+    needs: roster-source-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SEASON: ${{ inputs.season }}
+      SCHEDULE_URI: ${{ inputs.schedule_uri }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Validate immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SEASON" == "2024" ]]
+          [[ "$SCHEDULE_URI" == gs://atlas-mlb-data-brian-4817/data/canonical/schedules/mlb/$SEASON/raw/* || "$SCHEDULE_URI" == gs://atlas-mlb-data-brian-4817/data/builds/schedules/mlb/$SEASON/* ]]
+          [[ "$SCHEDULE_URI" =~ \#[0-9]+$ ]] || {
+            echo "schedule_uri must end with an immutable GCS #generation pin"
+            exit 1
+          }
+      - name: Download certified schedule and build source bundle
+        run: |
+          mkdir -p input "build/$SEASON"
+          gcloud storage cp "$SCHEDULE_URI" input/schedule.json
+          python scripts/build_historical_roster_source.py --season "$SEASON" --schedule input/schedule.json --output "build/$SEASON"
+      - name: Verify build-only manifest
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          season = int(os.environ["SEASON"])
+          manifest = json.loads(Path(f"build/{season}/manifest.json").read_text())
+          assert manifest["season"] == season
+          assert manifest["game_type"] == "R"
+          assert manifest["promotion_status"] == "build_only_not_canonical"
+          assert manifest["team_count"] == 30
+          assert manifest["schedule_certification_verdict"] == "certified"
+          assert manifest["schedule_unique_games"] == 2430
+          assert manifest["schedule_source_sha256"] == "04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7"
+          PY
+      - name: Publish immutable roster source artifacts
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/${{ inputs.season }}/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in build/$SEASON/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-${{ inputs.season }}-roster-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/${{ inputs.season }}/
+          retention-days: 90
