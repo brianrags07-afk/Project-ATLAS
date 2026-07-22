@@ -6,15 +6,22 @@ from atlas.rosters.roster_source_build import build_roster_source_bundle, schedu
 
 
 SCHEDULE = [
-    {"season": 2024, "game_type_code": "R", "game_date_utc": "2024-03-28T20:00:00Z", "home_team_id": 1, "away_team_id": 2},
-    {"season": 2024, "game_type_code": "R", "game_date_utc": "2024-09-29T20:00:00Z", "home_team_id": 2, "away_team_id": 1},
+    {"season": 2024, "game_type_code": "R", "game_date_utc": "2024-03-29T01:00:00Z", "official_date": "2024-03-28", "home_team_id": 1, "away_team_id": 2},
+    {"season": 2024, "game_type_code": "R", "game_date_utc": "2024-09-30T01:00:00Z", "official_date": "2024-09-29", "home_team_id": 2, "away_team_id": 1},
 ]
 
 
 def test_team_windows_follow_published_regular_schedule():
-    windows = schedule_team_windows(SCHEDULE + [{"season": 2024, "game_type_code": "S", "game_date_utc": "2024-02-20T00:00:00Z", "home_team_id": 1, "away_team_id": 2}], 2024)
+    windows = schedule_team_windows(SCHEDULE + [{"season": 2024, "game_type_code": "S", "game_date_utc": "2024-02-20T00:00:00Z", "official_date": "2024-02-19", "home_team_id": 1, "away_team_id": 2}], 2024)
     assert set(windows["first_game_date"]) == {"2024-03-28"}
     assert set(windows["last_game_date"]) == {"2024-09-29"}
+
+
+def test_missing_official_date_is_rejected_instead_of_using_utc_date():
+    row = dict(SCHEDULE[0])
+    row["official_date"] = None
+    with pytest.raises(ValueError, match="official_date"):
+        schedule_team_windows([row], 2024)
 
 
 def test_bundle_is_season_isolated_and_preserves_raw_payloads():
