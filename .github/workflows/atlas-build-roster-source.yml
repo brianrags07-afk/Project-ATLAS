@@ -11,6 +11,7 @@ on:
       - "scripts/build_historical_roster_source.py"
       - "tests/test_mlb_roster_source.py"
       - "tests/test_roster_source_build.py"
+      - "tests/test_roster_event_conversion.py"
       - ".github/workflows/atlas-build-roster-source.yml"
   workflow_dispatch:
     inputs:
@@ -42,7 +43,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pandas pyarrow==23.0.1 pytest requests
-      - run: python -m pytest tests/test_mlb_roster_source.py tests/test_roster_source_build.py -q
+      - run: python -m pytest tests/test_mlb_roster_source.py tests/test_roster_source_build.py tests/test_roster_event_conversion.py -q
 
   build-roster-source:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
