@@ -102,15 +102,10 @@ def _team_lookup(teams: pd.DataFrame) -> dict[int, str]:
 
 
 def _status_team_id(row: dict[str, Any], lookup: dict[int, str], side: str) -> int | None:
-    preferred = row.get(f"{side}_team_id")
-    fallback_side = "from" if side == "to" else "to"
-    fallback = row.get(f"{fallback_side}_team_id")
-    valid = []
-    for value in (preferred, fallback):
-        if pd.notna(value) and int(value) in lookup and int(value) not in valid:
-            valid.append(int(value))
-    # A status code cannot safely choose between two different MLB clubs.
-    return valid[0] if len(valid) == 1 else None
+    value = row.get(f"{side}_team_id")
+    if pd.isna(value) or int(value) not in lookup:
+        return None
+    return int(value)
 
 
 def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -137,7 +132,7 @@ def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[p
         available_at = _midnight_after(as_of_date)
         records.append({
             "event_id": _event_id(["opening", season, team_id, player_id, as_of_date]),
-            "effective_at": available_at, "knowledge_available_at": available_at,
+            "effective_at": effective_at, "knowledge_available_at": knowledge_available_at,
             "season": int(season), "team": lookup[team_id], "team_id": team_id,
             "player_id": int(player_id), "event_type": "opening_roster",
             "source": "MLB Stats API roster snapshot",
@@ -167,11 +162,15 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
         if pd.isna(row.get("player_id")):
             quarantine_rows.append({**row, "quarantine_reason": "transaction player identity unknown"})
             continue
-        source_date = row.get("effective_date")
-        if pd.isna(source_date):
-            source_date = row.get("transaction_date")
-        if pd.isna(source_date):
+        effective_source_date = row.get("effective_date")
+        if pd.isna(effective_source_date):
+            effective_source_date = row.get("transaction_date")
+        if pd.isna(effective_source_date):
             quarantine_rows.append({**row, "quarantine_reason": "transaction effective date unknown"})
+            continue
+        knowledge_source_date = row.get("transaction_date")
+        if pd.isna(knowledge_source_date):
+            quarantine_rows.append({**row, "quarantine_reason": "transaction posting date unknown"})
             continue
 
         type_code = row.get("type_code")
@@ -188,7 +187,9 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
             for direction, team_id, member in directions:
                 transfer_candidates.append({
                     **row, "direction": direction, "event_team_id": team_id,
-                    "organization_member": member, "source_date": str(source_date),
+                    "organization_member": member,
+                    "effective_source_date": str(effective_source_date),
+                    "knowledge_source_date": str(knowledge_source_date),
                 })
             continue
 
@@ -210,20 +211,25 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
             })
             continue
         status_candidates.append({
-            **row, "event_team_id": team_id, "source_date": str(source_date), **rule,
+            **row, "event_team_id": team_id,
+            "effective_source_date": str(effective_source_date),
+            "knowledge_source_date": str(knowledge_source_date), **rule,
         })
 
     records = []
     transfer_frame = pd.DataFrame(transfer_candidates)
     if not transfer_frame.empty:
-        keys = ["season", "transaction_id", "player_id", "direction", "event_team_id", "source_date", "type_code"]
+        keys = ["season", "transaction_id", "player_id", "direction", "event_team_id",
+                "effective_source_date", "knowledge_source_date", "type_code"]
         for key, group in transfer_frame.groupby(keys, sort=True, dropna=False):
-            season, transaction_id, player_id, direction, team_id, source_date, type_code = key
+            (season, transaction_id, player_id, direction, team_id,
+             effective_source_date, knowledge_source_date, type_code) = key
             hashes = sorted(set(group["source_record_sha256"].astype(str)))
-            available_at = _midnight_after(source_date)
+            effective_at = _midnight_after(effective_source_date)
+            knowledge_available_at = _midnight_after(knowledge_source_date)
             records.append({
                 "event_id": _event_id(["transaction", *key]),
-                "effective_at": available_at, "knowledge_available_at": available_at,
+                "effective_at": effective_at, "knowledge_available_at": knowledge_available_at,
                 "season": int(season), "team": lookup[int(team_id)], "team_id": int(team_id),
                 "player_id": int(player_id), "event_type": f"structured_transfer_{direction}",
                 "source": "MLB Stats API transaction",
@@ -241,15 +247,18 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
 
     status_frame = pd.DataFrame(status_candidates)
     if not status_frame.empty:
-        keys = ["season", "transaction_id", "player_id", "event_team_id", "source_date", "type_code"]
+        keys = ["season", "transaction_id", "player_id", "event_team_id",
+                "effective_source_date", "knowledge_source_date", "type_code"]
         for key, group in status_frame.groupby(keys, sort=True, dropna=False):
-            season, transaction_id, player_id, team_id, source_date, type_code = key
+            (season, transaction_id, player_id, team_id,
+             effective_source_date, knowledge_source_date, type_code) = key
             first = group.iloc[0]
             hashes = sorted(set(group["source_record_sha256"].astype(str)))
-            available_at = _midnight_after(source_date)
+            effective_at = _midnight_after(effective_source_date)
+            knowledge_available_at = _midnight_after(knowledge_source_date)
             records.append({
                 "event_id": _event_id(["status", *key]),
-                "effective_at": available_at, "knowledge_available_at": available_at,
+                "effective_at": effective_at, "knowledge_available_at": knowledge_available_at,
                 "season": int(season), "team": lookup[int(team_id)], "team_id": int(team_id),
                 "player_id": int(player_id), "event_type": first["event_type"],
                 "source": "MLB Stats API transaction",
