@@ -132,7 +132,7 @@ def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[p
         available_at = _midnight_after(as_of_date)
         records.append({
             "event_id": _event_id(["opening", season, team_id, player_id, as_of_date]),
-            "effective_at": effective_at, "knowledge_available_at": knowledge_available_at,
+            "effective_at": available_at, "knowledge_available_at": available_at,
             "season": int(season), "team": lookup[team_id], "team_id": team_id,
             "player_id": int(player_id), "event_type": "opening_roster",
             "source": "MLB Stats API roster snapshot",
