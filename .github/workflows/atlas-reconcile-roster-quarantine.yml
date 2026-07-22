@@ -1,0 +1,107 @@
+name: ATLAS Reconcile 2024 Roster Quarantine
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "atlas/rosters/player_observations.py"
+      - "atlas/rosters/roster_reconciliation.py"
+      - "scripts/build_roster_reconciliation.py"
+      - "tests/test_player_observations.py"
+      - "tests/test_roster_reconciliation.py"
+      - ".github/workflows/atlas-reconcile-roster-quarantine.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pytest
+      - run: >-
+          python -m pytest
+          tests/test_player_observations.py
+          tests/test_roster_reconciliation.py -q
+
+  reconcile:
+    if: github.event_name == 'workflow_dispatch'
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      ROSTER_SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/2024/41668a24e55ccbb8e7a3be6dccc9e3a53ffae47c/*/*/manifest.json
+      EVENT_PREFIX: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/2f39667e47bba27c5876cda674a1eb5d0361f33d/29955846973/1
+      EVENTS_URI: gs://atlas-mlb-data-brian-4817/data/canonical/2024/data/history/game_cards/events/game_events_2024_regular.parquet
+      EVENTS_SHA256: 27ab0986fc145a4352c2e6996e890efc03b60bbe09fc7645491dab38c6c3808c
+      SCHEDULE_URI: gs://atlas-mlb-data-brian-4817/data/canonical/schedules/mlb/2024/raw/mlb_schedule_2024_regular_20260721T105646Z.json#1784680849238878
+      SCHEDULE_SHA256: 04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Resolve exactly one certified roster source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t manifests < <(gcloud storage ls "$ROSTER_SOURCE_GLOB")
+          [[ ${#manifests[@]} -eq 1 ]] || { echo "Expected one roster source manifest, found ${#manifests[@]}"; exit 1; }
+          echo "ROSTER_SOURCE_PREFIX=${manifests[0]%/manifest.json}" >> "$GITHUB_ENV"
+      - name: Download immutable certified sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source build/2024
+          gcloud storage cp "$ROSTER_SOURCE_PREFIX/manifest.json" source/roster_source_manifest.json
+          gcloud storage cp "$ROSTER_SOURCE_PREFIX/teams.parquet" source/teams.parquet
+          gcloud storage cp "$EVENT_PREFIX/manifest.json" source/roster_event_manifest.json
+          gcloud storage cp "$EVENT_PREFIX/roster_event_quarantine.parquet" source/roster_event_quarantine.parquet
+          gcloud storage cp "$EVENTS_URI" source/game_events_2024_regular.parquet
+          gcloud storage cp "$SCHEDULE_URI" source/mlb_schedule_2024_regular.json
+      - name: Build prospective reconciliation evidence
+        run: >-
+          python scripts/build_roster_reconciliation.py
+          --season 2024
+          --events source/game_events_2024_regular.parquet
+          --schedule source/mlb_schedule_2024_regular.json
+          --teams source/teams.parquet
+          --roster-source-manifest source/roster_source_manifest.json
+          --quarantine source/roster_event_quarantine.parquet
+          --event-manifest source/roster_event_manifest.json
+          --expected-events-sha256 "$EVENTS_SHA256"
+          --expected-schedule-sha256 "$SCHEDULE_SHA256"
+          --output build/2024
+      - name: Publish immutable audit with readback verification
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/audits/roster-reconciliation/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in build/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-roster-reconciliation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/2024/
+          retention-days: 90
