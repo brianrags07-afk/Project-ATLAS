@@ -1,0 +1,96 @@
+name: ATLAS Build 2024 Lineup Observation Labels
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "atlas/lineups/historical_lineup_engine.py"
+      - "atlas/lineups/lineup_observation_labels.py"
+      - "scripts/build_lineup_observation_labels.py"
+      - "tests/test_lineup_observation_labels.py"
+      - ".github/workflows/atlas-build-lineup-observation-labels.yml"
+  pull_request:
+    paths:
+      - "atlas/lineups/historical_lineup_engine.py"
+      - "atlas/lineups/lineup_observation_labels.py"
+      - "scripts/build_lineup_observation_labels.py"
+      - "tests/test_lineup_observation_labels.py"
+      - ".github/workflows/atlas-build-lineup-observation-labels.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pytest
+      - run: python -m pytest tests/test_lineup_observation_labels.py -q
+
+  build:
+    if: github.event_name != 'pull_request'
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SNAPSHOT_PREFIX: gs://atlas-mlb-data-brian-4817/data/builds/roster-snapshots/mlb/2024/373485782fcde91aaa7a893305008ab64e0bf19e/29958608539/1
+      EVENTS_URI: gs://atlas-mlb-data-brian-4817/data/canonical/2024/data/history/game_cards/events/game_events_2024_regular.parquet
+      EVENTS_SHA256: 27ab0986fc145a4352c2e6996e890efc03b60bbe09fc7645491dab38c6c3808c
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Download pinned certified sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source build/2024
+          gcloud storage cp "$SNAPSHOT_PREFIX/manifest.json" source/roster_snapshot_manifest.json
+          gcloud storage cp "$SNAPSHOT_PREFIX/team_games.parquet" source/team_games.parquet
+          gcloud storage cp "$EVENTS_URI" source/game_events_2024_regular.parquet
+      - name: Build and certify postgame lineup observation labels
+        run: >-
+          python scripts/build_lineup_observation_labels.py
+          --season 2024
+          --events source/game_events_2024_regular.parquet
+          --team-games source/team_games.parquet
+          --snapshot-manifest source/roster_snapshot_manifest.json
+          --expected-events-sha256 "$EVENTS_SHA256"
+          --expected-completed-games 2429
+          --output build/2024
+      - name: Publish immutable labels with readback verification
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/builds/lineup-observations/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in build/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-lineup-observation-labels-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/2024/
+          retention-days: 90
