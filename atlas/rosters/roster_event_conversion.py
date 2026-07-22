@@ -14,8 +14,10 @@ EVENT_COLUMNS = [
     "team_id", "player_id", "event_type", "source", "source_retrieved_at",
     "organization_member", "active_roster", "available", "injury_status",
     "roster_status", "source_row_count", "source_record_sha256s",
-    "knowledge_time_method",
+    "knowledge_time_method", "source_type_code", "source_type_description",
 ]
+
+ORGANIZATION_CHANGE_CODES = {"TR", "CLW"}
 
 
 def _midnight_after(value: Any) -> pd.Timestamp:
@@ -76,6 +78,7 @@ def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[p
             "source_row_count": int(len(group)),
             "source_record_sha256s": json.dumps(hashes),
             "knowledge_time_method": "prior_day_snapshot_available_next_midnight_utc",
+            "source_type_code": None, "source_type_description": None,
         })
     return pd.DataFrame(records, columns=EVENT_COLUMNS), quarantine.reset_index(drop=True)
 
@@ -84,7 +87,7 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
     """Convert only explicit from/to team direction; quarantine everything else."""
     lookup = _team_lookup(teams)
     required = {"season", "transaction_id", "player_id", "from_team_id", "to_team_id",
-                "effective_date", "transaction_date", "source_retrieved_at", "source_record_sha256"}
+                "effective_date", "transaction_date", "type_code", "source_retrieved_at", "source_record_sha256"}
     missing = required-set(transactions.columns)
     if missing:
         raise ValueError(f"transactions missing columns: {sorted(missing)}")
@@ -98,6 +101,9 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
             source_date = row.get("transaction_date")
         if pd.isna(source_date):
             quarantine_rows.append({**row, "quarantine_reason": "transaction effective date unknown"})
+            continue
+        if row.get("type_code") not in ORGANIZATION_CHANGE_CODES:
+            quarantine_rows.append({**row, "quarantine_reason": "type code not approved for organization transfer"})
             continue
         directions = []
         from_id, to_id = row.get("from_team_id"), row.get("to_team_id")
@@ -115,9 +121,9 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
     records = []
     candidate_frame = pd.DataFrame(candidates)
     if not candidate_frame.empty:
-        keys = ["season", "transaction_id", "player_id", "direction", "event_team_id", "source_date"]
+        keys = ["season", "transaction_id", "player_id", "direction", "event_team_id", "source_date", "type_code"]
         for key, group in candidate_frame.groupby(keys, sort=True, dropna=False):
-            season, transaction_id, player_id, direction, team_id, source_date = key
+            season, transaction_id, player_id, direction, team_id, source_date, type_code = key
             hashes = sorted(set(group["source_record_sha256"].astype(str)))
             available_at = _midnight_after(source_date)
             records.append({
@@ -133,5 +139,7 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
                 "injury_status": None, "roster_status": "transferred_out" if direction == "out" else "transferred_in",
                 "source_row_count": int(len(group)), "source_record_sha256s": json.dumps(hashes),
                 "knowledge_time_method": "date_only_transaction_available_next_midnight_utc",
+                "source_type_code": type_code,
+                "source_type_description": group.get("type_description", pd.Series([None])).iloc[0],
             })
     return pd.DataFrame(records, columns=EVENT_COLUMNS), pd.DataFrame(quarantine_rows).reset_index(drop=True)
