@@ -1,6 +1,10 @@
 name: ATLAS Historical Roster Source Build
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-build-roster-source.yml"
   pull_request:
     paths:
       - "atlas/rosters/**"
@@ -24,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: atlas-roster-source-${{ inputs.season || 'tests' }}
+  group: atlas-roster-source-${{ inputs.season || '2024' }}
   cancel-in-progress: false
 
 jobs:
@@ -41,7 +45,7 @@ jobs:
       - run: python -m pytest tests/test_mlb_roster_source.py tests/test_roster_source_build.py -q
 
   build-roster-source:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: roster-source-tests
     runs-on: ubuntu-latest
     permissions:
@@ -49,8 +53,8 @@ jobs:
       id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
-      SEASON: ${{ inputs.season }}
-      SCHEDULE_URI: ${{ inputs.schedule_uri }}
+      SEASON: ${{ inputs.season || '2024' }}
+      SCHEDULE_URI: ${{ inputs.schedule_uri || 'gs://atlas-mlb-data-brian-4817/data/canonical/schedules/mlb/2024/raw/mlb_schedule_2024_regular_20260721T105646Z.json#1784680849238878' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -94,7 +98,7 @@ jobs:
           PY
       - name: Publish immutable roster source artifacts
         env:
-          DEST: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/${{ inputs.season }}/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+          DEST: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
         run: |
           set -euo pipefail
           mkdir -p readback
@@ -106,6 +110,6 @@ jobs:
           done
       - uses: actions/upload-artifact@v4
         with:
-          name: atlas-${{ inputs.season }}-roster-source-${{ github.run_id }}-${{ github.run_attempt }}
-          path: build/${{ inputs.season }}/
+          name: atlas-2024-roster-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/2024/
           retention-days: 90
