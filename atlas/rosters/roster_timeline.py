@@ -51,6 +51,7 @@ OUTPUT_COLUMNS = (
     "last_event_at",
     "last_source",
     "last_source_retrieved_at",
+    "last_knowledge_available_at",
     "pregame_safe",
 )
 
@@ -80,7 +81,9 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
         }
 
     normalized = events.copy()
-    for column in ("effective_at", "source_retrieved_at"):
+    if "knowledge_available_at" not in normalized.columns:
+        normalized["knowledge_available_at"] = normalized["source_retrieved_at"]
+    for column in ("effective_at", "source_retrieved_at", "knowledge_available_at"):
         naive = ~normalized[column].map(_has_explicit_timezone)
         if naive.any():
             errors.append(f"{column} contains timezone-naive timestamps")
@@ -89,6 +92,9 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
     )
     normalized["source_retrieved_at"] = pd.to_datetime(
         normalized["source_retrieved_at"], utc=True, errors="coerce"
+    )
+    normalized["knowledge_available_at"] = pd.to_datetime(
+        normalized["knowledge_available_at"], utc=True, errors="coerce"
     )
 
     if normalized.empty:
@@ -104,9 +110,11 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
             "duplicate event_id values: "
             + ", ".join(sorted(duplicate_ids.astype(str).unique()))
         )
-    for column in ("effective_at", "source_retrieved_at"):
+    for column in ("effective_at", "source_retrieved_at", "knowledge_available_at"):
         if normalized[column].isna().any():
             errors.append(f"{column} contains missing or invalid timestamps")
+    if (normalized["knowledge_available_at"] > normalized["source_retrieved_at"]).any():
+        errors.append("knowledge_available_at cannot be later than source_retrieved_at")
     for column in ("season", "team", "player_id", "event_type", "source"):
         if normalized[column].isna().any():
             errors.append(f"{column} contains null values")
@@ -121,7 +129,7 @@ def certify_roster_events(events: pd.DataFrame) -> dict[str, Any]:
         errors.append("organization_member is required to establish roster membership")
     else:
         ordered = normalized.sort_values(
-            ["season", "team", "player_id", "effective_at", "source_retrieved_at", "event_id"],
+            ["season", "team", "player_id", "effective_at", "knowledge_available_at", "event_id"],
             kind="stable",
         )
         first_events = ordered.groupby(
@@ -171,6 +179,11 @@ def build_pregame_roster_snapshots(
     event_rows["source_retrieved_at"] = pd.to_datetime(
         event_rows["source_retrieved_at"], utc=True
     )
+    if "knowledge_available_at" not in event_rows.columns:
+        event_rows["knowledge_available_at"] = event_rows["source_retrieved_at"]
+    event_rows["knowledge_available_at"] = pd.to_datetime(
+        event_rows["knowledge_available_at"], utc=True
+    )
     games = team_games.copy()
     games["game_start_at"] = pd.to_datetime(
         games["game_start_at"], utc=True, errors="coerce"
@@ -192,7 +205,7 @@ def build_pregame_roster_snapshots(
         raise ValueError("duplicate team-game keys: " + ", ".join(sorted(keys)))
 
     event_rows = event_rows.sort_values(
-        ["season", "team", "effective_at", "source_retrieved_at", "event_id"],
+        ["season", "team", "effective_at", "knowledge_available_at", "event_id"],
         kind="stable",
     )
     games = games.sort_values(
@@ -218,7 +231,7 @@ def build_pregame_roster_snapshots(
             # into earlier snapshots.
             eligible = relevant.loc[
                 (relevant["effective_at"] <= game_start)
-                & (relevant["source_retrieved_at"] <= game_start)
+                & (relevant["knowledge_available_at"] <= game_start)
             ]
             state: dict[Any, dict[str, Any]] = {}
             for event in eligible.to_dict("records"):
@@ -235,6 +248,7 @@ def build_pregame_roster_snapshots(
                         "last_event_at": event["effective_at"],
                         "last_source": event["source"],
                         "last_source_retrieved_at": event["source_retrieved_at"],
+                        "last_knowledge_available_at": event["knowledge_available_at"],
                     }
                 )
             emitted_for_game = 0
@@ -251,7 +265,7 @@ def build_pregame_roster_snapshots(
                         **player_state,
                         "pregame_safe": (
                             player_state["last_event_at"] <= game_start
-                            and player_state["last_source_retrieved_at"] <= game_start
+                            and player_state["last_knowledge_available_at"] <= game_start
                         ),
                     }
                 )
