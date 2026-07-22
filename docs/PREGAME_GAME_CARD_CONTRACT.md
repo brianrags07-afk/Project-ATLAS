@@ -130,6 +130,34 @@ explicit `source_timestamp_utc` (or an entry in
 evidence must be treated as `pregame_possible_but_needs_timestamp_proof`,
 never assumed pregame-safe.
 
+### Official historical replay mode
+
+Historical 2024 learning and the isolated 2025 backtest may use an official
+MLB Stats API live-feed version requested with a historical `timecode`, but
+they must never pretend that ATLAS captured that version live. A historical
+replay source must preserve all of the following separately:
+
+* `requested_timecode`: the exact source version requested for the game;
+* `source_snapshot_at`: the timestamp published inside that MLB source
+  version, which must be at or before `feature_cutoff_time_utc`;
+* `archive_retrieved_at`: the later timestamp when ATLAS downloaded the
+  historical version;
+* `capture_mode: official_historical_replay`;
+* `historical_replay: true` and `actual_live_capture: false`.
+
+The replay is pregame-content-safe only when the official source snapshot is
+at or before the cutoff and contains no pitch, completed at-bat, or other
+non-advisory game action. Raw replay payloads are immutable audit evidence and
+are not model-readable. The normalized model input is restricted to an
+explicit whitelist of pregame identities, batting order, probable starters,
+and provenance fields; it may not extract scores, results, same-game stats, or
+other outcomes.
+
+This replay mode does not weaken the live contract. A 2026 card represented as
+an actual live capture still requires ATLAS's real retrieval timestamp at or
+before the cutoff. Backfilled 2026 replay data may support audits, but it may
+not be relabeled as a prediction-time capture.
+
 ## Expected vs. confirmed representation
 
 `starters.*.status` and `lineups.*.status` use the enum `expected` /

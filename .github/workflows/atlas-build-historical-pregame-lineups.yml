@@ -1,0 +1,118 @@
+name: ATLAS Build 2024 Historical Pregame Lineups
+
+on:
+  pull_request:
+    paths:
+      - "atlas/lineups/mlb_pregame_lineup_source.py"
+      - "scripts/build_historical_pregame_lineup_source.py"
+      - "tests/test_mlb_pregame_lineup_source.py"
+      - ".github/workflows/atlas-build-historical-pregame-lineups.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "atlas/lineups/mlb_pregame_lineup_source.py"
+      - "scripts/build_historical_pregame_lineup_source.py"
+      - "tests/test_mlb_pregame_lineup_source.py"
+      - ".github/workflows/atlas-build-historical-pregame-lineups.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-historical-pregame-lineups-2024
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pytest requests
+      - run: python -m pytest tests/test_mlb_pregame_lineup_source.py -q
+
+  build:
+    if: github.event_name != 'pull_request'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SCHEDULE_URI: gs://atlas-mlb-data-brian-4817/data/canonical/schedules/mlb/2024/raw/mlb_schedule_2024_regular_20260721T105646Z.json#1784680849238878
+      SCHEDULE_SHA256: 04232fe371adfd92402dbb8c4ed6ee9a97e6117cad27811d7df41381013bace7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Download generation-pinned certified 2024 schedule
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source build/2024
+          gcloud storage cp "$SCHEDULE_URI" source/mlb_schedule_2024_regular.json
+      - name: Replay official MLB pregame sources at T-minus 15 minutes
+        run: >-
+          python scripts/build_historical_pregame_lineup_source.py
+          --season 2024
+          --schedule source/mlb_schedule_2024_regular.json
+          --output build/2024
+          --expected-schedule-sha256 "$SCHEDULE_SHA256"
+          --expected-completed-games 2429
+          --cutoff-minutes 15
+          --max-workers 6
+      - name: Verify historical replay manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("build/2024/manifest.json").read_text())
+          assert manifest["season"] == 2024
+          assert manifest["game_type"] == "R"
+          assert manifest["completed_regular_games"] == 2429
+          assert manifest["capture_mode"] == "official_historical_replay"
+          assert manifest["historical_replay"] is True
+          assert manifest["actual_live_capture"] is False
+          assert manifest["normalized_outcome_fields"] == 0
+          assert manifest["same_game_postgame_data_used"] is False
+          assert manifest["future_games_used"] is False
+          assert manifest["prediction_created"] is False
+          assert manifest["certification"]["verdict"] == "certified"
+          assert manifest["promotion_status"] == "build_only_not_canonical"
+          PY
+      - name: Publish immutable source with readback verification
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/builds/pregame-lineups/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in build/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-2024-historical-pregame-lineups-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/2024/
+          retention-days: 90
