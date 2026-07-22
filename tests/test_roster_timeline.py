@@ -211,6 +211,7 @@ def test_empty_game_request_returns_stable_empty_schema():
 @pytest.mark.parametrize("column", ["game_pk", "game_start_at", "season", "team"])
 def test_null_or_invalid_schedule_identity_is_rejected(column):
     games = _games().iloc[[0]].copy()
+    games[column] = games[column].astype("object")
     games.loc[:, column] = None
     with pytest.raises(ValueError, match=column):
         build_pregame_roster_snapshots(_events(), games)
