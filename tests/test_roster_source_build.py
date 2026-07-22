@@ -15,6 +15,7 @@ def test_team_windows_follow_published_regular_schedule():
     windows = schedule_team_windows(SCHEDULE + [{"season": 2024, "game_type_code": "S", "game_date_utc": "2024-02-20T00:00:00Z", "official_date": "2024-02-19", "home_team_id": 1, "away_team_id": 2}], 2024)
     assert set(windows["first_game_date"]) == {"2024-03-28"}
     assert set(windows["last_game_date"]) == {"2024-09-29"}
+    assert set(windows["roster_snapshot_date"]) == {"2024-03-27"}
 
 
 def test_missing_official_date_is_rejected_instead_of_using_utc_date():
@@ -35,6 +36,7 @@ def test_bundle_is_season_isolated_and_preserves_raw_payloads():
     assert len(bundle["team_windows"]) == 2
     assert len(bundle["rosters"]) == 4
     assert set(bundle["raw_payloads"]["clubs"]) == {"1", "2"}
+    assert set(bundle["rosters"]["as_of_date"]) == {"2024-03-27"}
 
 
 def test_directory_must_exactly_match_scheduled_clubs():
