@@ -101,8 +101,8 @@ def _team_lookup(teams: pd.DataFrame) -> dict[int, str]:
 
 
 def _status_team_id(row: dict[str, Any], lookup: dict[int, str]) -> int | None:
-    """Return only the transaction object's explicit MLB club identity."""
-    value = row.get("team_id")
+    """Return only the MLB club whose official team-scoped feed supplied the row."""
+    value = row.get("requested_team_id")
     if pd.isna(value) or int(value) not in lookup:
         return None
     return int(value)
@@ -151,7 +151,7 @@ def opening_roster_events(rosters: pd.DataFrame, teams: pd.DataFrame) -> tuple[p
 def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Convert explicit transfers and allowlisted status facts; quarantine the rest."""
     lookup = _team_lookup(teams)
-    required = {"season", "transaction_id", "player_id", "team_id",
+    required = {"season", "transaction_id", "player_id", "requested_team_id",
                 "from_team_id", "to_team_id", "effective_date", "transaction_date",
                 "type_code", "type_description",
                 "source_retrieved_at", "source_record_sha256"}
@@ -208,7 +208,7 @@ def directional_transaction_events(transactions: pd.DataFrame, teams: pd.DataFra
         team_id = _status_team_id(row, lookup)
         if team_id is None:
             quarantine_rows.append({
-                **row, "quarantine_reason": "status transaction missing official MLB club"
+                **row, "quarantine_reason": "status transaction missing team-scoped source club"
             })
             continue
         status_candidates.append({
