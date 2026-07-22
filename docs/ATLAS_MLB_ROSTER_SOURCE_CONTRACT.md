@@ -9,6 +9,10 @@ MLB may reuse one transaction ID across several source rows. ATLAS preserves all
 of them and assigns a stable ID/hash/occurrence `transaction_key`; semantic event
 conversion must reason over those rows and must not assume transaction ID alone
 is a row-level primary key.
+Roster endpoints may likewise repeat an entry or omit a usable person ID. ATLAS
+retains each source row with a hash-plus-occurrence `roster_key` and exposes
+`player_identity_known`; unidentified rows remain auditable but cannot become
+player events until a separately sourced identity resolution succeeds.
 
 This layer is deliberately lossless and does **not** translate transaction prose into
 membership or availability state. Historical transaction fields are often day-precise,
