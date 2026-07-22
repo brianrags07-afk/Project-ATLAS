@@ -92,14 +92,21 @@ def normalize_transactions(
 ) -> pd.DataFrame:
     retrieved = _retrieved_at(retrieved_at_utc)
     rows = []
+    occurrences: dict[tuple[Any, str], int] = {}
     for item in payload.get("transactions", []):
         person = item.get("person") or {}
         from_team = item.get("fromTeam") or {}
         to_team = item.get("toTeam") or {}
         team = item.get("team") or {}
+        record_hash = _hash(item)
+        occurrence_key = (item.get("id"), record_hash)
+        occurrence = occurrences.get(occurrence_key, 0) + 1
+        occurrences[occurrence_key] = occurrence
         rows.append({
             "season": int(season), "requested_team_id": int(requested_team_id),
-            "transaction_id": item.get("id"), "player_id": person.get("id"),
+            "transaction_id": item.get("id"),
+            "transaction_key": f"{item.get('id')}:{record_hash}:{occurrence}",
+            "source_occurrence": occurrence, "player_id": person.get("id"),
             "player_name": person.get("fullName"),
             "team_id": team.get("id"), "team_name": team.get("name"),
             "from_team_id": from_team.get("id"), "from_team_name": from_team.get("name"),
@@ -109,15 +116,15 @@ def normalize_transactions(
             "type_description": item.get("typeDesc"), "description": item.get("description"),
             "source": SOURCE, "source_retrieved_at": retrieved,
             "source_time_precision": "retrieval_exact; transaction_dates_day",
-            "pregame_time_known": False, "source_record_sha256": _hash(item),
+            "pregame_time_known": False, "source_record_sha256": record_hash,
         })
-    columns = ["season", "requested_team_id", "transaction_id", "player_id", "player_name", "team_id", "team_name",
+    columns = ["season", "requested_team_id", "transaction_id", "transaction_key", "source_occurrence", "player_id", "player_name", "team_id", "team_name",
                "from_team_id", "from_team_name", "to_team_id", "to_team_name",
                "transaction_date", "effective_date", "resolution_date", "type_code", "type_description", "description",
                "source", "source_retrieved_at", "source_time_precision", "pregame_time_known", "source_record_sha256"]
     frame = pd.DataFrame(rows, columns=columns)
-    if not frame.empty and (
-        frame["transaction_id"].isna().any() or frame["transaction_id"].duplicated().any()
-    ):
-        raise ValueError("transactions contain null or duplicate transaction IDs")
+    if not frame.empty and frame["transaction_id"].isna().any():
+        raise ValueError("transactions contain null transaction IDs")
+    if not frame.empty and frame["transaction_key"].duplicated().any():
+        raise AssertionError("transaction row keys are not unique")
     return frame.sort_values(["transaction_date", "transaction_id"], na_position="last").reset_index(drop=True)

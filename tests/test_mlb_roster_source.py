@@ -36,10 +36,13 @@ def test_transactions_preserve_both_teams_without_claiming_pregame_knowledge():
     assert frame.iloc[0]["to_team_id"] == 113
 
 
-def test_rejects_duplicate_transaction_ids():
+def test_repeated_transaction_ids_preserve_every_source_row_with_unique_keys():
     item = {"id": 9, "date": "2024-07-30", "person": {"id": 7}}
-    with pytest.raises(ValueError, match="duplicate"):
-        normalize_transactions({"transactions": [item, item]}, season=2024, requested_team_id=113)
+    frame = normalize_transactions({"transactions": [item, item]}, season=2024, requested_team_id=113)
+    assert len(frame) == 2
+    assert frame["transaction_id"].tolist() == [9, 9]
+    assert frame["transaction_key"].is_unique
+    assert frame["source_occurrence"].tolist() == [1, 2]
 
 
 def test_empty_transaction_window_has_stable_schema():
