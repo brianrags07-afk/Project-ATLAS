@@ -1,0 +1,84 @@
+name: ATLAS Certified 2024 Roster Events
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-build-roster-events.yml"
+  pull_request:
+    paths:
+      - "atlas/rosters/**"
+      - "scripts/build_historical_roster_events.py"
+      - "tests/test_roster_event_conversion.py"
+      - "tests/test_build_historical_roster_events.py"
+      - ".github/workflows/atlas-build-roster-events.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 pytest requests
+      - run: python -m pytest tests/test_roster_event_conversion.py tests/test_build_historical_roster_events.py tests/test_roster_timeline.py -q
+
+  build:
+    if: github.event_name == 'push'
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SOURCE_GLOB: gs://atlas-mlb-data-brian-4817/data/builds/rosters/mlb/2024/41668a24e55ccbb8e7a3be6dccc9e3a53ffae47c/*/*/manifest.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas pyarrow==23.0.1 requests
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Resolve exactly one immutable source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t manifests < <(gcloud storage ls "$SOURCE_GLOB")
+          [[ ${#manifests[@]} -eq 1 ]] || { echo "Expected one source manifest, found ${#manifests[@]}"; exit 1; }
+          prefix="${manifests[0]%/manifest.json}"
+          echo "SOURCE_PREFIX=$prefix" >> "$GITHUB_ENV"
+      - name: Download and build certified event ledger
+        run: |
+          mkdir -p source build/2024
+          for artifact in manifest.json teams.parquet rosters.parquet transactions.parquet; do
+            gcloud storage cp "$SOURCE_PREFIX/$artifact" "source/$artifact"
+          done
+          python scripts/build_historical_roster_events.py --source source --output build/2024 --season 2024
+      - name: Publish immutable build with readback verification
+        env:
+          DEST: gs://atlas-mlb-data-brian-4817/data/builds/roster-events/mlb/2024/${{ github.sha }}/${{ github.run_id }}/${{ github.run_attempt }}/
+        run: |
+          set -euo pipefail
+          mkdir -p readback
+          for source in build/2024/*; do
+            artifact="$(basename "$source")"
+            gcloud storage cp --no-clobber "$source" "${DEST}${artifact}"
+            gcloud storage cp "${DEST}${artifact}" "readback/${artifact}"
+            cmp --silent "$source" "readback/${artifact}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-2024-roster-events-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/2024/
+          retention-days: 90
