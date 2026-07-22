@@ -24,6 +24,12 @@ time ATLAS obtained the source are no later than scheduled first pitch. The
 output preserves the last event and source timestamps so this rule can be
 audited. Unknown history remains unknown and blocks certification.
 
+Retrospective sources keep two separate clocks: `source_retrieved_at` records
+when ATLAS downloaded the record, while `knowledge_available_at` records the
+conservative historical time at which the sourced fact can be used. Live data
+defaults availability to retrieval time. Historical adapters must document
+their availability rule; retrieval time is never rewritten to appear historical.
+
 ## Derived artifacts
 
 - roster event ledger: immutable sourced changes
