@@ -22,6 +22,7 @@ from atlas.lineups.mlb_pregame_lineup_source import (
     fetch_timecoded_game_feed,
     format_mlb_timecode,
     normalize_timecoded_pregame_feed,
+    partition_timecoded_pregame_bundle,
     prepare_completed_regular_games,
 )
 from atlas.schedule.mlb_schedule_reference import normalize_schedule
@@ -189,9 +190,11 @@ def main() -> None:
             f"see {failure_path}"
         )
 
-    game_snapshots = pd.DataFrame(game_rows, columns=GAME_SNAPSHOT_COLUMNS).sort_values(
-        ["game_start_at", "game_pk"], kind="stable"
-    ).reset_index(drop=True)
+    all_game_snapshots = pd.DataFrame(
+        game_rows, columns=GAME_SNAPSHOT_COLUMNS
+    ).sort_values(["game_start_at", "game_pk"], kind="stable").reset_index(
+        drop=True
+    )
     lineups = pd.DataFrame(lineup_rows, columns=LINEUP_COLUMNS).sort_values(
         ["game_start_at", "game_pk", "home_away", "batting_order"],
         kind="stable",
@@ -202,7 +205,7 @@ def main() -> None:
     raw_index = pd.DataFrame(raw_index_rows).sort_values(
         ["game_pk"], kind="stable"
     ).reset_index(drop=True)
-    for frame in (game_snapshots, lineups, starters, raw_index):
+    for frame in (all_game_snapshots, lineups, starters, raw_index):
         for column in (
             "game_pk",
             "season",
@@ -219,14 +222,27 @@ def main() -> None:
                     frame[column], errors="coerce"
                 ).astype("Int64")
 
-    certification = certify_timecoded_pregame_bundle(
+    (
         game_snapshots,
+        lineups,
+        starters,
+        quarantined_game_snapshots,
+    ) = partition_timecoded_pregame_bundle(
+        all_game_snapshots,
+        lineups,
+        starters,
+    )
+    certification = certify_timecoded_pregame_bundle(
+        all_game_snapshots,
         lineups,
         starters,
         games,
         season=args.season,
     )
-    if certification["verdict"] != "certified":
+    if certification["verdict"] not in {
+        "certified",
+        "certified_with_documented_gaps",
+    }:
         raise ValueError(
             "historical pregame source certification failed: "
             + "; ".join(certification["errors"])
@@ -236,6 +252,7 @@ def main() -> None:
         "pregame_game_snapshots.parquet": game_snapshots,
         "pregame_lineup_snapshots.parquet": lineups,
         "pregame_probable_starter_snapshots.parquet": starters,
+        "quarantined_game_snapshots.parquet": quarantined_game_snapshots,
         "raw_payload_index.parquet": raw_index,
     }
     for name, frame in paths.items():
@@ -262,6 +279,7 @@ def main() -> None:
         "actual_live_capture": False,
         "historical_replay": True,
         "outcome_fields_extracted": 0,
+        "quarantined_games_are_model_readable": False,
         "prediction_created": False,
     }
     summary_path = args.output / "pregame_source_summary.json"
@@ -289,6 +307,8 @@ def main() -> None:
         "historical_replay": True,
         "normalized_outcome_fields": 0,
         "raw_payloads_model_readable": False,
+        "quarantined_snapshots_model_readable": False,
+        "normalized_outputs_contain_only_pregame_safe_rows": True,
         "same_game_postgame_data_used": False,
         "future_games_used": False,
         "prediction_created": False,

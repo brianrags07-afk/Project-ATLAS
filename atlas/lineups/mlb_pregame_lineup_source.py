@@ -441,6 +441,51 @@ def _keys(frame: pd.DataFrame, columns: list[str]) -> set[tuple[Any, ...]]:
     return set(frame[columns].itertuples(index=False, name=None))
 
 
+def partition_timecoded_pregame_bundle(
+    game_snapshots: pd.DataFrame,
+    lineups: pd.DataFrame,
+    starters: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Separate model-readable pregame rows from unsafe source snapshots.
+
+    The raw archive remains complete.  A snapshot is eligible for normalized
+    pregame use only when the official source version is timestamped at or
+    before the requested cutoff and contains no game action.  Games that fail
+    either proof are preserved in a quarantine table and contribute explicit
+    coverage gaps; their lineup and starter rows never enter model-readable
+    outputs.
+    """
+
+    for frame, columns, label in (
+        (game_snapshots, GAME_SNAPSHOT_COLUMNS, "game snapshots"),
+        (lineups, LINEUP_COLUMNS, "lineups"),
+        (starters, STARTER_COLUMNS, "starters"),
+    ):
+        _require_columns(frame, set(columns), label)
+
+    safe_mask = (
+        game_snapshots["pregame_content_safe"].fillna(False).astype(bool)
+        & ~game_snapshots["game_had_started_at_snapshot"]
+        .fillna(True)
+        .astype(bool)
+    )
+    safe_game_snapshots = game_snapshots.loc[safe_mask].copy()
+    quarantined_game_snapshots = game_snapshots.loc[~safe_mask].copy()
+    safe_game_ids = set(safe_game_snapshots["game_pk"].astype(int))
+    safe_lineups = lineups.loc[
+        lineups["game_pk"].astype(int).isin(safe_game_ids)
+    ].copy()
+    safe_starters = starters.loc[
+        starters["game_pk"].astype(int).isin(safe_game_ids)
+    ].copy()
+    return (
+        safe_game_snapshots.reset_index(drop=True),
+        safe_lineups.reset_index(drop=True),
+        safe_starters.reset_index(drop=True),
+        quarantined_game_snapshots.reset_index(drop=True),
+    )
+
+
 def certify_timecoded_pregame_bundle(
     game_snapshots: pd.DataFrame,
     lineups: pd.DataFrame,
@@ -473,10 +518,6 @@ def certify_timecoded_pregame_bundle(
         errors.append("duplicate game snapshots detected")
     if not game_snapshots["season"].eq(int(season)).all():
         errors.append(f"game snapshots contain rows outside season {season}")
-    if not game_snapshots["pregame_content_safe"].fillna(False).astype(bool).all():
-        errors.append("one or more source snapshots are not pregame safe")
-    if game_snapshots["game_had_started_at_snapshot"].fillna(True).astype(bool).any():
-        errors.append("one or more source snapshots already contain game action")
     if game_snapshots["outcome_fields_extracted"].fillna(True).astype(bool).any():
         errors.append("one or more snapshots claim outcome fields were extracted")
     if not game_snapshots["historical_replay"].fillna(False).astype(bool).all():
@@ -497,13 +538,52 @@ def certify_timecoded_pregame_bundle(
     if not lineups["pregame_safe"].fillna(False).astype(bool).all():
         errors.append("one or more lineup rows are not pregame safe")
 
+    safe_snapshot_mask = (
+        game_snapshots["pregame_content_safe"].fillna(False).astype(bool)
+        & ~game_snapshots["game_had_started_at_snapshot"]
+        .fillna(True)
+        .astype(bool)
+    )
+    safe_game_ids = set(
+        game_snapshots.loc[safe_snapshot_mask, "game_pk"].astype(int)
+    )
+    quarantined_game_ids = sorted(actual_game_ids.difference(safe_game_ids))
+    lineup_game_ids = set(lineups["game_pk"].astype(int))
+    starter_game_ids = set(starters["game_pk"].astype(int))
+    if not lineup_game_ids.issubset(safe_game_ids):
+        errors.append("lineup rows include quarantined source snapshots")
+    if not starter_game_ids.issubset(safe_game_ids):
+        errors.append("starter rows include quarantined source snapshots")
+    unsafe_model_game_ids = (
+        lineup_game_ids.union(starter_game_ids).difference(safe_game_ids)
+    )
+    if (
+        game_snapshots.loc[
+            game_snapshots["game_pk"].astype(int).isin(unsafe_model_game_ids),
+            "game_had_started_at_snapshot",
+        ]
+        .fillna(True)
+        .astype(bool)
+        .any()
+    ):
+        errors.append("one or more source snapshots already contain game action")
+
     expected_team_keys = set()
+    safe_expected_team_keys = set()
     for row in expected_games.to_dict("records"):
-        expected_team_keys.add((int(row["game_pk"]), int(row["home_team_id"])))
-        expected_team_keys.add((int(row["game_pk"]), int(row["away_team_id"])))
+        game_pk = int(row["game_pk"])
+        team_keys = {
+            (game_pk, int(row["home_team_id"])),
+            (game_pk, int(row["away_team_id"])),
+        }
+        expected_team_keys.update(team_keys)
+        if game_pk in safe_game_ids:
+            safe_expected_team_keys.update(team_keys)
     starter_team_keys = _keys(starters, ["game_pk", "team_id"])
-    if starter_team_keys != expected_team_keys:
-        errors.append("starter rows do not cover exactly two scheduled teams per game")
+    if starter_team_keys != safe_expected_team_keys:
+        errors.append(
+            "starter rows do not cover exactly two scheduled teams per safe game"
+        )
     if starters.duplicated(["game_pk", "team_id"]).any():
         errors.append("duplicate game/team starter rows detected")
     if not starters["pregame_safe"].fillna(False).astype(bool).all():
@@ -516,12 +596,49 @@ def certify_timecoded_pregame_bundle(
         game_snapshots["published_lineups_confirmed"].fillna(False).sum()
     )
     probable_starter_rows = int(starters["pitcher_id"].notna().sum())
+    snapshot_after_cutoff_game_ids = sorted(
+        game_snapshots.loc[
+            ~game_snapshots["snapshot_at_or_before_cutoff"]
+            .fillna(False)
+            .astype(bool),
+            "game_pk",
+        ].astype(int)
+    )
+    game_action_at_snapshot_game_ids = sorted(
+        game_snapshots.loc[
+            game_snapshots["game_had_started_at_snapshot"]
+            .fillna(True)
+            .astype(bool),
+            "game_pk",
+        ].astype(int)
+    )
+    verdict = (
+        "quarantine_required"
+        if errors
+        else (
+            "certified_with_documented_gaps"
+            if quarantined_game_ids
+            else "certified"
+        )
+    )
     return {
-        "verdict": "certified" if not errors else "quarantine_required",
+        "verdict": verdict,
         "season": int(season),
         "games": int(len(actual_game_ids)),
         "expected_games": int(len(expected_game_ids)),
+        "pregame_safe_games": int(len(safe_game_ids)),
+        "quarantined_games": int(len(quarantined_game_ids)),
+        "quarantined_game_ids": quarantined_game_ids,
+        "snapshot_after_cutoff_games": int(
+            len(snapshot_after_cutoff_game_ids)
+        ),
+        "snapshot_after_cutoff_game_ids": snapshot_after_cutoff_game_ids,
+        "game_action_at_snapshot_games": int(
+            len(game_action_at_snapshot_game_ids)
+        ),
+        "game_action_at_snapshot_game_ids": game_action_at_snapshot_game_ids,
         "team_games": int(expected_team_games),
+        "pregame_safe_team_games": int(len(safe_expected_team_keys)),
         "lineup_rows": int(len(lineups)),
         "starter_rows": int(len(starters)),
         "complete_team_lineups": complete_team_lineups,
@@ -532,6 +649,9 @@ def certify_timecoded_pregame_bundle(
         "probable_starter_rows": probable_starter_rows,
         "missing_probable_starter_rows": int(
             expected_team_games - probable_starter_rows
+        ),
+        "missing_probable_starter_rows_within_safe_games": int(
+            len(safe_expected_team_keys) - probable_starter_rows
         ),
         "lineup_duplicate_keys": lineup_duplicate_keys,
         "lineup_duplicate_players": lineup_duplicate_players,
