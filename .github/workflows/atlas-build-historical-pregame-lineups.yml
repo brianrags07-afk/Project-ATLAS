@@ -91,11 +91,37 @@ jobs:
           assert manifest["historical_replay"] is True
           assert manifest["actual_live_capture"] is False
           assert manifest["normalized_outcome_fields"] == 0
+          assert manifest["raw_payloads_model_readable"] is False
+          assert manifest["quarantined_snapshots_model_readable"] is False
+          assert manifest["normalized_outputs_contain_only_pregame_safe_rows"] is True
           assert manifest["same_game_postgame_data_used"] is False
           assert manifest["future_games_used"] is False
           assert manifest["prediction_created"] is False
-          assert manifest["certification"]["verdict"] == "certified"
+          assert manifest["certification"]["verdict"] in {
+              "certified",
+              "certified_with_documented_gaps",
+          }
           assert manifest["promotion_status"] == "build_only_not_canonical"
+
+          import pandas as pd
+
+          game_snapshots = pd.read_parquet(
+              "build/2024/pregame_game_snapshots.parquet"
+          )
+          lineups = pd.read_parquet(
+              "build/2024/pregame_lineup_snapshots.parquet"
+          )
+          starters = pd.read_parquet(
+              "build/2024/pregame_probable_starter_snapshots.parquet"
+          )
+          quarantined = pd.read_parquet(
+              "build/2024/quarantined_game_snapshots.parquet"
+          )
+          assert game_snapshots["pregame_content_safe"].all()
+          assert not game_snapshots["game_had_started_at_snapshot"].any()
+          assert lineups["pregame_safe"].all()
+          assert starters["pregame_safe"].all()
+          assert not quarantined["pregame_content_safe"].any()
           PY
       - name: Publish immutable source with readback verification
         env:

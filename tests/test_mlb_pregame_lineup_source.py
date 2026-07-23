@@ -11,6 +11,7 @@ from atlas.lineups.mlb_pregame_lineup_source import (
     certify_timecoded_pregame_bundle,
     format_mlb_timecode,
     normalize_timecoded_pregame_feed,
+    partition_timecoded_pregame_bundle,
     prepare_completed_regular_games,
 )
 
@@ -197,3 +198,40 @@ def test_feed_with_a_play_is_not_pregame_safe():
     )
     assert report["verdict"] == "quarantine_required"
     assert "already contain game action" in "; ".join(report["errors"])
+
+
+def test_unsafe_snapshot_becomes_documented_gap_not_model_input():
+    payload = feed()
+    payload["metaData"]["timeStamp"] = "20240401_194600"
+    all_games, all_lineups, all_starters = frames(payload)
+    (
+        safe_games,
+        safe_lineups,
+        safe_starters,
+        quarantined_games,
+    ) = partition_timecoded_pregame_bundle(
+        all_games,
+        all_lineups,
+        all_starters,
+    )
+
+    assert safe_games.empty
+    assert safe_lineups.empty
+    assert safe_starters.empty
+    assert quarantined_games["game_pk"].tolist() == [10]
+    report = certify_timecoded_pregame_bundle(
+        all_games,
+        safe_lineups,
+        safe_starters,
+        expected_games(),
+        season=2024,
+    )
+    assert report["verdict"] == "certified_with_documented_gaps"
+    assert report["pregame_safe_games"] == 0
+    assert report["quarantined_games"] == 1
+    assert report["quarantined_game_ids"] == [10]
+    assert report["snapshot_after_cutoff_game_ids"] == [10]
+    assert report["game_action_at_snapshot_game_ids"] == []
+    assert report["incomplete_or_missing_team_lineups"] == 2
+    assert report["missing_probable_starter_rows"] == 2
+    assert report["errors"] == []
